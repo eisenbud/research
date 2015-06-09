@@ -1,6 +1,28 @@
 --This file contains a number of experiments using the package
-"CompleteIntersectionResolutions"
+--"CompleteIntersectionResolutions"
+needsPackage "CompleteIntersectionResolutions"
+needsPackage "AnalyzeSheafOnP1"
+{*
+--these are now in CompleteIntersectionResolutions
+dualWithComponents = method()
+dualWithComponents Module := M -> (
+   if not isDirectSum M then return dual M else (
+	directSum(components M/dualWithComponents)))
 
+tensorWithComponents = method()
+tensorWithComponents(Module, Module) := (M,N) ->(
+   if not isDirectSum M and not isDirectSum N then return M**N else
+      directSum flatten apply(components M, m->apply(components N, n->(
+	       tensorWithComponents(m,n)))))
+
+HomWithComponents = method()
+HomWithComponents (Module, Module) :=  (M,N) ->(
+   if not isDirectSum M and not isDirectSum N then return Hom(M,N) else
+      directSum flatten apply(components M, m->apply(components N, n->(
+	       HomWithComponents(m,n)))))
+*}
+
+end--
 ----experiment with exteriorExtModule
 restart
 uninstallPackage "CompleteIntersectionResolutions"
@@ -905,3 +927,75 @@ values H
 matrix(H#(ke_0))
 
 -----
+restart
+--notify=true
+load "ci-experiments.m2"
+--loadPackage ("CompleteIntersectionResolutions", Reload=>true)
+uninstallPackage"CompleteIntersectionResolutions"
+installPackage"CompleteIntersectionResolutions"
+--viewHelp highSyzygy
+viewHelp matrixFactorization
+uninstallPackage "AnalyzeSheafOnP1"
+installPackage "AnalyzeSheafOnP1"
+
+showS = showSheafOnP1
+
+kk=ZZ/101
+S = kk[a,b]
+ff = matrix"a4,b4"
+R = S/ideal ff
+toR = map(R,S)
+
+N = R^1/ideal"a2, ab, b3"
+N = coker vars R
+M = highSyzygy N
+
+mf = matrixFactorization(ff, M)
+bMaps mf
+psiMaps mf
+hMaps mf
+
+P = S^3++S^4
+components P
+methods dual
+
+dualWithComponents = M -> (
+    if not isDirectSum M then return dual M else (
+	directSum(components M/dualWithComponents)))
+Q = dualWithComponents (P++P)
+(components Q)/components
+
+tensorWithComponents = method()
+tensorWithComponents(Module, Module) := (M,N) ->(
+    if not isDirectSum M and not isDirectSum N then return M**N else
+       directSum flatten apply(components M, m->apply(components N, n->(
+	       tensorWithComponents(m,n)))))
+tensorWithComponents ((P++P)++P, S^2++S^1)
+(components tensorWithComponents ((P++P)++P, S^2++S^1))/components
+viewHelp flatten
+(P++(P++P))^[1] != ((P++P)++P)^[1]
+(P++(P++P)) === ((P++P)++P)
+F = makeFiniteResolution(mf, ff)
+d = mf_0
+h = mf_1
+b1 = d_[0]^[0]
+h1 = h_[0]^[0]
+b2 = d_[1]^[1]
+h2 = h_[1]^[1]
+psi = h_[1]^[0]
+((F_1)^[1])_[1]
+
+(F.dd_2)_[1]
+(F.dd_1)^[1]
+code methods matrixFactorization
+
+E0 = evenExtModule(MR)
+E1 = oddExtModule MR
+showS E0
+showS E1
+
+showExt = MR ->(
+E0 = evenExtModule coker (cosyzygyRes(coker vars R)).dd_1
+E0'' = prune( E0/(saturate 0_E0))
+showExt (coker vars R)
+showExt N
