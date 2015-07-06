@@ -1,0 +1,69 @@
+Macaulay2, version 1.8.1
+with packages: ConwayPolynomials, Elimination, IntegralClosure, LLLBases, PrimaryDecomposition,
+               ReesAlgebra, TangentCone
+
+i1 : load "ci-experiments.m2"
+
+i2 : kk = ZZ/5;
+
+i3 : S = kk[a,b];
+
+i4 : gg = matrix"a3,a3-b3" -- a3, b3 isn't general enough for this example
+
+o4 = | a3 a3-b3 |
+
+i5 : R = S/ideal gg;
+
+i6 : m = map(R^2, R^{-1,-2},matrix"a,ab;b,b2")
+
+o6 = | a ab |
+     | b b2 |
+
+i7 : M = highSyzygy coker m
+
+o7 = cokernel {7} | b2 0 -a2 0 |
+              {8} | a  b 0   0 |
+              {8} | 0  0 b   a |
+
+     mf = matrixFactorization (gg, M) 
+
+o8 = {{8} | a -b 0   0  |, {9} | a2 b 0  0 0  |}
+      {7} | 0 a2 -b2 0  |  {9} | 0  a b2 0 0  |
+      {8} | 0 0  a   -b |  {9} | 0  0 a2 b 0  |
+                           {9} | 0  0 0  a b2 |
+
+i9 : makeFiniteResolution2(mf,gg) -- X,Y are both full rank scalar mats
+
+o9 = HashTable{alpha => {9} | a2 b |         }
+                        {9} | b2 a |
+               b => {8} | a -b |
+               h1 => {9} | a2 b 0  |
+                     {9} | b2 a 0  |
+                     {9} | a2 b 0  |
+                     {9} | 0  a b2 |
+               h1' => {9} | 0  0 0  |
+                      {9} | b2 0 0  |
+                      {9} | a2 b 0  |
+                      {9} | 0  a b2 |
+               mu => {9} | a2 b |
+                     {9} | 0  a |
+               partial => {8} | a -b |
+                          {7} | 0 a2 |
+               psi => {8} | 0   0 |
+                      {7} | -b2 0 |
+                              3      5      2
+               resolution => S  <-- S  <-- S
+                                            
+                             0      1      2
+               sigma => {9} | 0  |
+                        {9} | b2 |
+               tau => 0
+               u => {11} | 1 0 |
+               v => {12} | 1 0 |
+                    {12} | 0 1 |
+               X => {11} | -1 |
+               Y => {12} | -1 0  |
+                    {12} | 0  -1 |
+
+      
+      

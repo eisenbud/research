@@ -2,27 +2,83 @@
 --"CompleteIntersectionResolutions"
 needsPackage "CompleteIntersectionResolutions"
 needsPackage "AnalyzeSheafOnP1"
-{*
---these are now in CompleteIntersectionResolutions
-dualWithComponents = method()
-dualWithComponents Module := M -> (
-   if not isDirectSum M then return dual M else (
-	directSum(components M/dualWithComponents)))
+--routines for testing the S2 conjecture:
+--Conjecture: If M is an MCM over a CI, then
+--Ext(M,k) surjects onto its S2-ification; ie the
+--first local cohomology module is 0.
 
-tensorWithComponents = method()
-tensorWithComponents(Module, Module) := (M,N) ->(
-   if not isDirectSum M and not isDirectSum N then return M**N else
-      directSum flatten apply(components M, m->apply(components N, n->(
-	       tensorWithComponents(m,n)))))
+cosyzygy = (e,M) -> (
+F := cosyzygyRes(e,M);
+coker F.dd_1)
 
-HomWithComponents = method()
-HomWithComponents (Module, Module) :=  (M,N) ->(
-   if not isDirectSum M and not isDirectSum N then return Hom(M,N) else
-      directSum flatten apply(components M, m->apply(components N, n->(
-	       HomWithComponents(m,n)))))
-*}
+depth Module := M ->(
+    --M is a module over R = S/I,
+    --with S regular
+    R := ring M;
+    S := ring presentation R;
+    MS := pushForward(map(R,S), M);
+    numgens S - length complete res MS)
+
+testCM = M -> 0 == dim M - depth M
+
+testS2 = (e,M)->(
+    --M is a module over R = S/(ff), a CI, then
+    --testS2(e,M) tests whether the Ext(N,k) surjects
+    --to it's S2-ification in degrees >=0 (that is, staring
+    --with Ext^0(N,k).
+    Me = cosyzygy(e,M);
+    {0 == truncate (0, coker S2(0, evenExtModule Me)),
+	0 == truncate (0, coker S2(0, oddExtModule Me))}
+    )
+///
+kk=ZZ/101
+S = kk[a,b]
+ff = matrix"a4,b4"
+R = S/ideal ff
+toR = map(R,S)
+
+N = R^1/ideal"a2, ab, b3"
+N = coker vars R
+M = highSyzygy N
+
+mf = matrixFactorization(ff, M)
+b = bMaps mf
+h = hMaps mf
+psi = psiMaps mf
+h_1_[0]^[0]
+h_1_[0]^[1]
+(source h_1)_[0]
+///
 
 end--
+
+doc ///
+   Key
+    makeFiniteResolution2
+    (makeFiniteResolution2, List, Matrix)
+   Headline
+    Maps associated to the finite resolution of a high syzygy module in codim 2
+   Usage
+    maps = makeFiniteResolution2(mf,ff)
+   Inputs
+    mf:List
+     matrix factorization
+    ff:Matrix
+     regular sequence
+   Outputs
+    maps:HashTable
+     many maps
+   Description
+    Text
+     Given a codim 2 matrix factorization, makes all the components of 
+     the differential and of the homotopies
+     that are relevant to the finite resolution, as in 4.2.3 of Eisenbud-Peeva 
+     "Minimal Free Resolutions and Higher Matrix Factorizations"
+    Example
+   SeeAlso
+    makeFiniteResolution
+///
+
 ----experiment with exteriorExtModule
 restart
 uninstallPackage "CompleteIntersectionResolutions"
@@ -935,6 +991,7 @@ uninstallPackage"CompleteIntersectionResolutions"
 installPackage"CompleteIntersectionResolutions"
 --viewHelp highSyzygy
 viewHelp matrixFactorization
+viewHelp CompleteIntersectionResolutions
 uninstallPackage "AnalyzeSheafOnP1"
 installPackage "AnalyzeSheafOnP1"
 
@@ -951,51 +1008,133 @@ N = coker vars R
 M = highSyzygy N
 
 mf = matrixFactorization(ff, M)
-bMaps mf
-psiMaps mf
-hMaps mf
-
-P = S^3++S^4
-components P
-methods dual
-
-dualWithComponents = M -> (
-    if not isDirectSum M then return dual M else (
-	directSum(components M/dualWithComponents)))
-Q = dualWithComponents (P++P)
-(components Q)/components
-
-tensorWithComponents = method()
-tensorWithComponents(Module, Module) := (M,N) ->(
-    if not isDirectSum M and not isDirectSum N then return M**N else
-       directSum flatten apply(components M, m->apply(components N, n->(
-	       tensorWithComponents(m,n)))))
-tensorWithComponents ((P++P)++P, S^2++S^1)
-(components tensorWithComponents ((P++P)++P, S^2++S^1))/components
-viewHelp flatten
-(P++(P++P))^[1] != ((P++P)++P)^[1]
-(P++(P++P)) === ((P++P)++P)
 F = makeFiniteResolution(mf, ff)
-d = mf_0
-h = mf_1
-b1 = d_[0]^[0]
-h1 = h_[0]^[0]
-b2 = d_[1]^[1]
-h2 = h_[1]^[1]
-psi = h_[1]^[0]
-((F_1)^[1])_[1]
+ho = makeHomotopies1(ff, F)
+sigma = ho#{1,0}
+components source sigma
+components target sigma
+h = (hMaps mf)_1
+h_[0]^[0]
+sigma_[0]^[0]
+h
+sigma
 
-(F.dd_2)_[1]
-(F.dd_1)^[1]
-code methods matrixFactorization
 
-E0 = evenExtModule(MR)
-E1 = oddExtModule MR
-showS E0
-showS E1
+----S2 conjecture tests:
+--Conjecture: If M is an MCM over a CI, then
+--Ext(M,k) surjects onto its S2-ification; ie the
+--first local cohomology module is 0.
+restart
+load "ci-experiments.m2"
 
-showExt = MR ->(
-E0 = evenExtModule coker (cosyzygyRes(coker vars R)).dd_1
-E0'' = prune( E0/(saturate 0_E0))
-showExt (coker vars R)
-showExt N
+n= 3
+d=3
+S = kk[x_0..x_(n-1)]
+ff = matrix{apply(n,i->x_i^d)}
+R = S/ideal ff
+M = cosyzygy(3, coker vars R)
+M = coker random(R^2,R^{-1,-2,-3})
+cs = cosyzygy
+M == cs(0,M)
+csr = cosyzygyRes
+betti csr(4,M)
+prune truncate(0, target S2(0, evenExtModule cs(2,M)))
+E = evenExtModule cs(0,M)
+E = evenExtModule cs(2,M)
+prune(E/(saturate 0_E))
+testS2 (3,M)
+
+kernel S2(0, evenExtModule cosyzygy(3,M))
+prune oo
+
+--A test in the case where the min res
+--does NOT embed in a multiplicative one
+--THIS IS A counterexample to the "saturation conjecture":
+--"even stable ext module" does NOT surject onto its S2-ification.
+--This would work over the exterior algebra, too; in that context
+--we would look at the Tate resolution of the ideal of a point in P2.
+
+restart
+load "ci-experiments.m2"
+n= 3
+d=2
+S = kk[x_0..x_(n-1)]
+ff = matrix{apply(n,i->x_i^d)}
+R = S/ideal ff
+N = R^1/ideal(x_0, x_1*x_2)
+N' = R^1/ideal(x_0)
+M0 = highSyzygy N
+M0'= highSyzygy N'
+e = 5
+betti (cosyzygyRes(e, M0))
+betti (cosyzygyRes(e, M0'))
+Me = coker ((cosyzygyRes(e, M0)).dd_1)
+prune truncate(0, coker S2(-10,evenExtModule(Me)))
+prune truncate(0, coker S2(-10,oddExtModule(Me)))
+
+betti (G = res prune exteriorTorModule(ff, pushForward(map(R,S),M0)))
+betti (G' = res prune exteriorTorModule(ff, pushForward(map(R,S),M0')))
+betti (cosyzygyRes(10, M0))
+betti res (coker dual G.dd_1, LengthLimit => 10)
+betti res (coker dual G'.dd_1, LengthLimit => 10)
+betti res (M0, LengthLimit => 10)
+
+
+betti prune coker S2(-5,evenExtModule(Me))
+
+hf(-10..2, prune target S2(-10,evenExtModule(Me)))
+g = ff*random(source ff, source ff)
+matrixFactorization(g, M0)
+------------
+
+--examples of the finite res in codim 2
+viewHelp matrixFactorization
+viewHelp highSyzygy
+viewHelp makeFiniteResolution2
+code methods makeFiniteResolution2
+methods matrixFactorization
+
+
+restart
+load "ci-experiments.m2"
+kk = ZZ/5;
+S = kk[a,b];
+gg = matrix"a3,a3-b3" -- a3, b3 isn't general enough for this example
+R = S/ideal gg;
+m = map(R^2, R^{-1,-2},matrix"a,ab;b,b2")
+M = highSyzygy coker m
+
+mf = matrixFactorization (gg, M) 
+makeFiniteResolution2(mf,gg) -- X,Y are both full rank scalar mats
+
+
+
+--Other examples:
+--1
+M = highSyzygy(coker random(R^2,R^{-1,-2,-3}))
+--2
+M = highSyzygy(coker random(R^2,R^{-1,-2}))
+--2a
+M = highSyzygy(coker random(R^2,R^{-1,-1}))
+--4
+M = highSyzygy coker map(R^2, R^{-1,-2},matrix"a+b,b2+a2; a+2b,b2+5a2+ab")
+    
+use S
+setRandomSeed 0
+gg = ff* random(S^2, S^2)
+
+
+mf = matrixFactorization (ff, M) -- fails on ex 3 -- needs general ff generators, gg works
+F = makeFiniteResolution2(mf, ff)
+
+mf = matrixFactorization (gg, M) -- fails on ex 3 -- needs general ff generators, gg works
+F = makeFiniteResolution2(mf, gg)
+
+
+ 
+--
+--following shows that even the case of just 2 graded components isn't trivial for the 
+--Horrocks-Buchsbaum-Eisenbud conjecture (though done by Hochster and a student -- was it
+--Ben Rickert??
+bettisum = (n,a,b) ->sum(toList(1..n-1), i-> abs (a*binomial(n,i)-b*binomial(n,i-1)))+a+b
+bettisum (2,1,1)
