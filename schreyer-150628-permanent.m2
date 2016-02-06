@@ -1,10 +1,33 @@
+vertex = method()
+vertex Ideal := I->(
+    R := ring I;
+    M := transpose contract(transpose vars R, gens I);
+    N := syz (M, DegreeLimit =>-1);
+    ideal (vars R * N)
+    )
+TEST///
+S = ZZ/101[a..d]
+I1 = ideal"a2+b2"
+assert(vertex I1 == ideal"c,d")
+I2 = ideal"abc"
+assert(vertex I2 == ideal"d")
+///
+end--
+
 restart
-n=3
+n=4
 S2 = ZZ/2[x_(1,1)..x_(n,n)]
 m= transpose genericMatrix(S2, x_(1,1),n,n)
 K2 = apply(n, i-> koszul(i+1,m^{i}))
+perm2= det m
 
 S =  ZZ/101[z,x_(1,1)..x_(n,n)]
+perm = sub(perm2, S)
+j = trim ideal jacobian ideal perm;
+betti  j
+time codim j
+time degree j
+
 K = apply(K2,k-> sub(k,S))
 M1 = directSum K
 ones = map(target M1, source M1, (i,j) -> if j==i-1 then 1_S else 0_S)
@@ -35,7 +58,6 @@ target (K_{0})
 
 (syz gens minors(6,M))_{0}
 
-end--
 
 restart
 n = 4
@@ -249,3 +271,42 @@ sub(sy, {z=>1})
 
 
 ----
+restart
+load "schreyer-150628-permanent.m2"
+kk= ZZ/101
+S = kk[a_(0,0)..c_(1,1)]
+A =transpose genericMatrix(S,a_(0,0), 2,2)
+eA = ideal A
+B = transpose genericMatrix(S,b_(0,0), 2,2)
+eB = ideal B
+I = trim ideal(A*B+B*A)
+vars S
+betti res I
+netList first entries gens I
+Iterms = trim ideal flatten ((first entries gens I)/terms)
+netList (dJ=decompose (J=(I:eA*eB)))
+netList first entries gens J
+betti res J
+betti res I
+apply(dJ, j->betti res j)
+transpose gens dJ_0
+
+
+vertex(dJ_1)
+dJ_1
+betti res dJ_1
+dJ_1_2
+
+P1 = matrix{{0, a_(1,0), -a_(0,1), 2*a_(1,1)},
+    {0,0, b_(1,1), b_(1,0)},
+    {0,0,0, b_(0,1)},
+    {0,0,0,0}}
+P = P1-transpose P1
+c_(0,0)
+C = genericMatrix(S, c_(0,0),1,4)
+C0 = matrix{{c_(
+relns = trim ideal (C*P)
+endo = vars S % (ideal (trace A, trace B)+relns)
+A1 = sub(A, endo)
+B1 = sub(B, endo)
+assert(A1*B1==-B1*A1)
