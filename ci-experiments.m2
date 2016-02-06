@@ -2,10 +2,26 @@
 --"CompleteIntersectionResolutions"
 needsPackage "CompleteIntersectionResolutions"
 needsPackage "AnalyzeSheafOnP1"
+
+--extract a linear strand from a chain complex:
+strand = method()
+strand(ZZ, ChainComplex) := (d, F)->(
+    G := chainComplex apply(
+	toList(min F+1..max F-1), i-> (
+	phi := F.dd_i;
+	phi1 := phi^(positions (degrees target phi, deg -> deg=={i+d-1}));
+	phi1_(
+	    positions (degrees source phi1, deg -> deg=={i+d})
+    )));
+    G[-min F]
+    )
+
 --routines for testing the S2 conjecture:
 --Conjecture: If M is an MCM over a CI, then
 --Ext(M,k) surjects onto its S2-ification; ie the
 --first local cohomology module is 0.
+
+
 
 cosyzygy = (e,M) -> (
 F := cosyzygyRes(e,M);
@@ -50,34 +66,327 @@ h_1_[0]^[1]
 (source h_1)_[0]
 ///
 
-end--
 
-doc ///
-   Key
-    makeFiniteResolution2
-    (makeFiniteResolution2, List, Matrix)
-   Headline
-    Maps associated to the finite resolution of a high syzygy module in codim 2
-   Usage
-    maps = makeFiniteResolution2(mf,ff)
-   Inputs
-    mf:List
-     matrix factorization
-    ff:Matrix
-     regular sequence
-   Outputs
-    maps:HashTable
-     many maps
-   Description
-    Text
-     Given a codim 2 matrix factorization, makes all the components of 
-     the differential and of the homotopies
-     that are relevant to the finite resolution, as in 4.2.3 of Eisenbud-Peeva 
-     "Minimal Free Resolutions and Higher Matrix Factorizations"
-    Example
-   SeeAlso
-    makeFiniteResolution
+--MCM approximation 
+cmApproxe = method()
+cmApproxe(ZZ,Module) := (n,M) ->(
+    --returns the map to M from the
+    --dual of the n-th syz of the n-th syzy of M
+    F := res(M, LengthLimit =>n);
+    G := res(coker transpose F.dd_n, LengthLimit =>n);
+    F' := chainComplex reverse apply(n, j-> transpose F.dd_(j+1));
+    phi := extend(G, F', id_(G_0));
+    map(M, coker transpose G.dd_n, transpose phi_n)
+)
+cmApproxe Module := M ->(
+    --returns the map from the essential MCM approximation
+    R := ring M;
+    cmApproxe(1+dim R, M)
+    )
+
+cmApprox = method()
+cmApprox Module := M->(
+    --returns the list {phi, psi} where:
+    --phi is the map from the essential MCM approximation
+    --psi is the minimal map from a free module necessary to make
+    -- alpha = (phi | psi) an epimorphism
+    phi := cmApproxe M;
+    psi := null;
+    N := coker phi;
+    N1 := prune N;
+    
+    if N1 == 0 then (
+	psi = map(M,(ring M)^0, 0);
+        return (phi, psi));
+    MtoN := map(N,M, id_(cover M));
+    a := N1.cache.pruningMap;
+    psi = (matrix a)//matrix(MtoN);
+    (phi, psi)
+    )
+
 ///
+
+restart
+load "ci-experiments.m2"
+
+c = 4
+d = 3
+S = kk[x_0..x_(c-1)]
+ff = matrix{apply(c, j-> (S_j)^d)}
+ff = ff*random(source ff, source ff);
+R = apply(c, j-> S/ideal ff_{0..j});
+(low,high) = (4,6)
+T = TateResolution1 (coker vars R_(c-1), low,high);
+MM = apply(-low+1..high-1, j->coker T.dd_j);
+
+R' = R_0 -- hypersurface
+p = map(R_(c-1),R')
+M' = pushForward(p, MM_6);
+M'' = prune source cmApproxe M'
+betti res M'' -- should be MCM!
+
+betti res prune source cmApproxe M'
+(phi,psi) = cmApprox pushForward(p, MM_6);
+M1 = prune source(phi|psi);
+M1e = prune source phi; --should be a CM module without free summands of codim 1
+betti res M1
+betti res M1e
+
+
+
+m= 2
+d = 2
+S = ZZ/101[x_0..x_(m-1)]
+R' = S/apply(m-1, j-> S_j^d)    
+R = S/apply(m, j-> S_j^d)    
+k = coker vars R
+r = map(R,R')
+M = pushForward(r, cosyzygy(2,k))
+M = pushForward(r,coker vars R)
+prune coker cmApproxe M
+(phi,psi) = cmApprox M
+isSurjective (alpha = (phi|psi))
+K = prune ker alpha
+source phi
+///
+
+TateResolution1 = method()
+TateResolution1(Module,ZZ,ZZ) := (M,low,high) ->(
+         d := transpose ((res(M, LengthLimit => high)).dd_high);
+	 F := res (coker d, LengthLimit =>(high+low+1));
+	 complete F;
+         T := (chainComplex reverse apply(high+low, j->transpose (F.dd_j)))[low];
+         print betti T;
+	 T
+         )
+
+
+end--
+restart
+load "ci-experiments.m2"
+installPackage ("CompleteIntersectionResolutions")
+
+
+-----Where does "high syzygy" behavior begin?
+--Conjecture: where regularity of the even and odd ext modules is 0 -- independently of whether there are socle elements in degree 0.
+--but to produce the behavior, the CM approx method is necessary; our matrixFactorization script won't do it!
+--need to test this conjecture further!
+
+
+--First of all, both the even and odd regularities seem to
+--be inherited by the MCM approx module.
+
+--In the case of one of the syzygies of the res field in c=3,
+--it seems that reg evenExtModule = 1, reg oddExtModule =0 is enough!!
+--In case c= 4 even {2,1} seems to be good enough. Note that's a case where
+--reg ExtModule = 4.
+
+--also note that in codim 1, there is no 
+
+--make the projection maps
+projection = (i,j) -> (
+    if i>j then error "need first index <= second";
+    if i<0 or j>c then error "indices between 0 and c";
+    if i == 0 then map(R_(j-1),S) else
+    map(R_(j-1), R_(i-1))
+    )
+
+testCM = (i,M) ->(
+    --M is a module over R(i) = R_(i-1)
+    --checks equality of regs of the ext modules of M and the one-step lift;
+    --if they match, just prints one.
+    --also checks whether the betti tables match.
+    --if they don't match prints both
+M' := pushForward(projection(i-1,i), M); --one step up
+P := pushForward(projection(0,i), M); -- S-module
+(phi,psi) = cmApprox M';
+alpha = phi|psi;
+FS = res prune P;
+FS1 = res prune pushForward(projection(0,i-1),source alpha);
+FS2 = (res prune pushForward(projection(0,i-1),ker alpha))[-1];
+regM := {prune evenExtModule(M),prune oddExtModule(M)}/regularity;
+regM' := {prune evenExtModule(M'),prune oddExtModule(M')}/regularity;
+<<"reg M: "<<regM<<endl;
+if regM != regM' then (
+    <<regM<<endl;
+    <<regM'<<endl;
+    <<presentation M<<endl
+    );
+bettiFS := betti FS;
+bettiFS' := betti (FS1++FS2);
+if bettiFS != bettiFS' then (
+    <<bettiFS<<endl;
+    <<bettiFS'<<endl;
+--    <<presentation M
+);
+<<endl;
+)
+
+testRegs = (c,M) ->(
+M' := null;
+apply(c, j->(
+M' = pushForward(projection(c-j,c),M);
+{regularity evenExtModule M', regularity oddExtModule M'}))
+    )
+
+testRes = (c,M) ->(
+M' := null;
+scan(c, j->(
+<< "level is: "<<c-j<<endl;
+M' = pushForward(projection(c-j,c),M);
+P := pushForward(projection(0,c-j), M'); -- S-module
+(phi,psi) = cmApprox M';
+alpha = phi|psi;
+FS = res prune P;
+FS1 = res prune pushForward(projection(0,c-j),source alpha);
+FS2 = (res prune pushForward(projection(0,c-j),ker alpha))[-1];
+regM := {prune evenExtModule(M),prune oddExtModule(M)}/regularity;
+regM' := {prune evenExtModule(M'),prune oddExtModule(M')}/regularity;
+<<"reg M: "<<regM<<endl;
+if regM != regM' then (
+    <<regM<<endl;
+    <<regM'<<endl;
+    <<presentation M<<endl
+    );
+bettiFS := betti FS;
+bettiFS' := betti (FS1++FS2);
+if bettiFS != bettiFS' then (
+    <<bettiFS<<endl;
+    <<bettiFS'<<endl;
+--    <<presentation M
+))))
+
+c = 2
+d = 3
+S = kk[x_0..x_(c-1)]
+ff = matrix{apply(c, j-> (S_j)^d)}
+ff = ff*random(source ff, source ff);
+R = apply(c, j-> S/ideal ff_{0..j});
+--NOTE R_i = R(i+1) in our usual notation!
+--p(i,j) is R(j) --> R(i).
+
+(low,high) = (4,6)
+T = TateResolution1 (coker vars R_(c-1), low,high);
+MM = apply(-low+1..high-1, j->coker T.dd_j);
+for i from 0 to length MM -1 do(
+    print i;
+     testCM (c,MM_i))
+
+--Seems to me that for c=2 we should always get something good
+dim testCM(2, MM_2)
+pushForwardprojection(1,2)
+--with c= 2 only get the right result for reg = {0,0}
+--But with c=3,we get the right result for reg = {1,0}
+--with c=4 we get the right result even for reg = {1,1}
+--and with c = 5 we get the right result for reg = {2,1}
+
+--pattern seems to be that in the step from codim c to codim c-1,
+--and the resolution of the residue field, we get a good result
+--precisely when regularity ExtModule <= c-1.
+
+
+testCM(c, MM_4) 
+testCM(c, MM_5) 
+testCM(c, MM_6) 
+testRegs(c,MM_4)
+testRegs(c,MM_6)
+
+
+(phi,psi) = cmApprox pushForward(projection(1,4), MM_6);
+M1 = prune source(phi|psi);
+M1e = source phi; should be a CM module without free summands of codim 1
+betti res M1
+betti res M1e
+
+
+testRes(c,MM_4)
+
+E = ExtModule MM_4
+regularity E
+
+The 
+regularity evenExtModule(MM_5) 
+regularity oddExtModule(MM_4)
+
+E1 = oddExtModule(N_3)
+E0= evenExtModule(N_3)
+betti res E0
+betti res E1
+matrixFactorization(ff,N_3)
+
+
+
+///
+
+
+-- S poly ring
+-- R' = S/f1
+-- R = R'/f_2
+--M an R module
+--M' the CM approx of M over R'
+--Our thm says that when M is a high syz, then
+-- the min res of M' over S is part of the min res of M over S.
+
+--Sasha suggested that one add the free R'-module to make the MCM approx,
+--and the free kernel, and take the mapping cone between them;
+--this produces another resolution with the same pattern of Koszul complexes.
+--But it seems that the betti numbers will be wrong, even for high syzygies.
+
+compareRes = method()
+compareRes(Matrix, Module) := (ff, M) ->(
+    --ff a 1 x 2 matrix over S
+    --M a module over S/(ideal ff)
+    S:=ring ff;
+    R := ring M;
+    R' := S/(ideal ff_{0});
+    R'toR := map(R, R');
+    StoR' := map(R',S);
+    StoR := R'toR * StoR';
+    phi := cmApprox pushForward(R'toR, M);
+    K := prune ker phi;
+    if not isFreeModule  K then (
+	<<{R'toR,M};
+	error "cmApprox pushForward(R'toR, M);");
+    M'':= pushForward(StoR,M);
+    F := res M'';
+    G := res prune pushForward(StoR', source cmApproxe(pushForward(R'toR, M)));
+    G0 := res prune pushForward(StoR', source phi);
+    G1 := res prune pushForward(StoR',prune K);
+    <<"res of M,res of cmApproxe, res of cmApprox, res of kernel"<<endl;
+    {betti F, betti G, betti G0, betti G1}
+    )
+///
+S = kk[a,b]
+ff = matrix{{a^3, b^3}}
+--ff = ff*random(source ff1, source ff1)
+R = S/ideal ff
+T = TateResolution1(coker vars R, 4,5)
+s = 1
+compareRes(ff, coker (T.dd_s))
+M = coker (T.dd_s)
+
+    R' = S/(ideal ff_{0});
+    R'toR = map(R, R');
+    StoR' = map(R',S);
+    StoR = R'toR * StoR';
+    phi = cmApprox pushForward(R'toR, M);
+phi
+prune    target phi
+K = prune ker phi
+prune coker phi
+    phie = cmApproxe pushForward(R'toR, M);
+
+
+
+
+
+--Note that the numbers work for s = 1, but NOT for s=3, the case of a high syzygy
+highSyzygy coker vars R
+T.dd_2
+///
+
+
+
 
 ----experiment with exteriorExtModule
 restart
@@ -1066,6 +1375,9 @@ N' = R^1/ideal(x_0)
 M0 = highSyzygy N
 M0'= highSyzygy N'
 e = 5
+Nh = highSyzygy N
+testS2(6,Nh) -- yields {false, false}
+
 betti (cosyzygyRes(e, M0))
 betti (cosyzygyRes(e, M0'))
 Me = coker ((cosyzygyRes(e, M0)).dd_1)
@@ -1138,3 +1450,195 @@ F = makeFiniteResolution2(mf, gg)
 --Ben Rickert??
 bettisum = (n,a,b) ->sum(toList(1..n-1), i-> abs (a*binomial(n,i)-b*binomial(n,i-1)))+a+b
 bettisum (2,1,1)
+
+---
+--pattern in resolution of tor modules NOT of high syzygyies
+restart
+load "ci-experiments.m2"
+kk= ZZ/101
+S = kk[a..c]
+E = kk[e_1..e_(numgens S), SkewCommutative => true]
+k= S^1/(ideal vars S)
+f = matrix{apply(numgens S, i->S_i^4)}
+R = S/(ideal f)
+
+
+FF = res (R**k)
+betti FF
+map(R,S)
+M = apply(10, i->prune pushForward(map(R,S), coker FF.dd_(i+1)));
+ring M_0
+
+
+i1 : kk = ZZ/101
+i2 : S = kk[a,b,c]
+i3 : f = matrix"a4,b4,c4"
+i4 : R = S/ideal f
+i5 : p = map(R,S)
+i6 : M = coker map(R^2, R^{3:-1}, {{a,b,c},{b,c,a}})
+i7 : betti (FF =res( M, LengthLimit =>6))
+i8 : MS = prune pushForward(p, coker FF.dd_6);
+i9 : T = exteriorTorModule(f,MS);
+i10 : betti T
+i11 : betti res (PT = prune T)
+i12 : ann PT
+
+restart
+load "ci-experiments.m2"
+i1 : kk = ZZ/101
+i2 : S = kk[x_0..x_4]
+use S
+i3 : f = matrix{apply(numgens S, i-> S_i^(i+2))}
+i4 : R = S/ideal f
+i5 : p = map(R,S)
+i6 : M = R^1/(ideal vars R)
+i7 : betti (FF =res( M, LengthLimit =>6))
+i8 : MS = apply(6, i-> prune pushForward(p, coker FF.dd_(i+1)));
+i9 : T = apply(MS, m->(betti res prune exteriorTorModule(f,m)))
+betti res MS_1
+ring MS_1
+
+
+L = R**MS_1
+lambda = 2
+
+testTorMat = (L,lambda) ->(
+LS := prune pushForward(map(R,S),L);
+Bmat := matrix betti res (prune exteriorTorModule(f,LS), LengthLimit =>lambda);
+Bmat' := map(ZZ^(numrows Bmat -1), ZZ^(numcols Bmat -1), 
+    (i,j) -> if i != 1 then Bmat_(i+1,j) else
+                            Bmat_(i+1,j)+Bmat_(i-1,j+1));
+L1 := coker ((res(L, LengthLimit => 2)).dd_2);
+LS1 := prune pushForward(map(R,S),L1);
+Bmat1 := (matrix betti res (prune exteriorTorModule(f,LS1), LengthLimit =>lambda-1));
+{Bmat,Bmat',Bmat1})
+
+syzygy = (m, L) ->(
+    coker ((res(L, LengthLimit => m+1)).dd_(m+1)))
+
+restart
+load "ci-experiments.m2"
+notify=true
+uninstallPackage "CompleteIntersectionResolutions"
+installPackage "CompleteIntersectionResolutions"
+kk = ZZ/101
+S = kk[a,b,c]
+f = matrix"a4,b4,c4"
+R = S/ideal f
+L = R^1/ideal"ab, c2,a2bc"
+LS = pushForward(map(R,S), L)
+F = res prune exteriorTorModule(f,LS);
+testStrands = F -> (
+    maxdeg := (max degrees target F.dd_(min F+1))_0;
+    mindeg := (min degrees target F.dd_(min F +1))_0;
+    strands := apply (toList(mindeg..maxdeg), d-> strand(d,F));
+    apply(strands, s -> {betti s, betti res coker s.dd_(min F+1)})
+    )
+testStrands F
+
+testTorMat(R**LS, 4)
+evenExtModule L
+oddExtModule L
+hf(0..5, oo)
+viewHelp evenExtModule
+F0 = strand(1,F)
+betti res coker F0.dd_1
+betti F0
+
+
+
+kk = ZZ/101
+S = kk[a,b,c,d]
+f = matrix"a4,b4,c4,d4"
+R = S/ideal f
+L = R^1/ideal"ab, c2,a2bcd, d3"
+
+testTorMat(syzygy(2,L), 5)			
+
+for i from 0 to 7 do print strand(i, F)
+
+res (prune exteriorTorModule(f,LS), LengthLimit =>lambda)
+
+
+
+
+
+
+
+
+cosyzygy = (n, M) -> coker ((cosyzygyRes(n,M)).dd_1)
+k = coker vars R
+prune coker cmApproxe cosyzygy(3,k)
+
+
+
+M = coker matrix{{x_0,x_1,x_2},{x_1,x_2, x_0}}
+prune coker cmApproxe M
+source cmApprox M
+
+
+
+
+use S
+R = S/ideal (x_0^2)
+M = R^1/ideal(R_0, R_1)
+betti res M
+A = cmApprox(3,M)
+prune ker A
+
+
+betti res pushForward(map(R,S),M)
+res M
+n= 5
+    F =  res(M, LengthLimit =>n)
+    G= res(coker transpose F.dd_n, LengthLimit =>n)
+    phi = extend(G, dual F, id_(G_0))
+    dual phi_n)
+
+ F.dd_n
+betti G
+F' = chainComplex reverse apply(3, j-> transpose F.dd_(j+1))
+phi = extend(G,F', id_G_0)
+betti G
+betti F'
+isHomogeneous phi
+betti F
+betti G
+
+T = kk[a,b]
+N1 = T^2/(ideal a^2 )
+N2 = T^3/(ideal(a, b^2))++N1
+
+H = Hom(N2, N1)
+A =map(H,H, b*id_H)
+H' = coker A
+mingens H'
+map(H',H, id_(cover H))
+
+
+doc ///
+   Key
+    makeFiniteResolution2
+    (makeFiniteResolution2, List, Matrix)
+   Headline
+    Maps associated to the finite resolution of a high syzygy module in codim 2
+   Usage
+    maps = makeFiniteResolution2(mf,ff)
+   Inputs
+    mf:List
+     matrix factorization
+    ff:Matrix
+     regular sequence
+   Outputs
+    maps:HashTable
+     many maps
+   Description
+    Text
+     Given a codim 2 matrix factorization, makes all the components of 
+     the differential and of the homotopies
+     that are relevant to the finite resolution, as in 4.2.3 of Eisenbud-Peeva 
+     "Minimal Free Resolutions and Higher Matrix Factorizations"
+    Example
+   SeeAlso
+    makeFiniteResolution
+///
