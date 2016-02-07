@@ -1,49 +1,102 @@
 needsPackage "CompleteIntersectionResolutions2"
 needsPackage "AnalyzeSheafOnP1"
 
-{*
---at some past time, the following code crashed M2
-dep = method()
-dep(Ideal, Module):=(I,M) ->(
+{* The following code crashes M2 v 8.2
+S = ZZ/101[a]
+R = S/ideal(a^2)
+res (coker vars R, LengthLimit => 0)
+*}
+
+
+isAffinePurePolynomialRing = method()
+isAffinePurePolynomialRing Ring := R ->(
+    S = {R};
+    T = R;
+    while not isField T and (try coefficientRing T then true else false) do (
+--	print T;
+	T = coefficientRing T; 
+	S = S|{T}
+	);
+--    print S;
+    if not isField last S then return false;
+    t := true;
+    scan(drop(reverse S,1), s->if not isPolynomialRing s then t = false);
+    t
+    )
+
+TEST///
+assert(isAffinePurePolynomialRing ZZ === false)
+assert(isAffinePurePolynomialRing (ZZ[x]) === false)
+assert(isAffinePurePolynomialRing (ZZ/5) === true)
+assert(isAffinePurePolynomialRing (ZZ/5[x][y]) === true)
+R = kk[x]/(ideal x^2)
+assert(isAffinePurePolynomialRing R ===false)
+assert(isAffinePurePolynomialRing (R[y]) ===false)
+///    
+
+depth(Ideal, Module) :=(I,M) ->(
+    --requires R to be an affine ring (eg NOT ZZ[x])
     R := ring M;
-    d := dim M;
-    if not isCommutative R then error"undefined";
+    d := max(1,dim M); -- d=0 causes a crash
+    if not isCommutative R then error"depth undefined for noncommutative rings";
     F := M**dual res (R^1/I, LengthLimit => d);
     i := 0;    
     while HH_i F == 0 do i=i-1;
     -i)
-*}
-dep1 = method()
-dep1(Module):=(M) ->(
+
+depth Module := M  ->(
     --depth of a module with respect to the max ideal, via finite proj dim
+    --gives error if the ultimate coeficient ring of R = ring M is not a field, or if 
+    --R has a form like (k[X]/I)[y], then this method fails. 
+    --Could be improved if there were a good way in M2 of defining a map onto a given ring R 
+    --from a poly ring over ZZ or a field. Should exist! Wrote to the google group on Feb 6 to ask.
+    --
     R := ring M;
     d := dim M;
-    if not isCommutative R then error"undefined";
+    if not isCommutative R then error"depth undefined for noncommutative rings";
     S := R;
+    --now try to write R as a finite module over a polynomial ring S over a field:
     while  not isPolynomialRing S do S = ring presentation S;
+    if not isAffinePurePolynomialRing S then error"can't handle this case; use depth(I,M) instead";
     f := map(R,S);
     MS:= pushForward(f, M);
     dim S - length complete res MS)
-dep1 Ring := R -> dep1 R^1
 
-approx = method()
-approx Module := M -> (
-    codepth := dep1 (ring M)^1 - dep1 M;
+depth Ring := R -> depth R^1
+
+///
+restart
+load"CMApprox.m2"
+///
+TEST///
+kk = ZZ/101
+R = kk[x,y,z]
+assert(3==depth R)
+assert (2 == depth(ideal(x,y), R^1))
+assert(0 == depth coker vars R)
+assert (0 == depth(ideal(x,y), coker vars R))
+R = ZZ/101[a..f]
+I = minors(2,genericSymmetricMatrix(R,a,3))
+depth(R/I)
+depth(R/I^2)
+mm = ideal vars (R/I)
+depth(mm, (R/I)^1)
+///
+
+approxe = method()
+approxe Module := M -> (
+    codepth := depth (ring M)^1 - depth M;
     F := res(M, LengthLimit => codepth+1);
     complete F;
     G := res(coker dual F.dd_(codepth), LengthLimit => codepth+1);
     DF := (dual F)[-codepth];
-    << betti F<<endl;endl;
-    << betti DF<<endl;endl;
-    << betti G<<endl;
     app = extend(G,DF, map(G_0, DF_0, 1));
-    error();
     map(M, coker dual G.dd_codepth, dual app_codepth)
     )
  
  ---From Feb 2016:
  
- --MCM approximation 
+--MCM approximation 
 cmApproxe = method()
 cmApproxe(ZZ,Module) := (n,M) ->(
     --returns the map to M from the
@@ -54,12 +107,35 @@ cmApproxe(ZZ,Module) := (n,M) ->(
     phi := extend(G, F', id_(G_0));
     map(M, coker transpose G.dd_n, transpose phi_n)
 )
+
 cmApproxe Module := M ->(
     --returns the map from the essential MCM approximation
     R := ring M;
     cmApproxe(1+dim R, M)
     )
+TEST///
+S = ZZ/101[a,b,c]
+R = S/ideal"a3,b3,c3"
+use S
+R' = S/ideal"a3,b3"
+M = coker vars R
+assert( (pushForward(map(R,R'),M)) === cokernel map((R')^1,(R')^{{-1},{-1},{-1}},{{c, b, a}}) );
+use S
+assert( (pushForward(map(R,S), M)) === cokernel map((S)^1,(S)^{{-1},{-1},{-1}},{{c, b, a}}) );
+///
 
+TEST///
+restart
+
+S = ZZ/101[a,b,c]
+R = S/ideal"a3,b3,c3"
+use S
+R' = S/ideal"a3,b3"
+M = coker vars R
+M' = pushForward(map(R,R'),M)
+source cmApproxe M'
+
+///
 cmApprox = method()
 cmApprox Module := M->(
     --returns the list {phi, psi} where:
@@ -79,6 +155,24 @@ cmApprox Module := M->(
     psi = (matrix a)//matrix(MtoN);
     (phi, psi)
     )
+
+TEST///
+restart
+load"ci-experiments.m2"
+S = ZZ/101[a,b,c]
+R = S/ideal"a3,b3,c3"
+use S
+R' = S/ideal"a3,b3"
+M = coker vars R
+(phi,psi) = cmApprox(pushForward(map(R,R'),ker syz presentation M))
+assert( (prune source phi) === cokernel map((R')^{{-4},{-4},{-4},{-4},{-4},{-4},{-3}},(R')^{{-5},{-5},{-5},{-5},{-5},{-5},{-6},{-6},{-6}},
+	      {{c,-b, 0, 0, 0, 0, a^2, 0, 0}, {0, 0, b, 0, -c, 0, 0, a^2, 0}, {a, 0, 0, 0, 0, -b, 0, 0, 0}, 
+		  {0, a, 0, 0,0, -c, 0, -b^2, 0}, {0, 0, a, c, 0, 0, 0, 0, b^2}, {0, 0, 0, b, a, 0, 0, 0, 0}, {0, 0, 0, 0, b^2, a^2, 0, 0, 0}}) )
+assert( (prune source psi) === (R')^{{-4},{-4},{-4}} )
+assert(isSurjective(phi|psi)===true)
+assert( (prune ker (phi|psi)) === (R')^{{-5},{-5},{-5},{-6},{-6},{-6}} );
+///
+
 
 ///
 
@@ -135,17 +229,12 @@ TateResolution1(Module,ZZ,ZZ) := (M,low,high) ->(
          print betti T;
 	 T
          )
-     
----------------------------------------
----The following are special tests, not general purpose
----------------------------------------
+
 testCM = (i,M) ->(
     --M is a module over R(i) = R_(i-1)
     --checks equality of regs of the ext modules of M and the one-step lift;
     --if they match, just prints one.
-    --also checks whether the betti table of M over the regular ring
-    --is equal to that of the mapping cone of the CM approx at
-    --over R(i-1).
+    --also checks whether the betti tables match.
     --if they don't match prints both
 M' := pushForward(projection(i-1,i), M); --one step up
 P := pushForward(projection(0,i), M); -- S-module
@@ -207,37 +296,74 @@ if bettiFS != bettiFS' then (
 ))))
 
 end--
+
 restart
 load "CMApprox.m2"
+--installPackage ("CompleteIntersectionResolutions")
 
-c = 2
+
+-----Where does "high syzygy" behavior begin?
+--Conjecture: where regularity of the even and odd ext modules is 0 -- independently of whether there are socle elements in degree 0.
+--but to produce the behavior, the CM approx method is necessary; our matrixFactorization script won't do it!
+--need to test this conjecture further!
+
+
+--First of all, both the even and odd regularities seem to
+--be inherited by the MCM approx module.
+
+--In the case of one of the syzygies of the res field in c=3,
+--it seems that reg evenExtModule = 1, reg oddExtModule =0 is enough!!
+--In case c= 4 even {2,1} seems to be good enough. Note that's a case where
+--reg ExtModule = 4.
+
+
+--One-step conjecture: if R is codim 1 in R', complete intersections in S,
+--and  M is a CM module over R, then:
+--the resoluttion of the "R'-CM-approx map" over S is equal to the 
+--resolution of M over S 
+--iff
+--Ext_R(M,k) has trivial summands in degrees 0,1 and after factoring those out
+--the CI operator is a nzd.
+--Moreover, In this case, the Ext module of the essential R' CM approximation
+--is (Ext_R(M,k)/socle)/t
+
+
+--If this is true, then in the case when Ext_R(M,k) has regularity <= 1 AND if the reg Ext_R'(M',k) <= reg Ext_R(M,k), thi could continue
+--inductively. Note that reg(E/tE) <= reg(E) if t is a quasi-regular element on E (that is: a nzd on E/H^0_mm(E)). On the other hand,
+-- Ext_R'(M',k) ! =  Ext_R(M,k)/t, so we can't use this directly.
+
+--A crucial question is whether the socle of Ext_R(M,k) is represented by a free summand of the resolution.
+
+
+
+c = 4
 d = 3
 S = kk[x_0..x_(c-1)]
 ff = matrix{apply(c, j-> (S_j)^d)}
 ff = ff*random(source ff, source ff);
-R = apply(c, j-> S/ideal ff_{0..c-1})
---NOTE R_i = R(i+1) in our usual notation!
-
+R = apply(c, j-> S/ideal ff_{0..j});
+--make the projection maps
 projection = (i,j) -> (
---projection(i,j) is R(j) --> R(i).
     if i>j then error "need first index <= second";
     if i<0 or j>c then error "indices between 0 and c";
     if i == 0 then map(R_(j-1),S) else
     map(R_(j-1), R_(i-1))
     )
+--NOTE R_i = R(i+1) in our usual notation!
+--projection(i,j) is R(j) --> R(i).
 
-(low,high) = (8,6)
+(low,high) = (4,6)
 T = TateResolution1 (coker vars R_(c-1), low,high);
 MM = apply(-low+1..high-1, j->coker T.dd_j);
 for i from 0 to length MM -1 do(
     print i;
      testCM (c,MM_i))
 
-----OOOPS -- different answer in the c--experiments file!
+cmApproxe pushForward(projection(1,2), MM_5)
 
 --Seems to me that for c=2 we should always get something good
 dim testCM(2, MM_2)
-pushForwardprojection(1,2)
+
 --with c= 2 only get the right result for reg = {0,0}
 --But with c=3,we get the right result for reg = {1,0}
 --with c=4 we get the right result even for reg = {1,1}
@@ -255,17 +381,102 @@ testRegs(c,MM_4)
 testRegs(c,MM_6)
 
 
+(phi,psi) = cmApprox pushForward(projection(1,4), MM_6);
+M1 = prune source(phi|psi);
+M1e = source phi; should be a CM module without free summands of codim 1
+betti res M1
+betti res M1e
+
+
+testRes(c,MM_4)
+
+E = ExtModule MM_4
+regularity E
+
+The 
+regularity evenExtModule(MM_5) 
+regularity oddExtModule(MM_4)
+
+E1 = oddExtModule(N_3)
+E0= evenExtModule(N_3)
+betti res E0
+betti res E1
+matrixFactorization(ff,N_3)
 
 
 
+///
+
+
+-- S poly ring
+-- R' = S/f1
+-- R = R'/f_2
+--M an R module
+--M' the CM approx of M over R'
+--Our thm says that when M is a high syz, then
+-- the min res of M' over S is part of the min res of M over S.
+
+--Sasha suggested that one add the free R'-module to make the MCM approx,
+--and the free kernel, and take the mapping cone between them;
+--this produces another resolution with the same pattern of Koszul complexes.
+--But it seems that the betti numbers will be wrong, even for high syzygies.
+
+compareRes = method()
+compareRes(Matrix, Module) := (ff, M) ->(
+    --ff a 1 x 2 matrix over S
+    --M a module over S/(ideal ff)
+    S:=ring ff;
+    R := ring M;
+    R' := S/(ideal ff_{0});
+    R'toR := map(R, R');
+    StoR' := map(R',S);
+    StoR := R'toR * StoR';
+    phi := cmApprox pushForward(R'toR, M);
+    K := prune ker phi;
+    if not isFreeModule  K then (
+	<<{R'toR,M};
+	error "cmApprox pushForward(R'toR, M);");
+    M'':= pushForward(StoR,M);
+    F := res M'';
+    G := res prune pushForward(StoR', source cmApproxe(pushForward(R'toR, M)));
+    G0 := res prune pushForward(StoR', source phi);
+    G1 := res prune pushForward(StoR',prune K);
+    <<"res of M,res of cmApproxe, res of cmApprox, res of kernel"<<endl;
+    {betti F, betti G, betti G0, betti G1}
+    )
+///
+S = kk[a,b]
+ff = matrix{{a^3, b^3}}
+--ff = ff*random(source ff1, source ff1)
+R = S/ideal ff
+T = TateResolution1(coker vars R, 4,5)
+s = 1
+compareRes(ff, coker (T.dd_s))
+M = coker (T.dd_s)
+
+    R' = S/(ideal ff_{0});
+    R'toR = map(R, R');
+    StoR' = map(R',S);
+    StoR = R'toR * StoR';
+    phi = cmApprox pushForward(R'toR, M);
+phi
+prune    target phi
+K = prune ker phi
+prune coker phi
+    phie = cmApproxe pushForward(R'toR, M);
+
+--Note that the numbers work for s = 1, but NOT for s=3, the case of a high syzygy
+highSyzygy coker vars R
+T.dd_2
+///
 S = ZZ/101[a,b,c]
 I = ideal"a2, b2"
 R = S/I
 M = coker vars R
 res M
-dep1 M
-dep1 
-approx M
+depth M
+depth 
+approxe M
 
 
 
@@ -277,23 +488,15 @@ smat= genericSkewMatrix(S,a_0,5)
 I = pfaffians(4,smat)
 R = S/I
 M = coker vars R
-approx M
+time cmApproxe M
+time approxe M
 
-approx (R^1/ideal a)
+approxe (R^1/ideal a_0)
 R1 = R/ideal a
 
-dep1 M
-dep1 R^1
-dep1 R1^1
-coefficientRing R
+depth M
+depth R^1
 
---the following line crashes the program
-dep(ideal vars R, M)
-
---but these are ok
-dep (ideal vars R, R^1)
-mm = ideal vars S
-dep(mm, S^1)
 
 
 

@@ -78,12 +78,35 @@ cmApproxe(ZZ,Module) := (n,M) ->(
     phi := extend(G, F', id_(G_0));
     map(M, coker transpose G.dd_n, transpose phi_n)
 )
+
 cmApproxe Module := M ->(
     --returns the map from the essential MCM approximation
     R := ring M;
     cmApproxe(1+dim R, M)
     )
+TEST///
+S = ZZ/101[a,b,c]
+R = S/ideal"a3,b3,c3"
+use S
+R' = S/ideal"a3,b3"
+M = coker vars R
+assert( (pushForward(map(R,R'),M)) === cokernel map((R')^1,(R')^{{-1},{-1},{-1}},{{c, b, a}}) );
+use S
+assert( (pushForward(map(R,S), M)) === cokernel map((S)^1,(S)^{{-1},{-1},{-1}},{{c, b, a}}) );
+///
 
+TEST///
+restart
+
+S = ZZ/101[a,b,c]
+R = S/ideal"a3,b3,c3"
+use S
+R' = S/ideal"a3,b3"
+M = coker vars R
+M' = pushForward(map(R,R'),M)
+source cmApproxe M'
+
+///
 cmApprox = method()
 cmApprox Module := M->(
     --returns the list {phi, psi} where:
@@ -103,6 +126,24 @@ cmApprox Module := M->(
     psi = (matrix a)//matrix(MtoN);
     (phi, psi)
     )
+
+TEST///
+restart
+load"ci-experiments.m2"
+S = ZZ/101[a,b,c]
+R = S/ideal"a3,b3,c3"
+use S
+R' = S/ideal"a3,b3"
+M = coker vars R
+(phi,psi) = cmApprox(pushForward(map(R,R'),ker syz presentation M))
+assert( (prune source phi) === cokernel map((R')^{{-4},{-4},{-4},{-4},{-4},{-4},{-3}},(R')^{{-5},{-5},{-5},{-5},{-5},{-5},{-6},{-6},{-6}},
+	      {{c,-b, 0, 0, 0, 0, a^2, 0, 0}, {0, 0, b, 0, -c, 0, 0, a^2, 0}, {a, 0, 0, 0, 0, -b, 0, 0, 0}, 
+		  {0, a, 0, 0,0, -c, 0, -b^2, 0}, {0, 0, a, c, 0, 0, 0, 0, b^2}, {0, 0, 0, b, a, 0, 0, 0, 0}, {0, 0, 0, 0, b^2, a^2, 0, 0, 0}}) )
+assert( (prune source psi) === (R')^{{-4},{-4},{-4}} )
+assert(isSurjective(phi|psi)===true)
+assert( (prune ker (phi|psi)) === (R')^{{-5},{-5},{-5},{-6},{-6},{-6}} );
+///
+
 
 ///
 
@@ -164,7 +205,7 @@ TateResolution1(Module,ZZ,ZZ) := (M,low,high) ->(
 end--
 restart
 load "ci-experiments.m2"
-installPackage ("CompleteIntersectionResolutions")
+--installPackage ("CompleteIntersectionResolutions")
 
 
 -----Where does "high syzygy" behavior begin?
@@ -271,6 +312,8 @@ MM = apply(-low+1..high-1, j->coker T.dd_j);
 for i from 0 to length MM -1 do(
     print i;
      testCM (c,MM_i))
+
+cmApproxe pushForward(projection(1,2), MM_5)
 
 --Seems to me that for c=2 we should always get something good
 dim testCM(2, MM_2)
