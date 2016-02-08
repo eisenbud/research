@@ -1,3 +1,15 @@
+newPackage(
+"MCMApproximations",
+Version => "0.1",
+Date => "February 7, 2016",
+Authors => {{Name => "David Eisenbud",
+Email => "de@msri.org",
+HomePage => "http://www.msri.org/~de"}},
+Headline => "MCM Approximations and Complete Intersections",
+DebuggingMode => false
+)
+
+export {"cmApprox"}
 needsPackage "CompleteIntersectionResolutions2"
 needsPackage "AnalyzeSheafOnP1"
 
@@ -10,29 +22,17 @@ res (coker vars R, LengthLimit => 0)
 
 isAffinePurePolynomialRing = method()
 isAffinePurePolynomialRing Ring := R ->(
-    S = {R};
-    T = R;
-    while not isField T and (try coefficientRing T then true else false) do (
---	print T;
-	T = coefficientRing T; 
-	S = S|{T}
-	);
---    print S;
-    if not isField last S then return false;
-    t := true;
-    scan(drop(reverse S,1), s->if not isPolynomialRing s then t = false);
-    t
-    )
-
-TEST///
-assert(isAffinePurePolynomialRing ZZ === false)
-assert(isAffinePurePolynomialRing (ZZ[x]) === false)
-assert(isAffinePurePolynomialRing (ZZ/5) === true)
-assert(isAffinePurePolynomialRing (ZZ/5[x][y]) === true)
-R = kk[x]/(ideal x^2)
-assert(isAffinePurePolynomialRing R ===false)
-assert(isAffinePurePolynomialRing (R[y]) ===false)
-///    
+    if not isCommutative R then error"depth undefined for noncommutative rings";
+    if R===ZZ then return false;
+    if isField R then return true;
+    (S,F) := flattenRing R;
+    if not isField coefficientRing S then return false;
+    if not 0 == presentation S then return false;
+    true)
+///
+restart
+load "CMApprox.m2"
+///
 
 depth(Ideal, Module) :=(I,M) ->(
     --requires R to be an affine ring (eg NOT ZZ[x])
@@ -43,14 +43,13 @@ depth(Ideal, Module) :=(I,M) ->(
     i := 0;    
     while HH_i F == 0 do i=i-1;
     -i)
-
+{*
 depth Module := M  ->(
     --depth of a module with respect to the max ideal, via finite proj dim
     --gives error if the ultimate coeficient ring of R = ring M is not a field, or if 
     --R has a form like (k[X]/I)[y], then this method fails. 
     --Could be improved if there were a good way in M2 of defining a map onto a given ring R 
     --from a poly ring over ZZ or a field. Should exist! Wrote to the google group on Feb 6 to ask.
-    --
     R := ring M;
     d := dim M;
     if not isCommutative R then error"depth undefined for noncommutative rings";
@@ -61,26 +60,25 @@ depth Module := M  ->(
     f := map(R,S);
     MS:= pushForward(f, M);
     dim S - length complete res MS)
+*}
+depth Module := M  ->(
+    --depth of a module with respect to the max ideal, via finite proj dim
+    --gives error if the ultimate coeficient ring of R = ring M is not a field.
+    R := ring M;
+    if not isCommutative R then error"depth undefined for noncommutative rings";
+    (S,F) := flattenRing R;
+    if not isField coefficientRing S then error"input must be a module over an affine ring";
+    S0 := ring presentation S;
+    r := F*map(S,S0); 
+    MM := pushForward(r,M);
+    numgens S0 - pdim MM)
 
 depth Ring := R -> depth R^1
 
 ///
 restart
 load"CMApprox.m2"
-///
-TEST///
-kk = ZZ/101
-R = kk[x,y,z]
-assert(3==depth R)
-assert (2 == depth(ideal(x,y), R^1))
-assert(0 == depth coker vars R)
-assert (0 == depth(ideal(x,y), coker vars R))
-R = ZZ/101[a..f]
-I = minors(2,genericSymmetricMatrix(R,a,3))
-depth(R/I)
-depth(R/I^2)
-mm = ideal vars (R/I)
-depth(mm, (R/I)^1)
+depth(ZZ[x])
 ///
 
 approxe = method()
@@ -90,7 +88,7 @@ approxe Module := M -> (
     complete F;
     G := res(coker dual F.dd_(codepth), LengthLimit => codepth+1);
     DF := (dual F)[-codepth];
-    app = extend(G,DF, map(G_0, DF_0, 1));
+    app := extend(G,DF, map(G_0, DF_0, 1));
     map(M, coker dual G.dd_codepth, dual app_codepth)
     )
  
@@ -101,6 +99,7 @@ cmApproxe = method()
 cmApproxe(ZZ,Module) := (n,M) ->(
     --returns the map to M from the
     --dual of the n-th syz of the n-th syzy of M
+    --n = dim ring M - depth M +1 -- this just slows things down!
     F := res(M, LengthLimit =>n);
     G := res(coker transpose F.dd_n, LengthLimit =>n);
     F' := chainComplex reverse apply(n, j-> transpose F.dd_(j+1));
@@ -110,32 +109,17 @@ cmApproxe(ZZ,Module) := (n,M) ->(
 
 cmApproxe Module := M ->(
     --returns the map from the essential MCM approximation
-    R := ring M;
-    cmApproxe(1+dim R, M)
+    n := 1+dim ring M;
+    --could take 
+    --n = dim ring M - depth M +1 
+    --but this seems to slow things down!
+    cmApproxe(n, M)
     )
-TEST///
-S = ZZ/101[a,b,c]
-R = S/ideal"a3,b3,c3"
-use S
-R' = S/ideal"a3,b3"
-M = coker vars R
-assert( (pushForward(map(R,R'),M)) === cokernel map((R')^1,(R')^{{-1},{-1},{-1}},{{c, b, a}}) );
-use S
-assert( (pushForward(map(R,S), M)) === cokernel map((S)^1,(S)^{{-1},{-1},{-1}},{{c, b, a}}) );
 ///
-
-TEST///
 restart
-
-S = ZZ/101[a,b,c]
-R = S/ideal"a3,b3,c3"
-use S
-R' = S/ideal"a3,b3"
-M = coker vars R
-M' = pushForward(map(R,R'),M)
-source cmApproxe M'
-
+load "CMApprox.m2"
 ///
+
 cmApprox = method()
 cmApprox Module := M->(
     --returns the list {phi, psi} where:
@@ -156,9 +140,84 @@ cmApprox Module := M->(
     (phi, psi)
     )
 
+
+
+beginDocumentation()
+
+doc ///
+Key
+  MCMApproximations
+Headline
+  Maximal Cohen-Macaulay Approximations and applications to Complete Intersections
+Description
+  Text
+  Example
+Caveat
+SeeAlso
+///
+{*
+doc ///
+Key
+  Headline
+Usage
+Inputs
+Outputs
+Consequences
+Description
+  Text
+  Example
+  Code
+  Pre
+Caveat
+SeeAlso
+///
+*}
+TEST ///
+-- test code and assertions here
+-- may have as many TEST sections as needed
+///
+
 TEST///
+assert(isAffinePurePolynomialRing ZZ === false)
+assert(isAffinePurePolynomialRing (ZZ[x]) === false)
+assert(isAffinePurePolynomialRing (ZZ/5) === true)
+assert(isAffinePurePolynomialRing (ZZ/5[x][y]) === true)
+R = kk[x]/(ideal x^2)
+assert(isAffinePurePolynomialRing R ===false)
+assert(isAffinePurePolynomialRing (R[y]) ===false)
+///    
+TEST///
+kk = ZZ/101
+R = kk[x,y,z]
+assert(3==depth R)
+assert (2 == depth(ideal(x,y), R^1))
+assert(0 == depth coker vars R)
+assert (0 == depth(ideal(x,y), coker vars R))
+R = ZZ/101[a..f]
+I = minors(2,genericSymmetricMatrix(R,a,3))
+assert (depth(R/I) ==3)
+assert(depth(R/I^2) == 0)
+mm = ideal vars (R/I)
+assert(depth(mm, (R/I)^1)== 3)
+depth ZZ[x]
+///
+TEST///
+S = ZZ/101[a,b,c]
+R = S/ideal"a3,b3,c3"
+use S
+R' = S/ideal"a3,b3"
+M = coker vars R
+assert( (pushForward(map(R,R'),M)) === cokernel map((R')^1,(R')^{{-1},{-1},{-1}},{{c, b, a}}) );
+use S
+assert( (pushForward(map(R,S), M)) === cokernel map((S)^1,(S)^{{-1},{-1},{-1}},{{c, b, a}}) );
+///
+
+
+///
 restart
-load"ci-experiments.m2"
+load"CMApprox.m2"
+///
+TEST///
 S = ZZ/101[a,b,c]
 R = S/ideal"a3,b3,c3"
 use S
@@ -230,19 +289,19 @@ TateResolution1(Module,ZZ,ZZ) := (M,low,high) ->(
 	 T
          )
 
-testCM = (i,M) ->(
+testCM = (R,i,M) ->(
     --M is a module over R(i) = R_(i-1)
     --checks equality of regs of the ext modules of M and the one-step lift;
     --if they match, just prints one.
     --also checks whether the betti tables match.
     --if they don't match prints both
-M' := pushForward(projection(i-1,i), M); --one step up
-P := pushForward(projection(0,i), M); -- S-module
-(phi,psi) = cmApprox M';
-alpha = phi|psi;
-FS = res prune P;
-FS1 = res prune pushForward(projection(0,i-1),source alpha);
-FS2 = (res prune pushForward(projection(0,i-1),ker alpha))[-1];
+M' := pushForward(projection(R,i-1,i), M); --one step up
+P := pushForward(projection(R,0,i), M); -- S-module
+(phi,psi) := cmApprox M';
+alpha := phi|psi;
+FS := res prune P;
+FS1 := res prune pushForward(projection(R,0,i-1),source alpha);
+FS2 := (res prune pushForward(projection(R,0,i-1),ker alpha))[-1];
 regM := {prune evenExtModule(M),prune oddExtModule(M)}/regularity;
 regM' := {prune evenExtModule(M'),prune oddExtModule(M')}/regularity;
 <<"reg M: "<<regM<<endl;
@@ -261,24 +320,25 @@ if bettiFS != bettiFS' then (
 <<endl;
 )
 
-testRegs = (c,M) ->(
+testRegs = (R,c,M) ->(
 M' := null;
 apply(c, j->(
-M' = pushForward(projection(c-j,c),M);
+M' = pushForward(projection(R,c-j,c),M);
 {regularity evenExtModule M', regularity oddExtModule M'}))
     )
 
-testRes = (c,M) ->(
+testRes = (R,M) ->(
+c := length R;
 M' := null;
 scan(c, j->(
 << "level is: "<<c-j<<endl;
-M' = pushForward(projection(c-j,c),M);
-P := pushForward(projection(0,c-j), M'); -- S-module
-(phi,psi) = cmApprox M';
-alpha = phi|psi;
-FS = res prune P;
-FS1 = res prune pushForward(projection(0,c-j),source alpha);
-FS2 = (res prune pushForward(projection(0,c-j),ker alpha))[-1];
+M' = pushForward(projection(R,c-j,c),M);
+P := pushForward(projection(R,0,c-j), M'); -- S-module
+(phi,psi) := cmApprox M';
+alpha := phi|psi;
+FS := res prune P;
+FS1 := res prune pushForward(projection(R,0,c-j),source alpha);
+FS2 := (res prune pushForward(projection(R,0,c-j),ker alpha))[-1];
 regM := {prune evenExtModule(M),prune oddExtModule(M)}/regularity;
 regM' := {prune evenExtModule(M'),prune oddExtModule(M')}/regularity;
 <<"reg M: "<<regM<<endl;
@@ -295,13 +355,24 @@ if bettiFS != bettiFS' then (
 --    <<presentation M
 ))))
 
+projection = (R,i,j) -> (
+    --Assumes that R is a list of rings, and that R_(i+1) is a quotient of R_i
+    --forms the projection maps 
+    --NOTE R_i = R(i+1) in our usual notation!
+    --projection(R,i,j) is R(j) --> R(i).
+    c := length R;
+    if i>j then error "need first index <= second";
+    if i<0 or j>c then error "indices between 0 and c";
+    if i == 0 then map(R_(j-1),ambient R_0) else
+    map(R_(j-1), R_(i-1))
+    )
+
 end--
 
 restart
-load "CMApprox.m2"
+loadPackage("CMApprox", Reload=>true)
+loadPackage "CMApprox"
 --installPackage ("CompleteIntersectionResolutions")
-
-
 -----Where does "high syzygy" behavior begin?
 --Conjecture: where regularity of the even and odd ext modules is 0 -- independently of whether there are socle elements in degree 0.
 --but to produce the behavior, the CM approx method is necessary; our matrixFactorization script won't do it!
@@ -342,15 +413,6 @@ S = kk[x_0..x_(c-1)]
 ff = matrix{apply(c, j-> (S_j)^d)}
 ff = ff*random(source ff, source ff);
 R = apply(c, j-> S/ideal ff_{0..j});
---make the projection maps
-projection = (i,j) -> (
-    if i>j then error "need first index <= second";
-    if i<0 or j>c then error "indices between 0 and c";
-    if i == 0 then map(R_(j-1),S) else
-    map(R_(j-1), R_(i-1))
-    )
---NOTE R_i = R(i+1) in our usual notation!
---projection(i,j) is R(j) --> R(i).
 
 (low,high) = (4,6)
 T = TateResolution1 (coker vars R_(c-1), low,high);
@@ -359,7 +421,7 @@ for i from 0 to length MM -1 do(
     print i;
      testCM (c,MM_i))
 
-cmApproxe pushForward(projection(1,2), MM_5)
+cmApproxe pushForward(projection(R,1,2), MM_5)
 
 --Seems to me that for c=2 we should always get something good
 dim testCM(2, MM_2)
@@ -381,7 +443,7 @@ testRegs(c,MM_4)
 testRegs(c,MM_6)
 
 
-(phi,psi) = cmApprox pushForward(projection(1,4), MM_6);
+(phi,psi) = cmApprox pushForward(projection(R,1,4), MM_6);
 M1 = prune source(phi|psi);
 M1e = source phi; should be a CM module without free summands of codim 1
 betti res M1
