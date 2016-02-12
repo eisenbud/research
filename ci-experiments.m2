@@ -423,9 +423,6 @@ prune coker phi
 
 
 
---Note that the numbers work for s = 1, but NOT for s=3, the case of a high syzygy
-highSyzygy coker vars R
-T.dd_2
 ///
 
 
@@ -1685,3 +1682,14 @@ doc ///
    SeeAlso
     makeFiniteResolution
 ///
+
+-------------Irena's Formula-----------
+--for a in NN
+time scan(20,a'->(
+a := a'+1;
+b := ceiling((a-1)/2);
+s := sum(toList(b..a), i->
+     sum(toList(i..a), p->
+     ((-1)^i*2^(2*(a-p)))*binomial(2*p,p)*binomial(p,i)*binomial(2*i+1, a)));
+if s =!=0 then print {a,s}))
+

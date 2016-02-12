@@ -18,7 +18,8 @@ export {
     "depth",
     "TateResolution1",
     "projection",
-    "regularitySequence"
+    "regularitySequence",
+    "prepareRings"
     }
 --TateResolution1 can become "TateResolution" when we fix
 --CompleteIntersectionResolutions
@@ -52,24 +53,7 @@ depth(Ideal, Module) := (I,M) ->(
     i := 0;    
     while HH_i F == 0 do i=i-1;
     -i)
-{*
-depth Module := M  ->(
-    --depth of a module with respect to the max ideal, via finite proj dim
-    --gives error if the ultimate coeficient ring of R = ring M is not a field, or if 
-    --R has a form like (k[X]/I)[y], then this method fails. 
-    --Could be improved if there were a good way in M2 of defining a map onto a given ring R 
-    --from a poly ring over ZZ or a field. Should exist! Wrote to the google group on Feb 6 to ask.
-    R := ring M;
-    d := dim M;
-    if not isCommutative R then error"depth undefined for noncommutative rings";
-    S := R;
-    --now try to write R as a finite module over a polynomial ring S over a field:
-    while  not isPolynomialRing S do S = ring presentation S;
-    if not isAffinePurePolynomialRing S then error"can't handle this case; use depth(I,M) instead";
-    f := map(R,S);
-    MS:= pushForward(f, M);
-    dim S - length complete res MS)
-*}
+
 depth Module := M  ->(
     --depth of a module with respect to the max ideal, via finite proj dim
     --gives error if the ultimate coeficient ring of R = ring M is not a field.
@@ -84,20 +68,6 @@ depth Module := M  ->(
 
 depth Ring := R -> depth R^1
 
-
-{*
-approxe = method()
-approxe Module := M -> (
-    codepth := depth (ring M)^1 - depth M;
-    F := res(M, LengthLimit => codepth+1);
-    complete F;
-    G := res(coker dual F.dd_(codepth), LengthLimit => codepth+1);
-    DF := (dual F)[-codepth];
-    app := extend(G,DF, map(G_0, DF_0, 1));
-    map(M, coker dual G.dd_codepth, dual app_codepth)
-    )
- *}
- ---From Feb 2016:
  
 --MCM approximation 
 mcmApproximatione = method()
@@ -148,17 +118,24 @@ auslanderInvariant Module := M-> (
     --number of free summands in the MCM approximation
     phi := mcmApproximatione M;
     numgens prune coker phi)
+
+prepareRings = method()
+prepareRings(ZZ,ZZ) := (c,d)->(
+    x := local x;
+    S := ZZ/101[x_0..x_(c-1)];
+    ff := matrix{apply(c, i->S_i^d)};
+    ff = ff*random(source ff, source ff);
+    apply(c, j->(S/ideal(ff_{0..j})))
+    )
+
+
 ///
 restart
 loadPackage("MCMApproximations", Reload=>true)
 ///
 TEST///
 c = 3
-d = 3
-S = ZZ/101[x_0..x_(c-1)]
-Rlist = apply(c, j->(
-    S/ideal(apply(j+1, i-> S_i^d))
-    ))
+Rlist = prepareRings(c,3)
 R = Rlist_(c-1);R' = Rlist_(c-2);
 F = res(coker vars R, LengthLimit => 10)
 netList apply(9,j-> auslanderInvariant pushForward(map(R,R'), coker F.dd_(j+1)))
@@ -228,73 +205,6 @@ M = coker vars R_(c-1)
 assert( (regularitySequence(R, coker vars R_(c-1))) === {{1,1},{0,0},{new InfiniteNumber from {-1},
 	    new InfiniteNumber from {-1}}} );
 ///
-
-testCM = (R,i,M) ->(
-    --M is a module over R(i) = R_(i-1)
-    --checks equality of regs of the ext modules of M and the one-step lift;
-    --if they match, just prints one.
-    --also checks whether the betti tables match.
-    --if they don't match prints both
-M' := pushForward(projection(R,i-1,i), M); --one step up
-P := pushForward(projection(R,0,i), M); -- S-module
-(phi,psi) := mcmApproximation M';
-alpha := phi|psi;
-FS := res prune P;
-FS1 := res prune pushForward(projection(R,0,i-1),source alpha);
-FS2 := (res prune pushForward(projection(R,0,i-1),ker alpha))[-1];
-regM := {prune evenExtModule(M),prune oddExtModule(M)}/regularity;
-regM' := {prune evenExtModule(M'),prune oddExtModule(M')}/regularity;
-<<"reg M: "<<regM<<endl;
-if regM != regM' then (
-    <<regM<<endl;
-    <<regM'<<endl;
-    <<presentation M<<endl
-    );
-bettiFS := betti FS;
-bettiFS' := betti (FS1++FS2);
-if bettiFS != bettiFS' then (
-    <<bettiFS<<endl;
-    <<bettiFS'<<endl;
---    <<presentation M
-);
-<<endl;
-)
-
-testRegs = (R,c,M) ->(
-M' := null;
-apply(c, j->(
-M' = pushForward(projection(R,c-j,c),M);
-{regularity evenExtModule M', regularity oddExtModule M'}))
-    )
-
-testRes = (R,M) ->(
-c := length R;
-M' := null;
-scan(c, j->(
-<< "level is: "<<c-j<<endl;
-M' = pushForward(projection(R,c-j,c),M);
-P := pushForward(projection(R,0,c-j), M'); -- S-module
-(phi,psi) := mcmApproximation M';
-alpha := phi|psi;
-FS := res prune P;
-FS1 := res prune pushForward(projection(R,0,c-j),source alpha);
-FS2 := (res prune pushForward(projection(R,0,c-j),ker alpha))[-1];
-regM := {prune evenExtModule(M),prune oddExtModule(M)}/regularity;
-regM' := {prune evenExtModule(M'),prune oddExtModule(M')}/regularity;
-<<"reg M: "<<regM<<endl;
-if regM != regM' then (
-    <<regM<<endl;
-    <<regM'<<endl;
-    <<presentation M<<endl
-    );
-bettiFS := betti FS;
-bettiFS' := betti (FS1++FS2);
-if bettiFS != bettiFS' then (
-    <<bettiFS<<endl;
-    <<bettiFS'<<endl;
---    <<presentation M
-))))
-
 
 
 beginDocumentation()
@@ -388,51 +298,6 @@ assert( (prune ker (phi|psi)) === (R')^{{-5},{-5},{-5},{-6},{-6},{-6}} );
 ///
 
 
-///
-
-restart
-load "ci-experiments.m2"
-
-c = 4
-d = 3
-S = kk[x_0..x_(c-1)]
-ff = matrix{apply(c, j-> (S_j)^d)}
-ff = ff*random(source ff, source ff);
-R = apply(c, j-> S/ideal ff_{0..j});
-(low,high) = (4,6)
-T = TateResolution1 (coker vars R_(c-1), low,high);
-MM = apply(-low+1..high-1, j->coker T.dd_j);
-
-R' = R_0 -- hypersurface
-p = map(R_(c-1),R')
-M' = pushForward(p, MM_6);
-M'' = prune source mcmApproximatione M'
-betti res M'' -- should be MCM!
-
-betti res prune source mcmApproximatione M'
-(phi,psi) = mcmApproximation pushForward(p, MM_6);
-M1 = prune source(phi|psi);
-M1e = prune source phi; --should be a CM module without free summands of codim 1
-betti res M1
-betti res M1e
-
-
-
-m= 2
-d = 2
-S = ZZ/101[x_0..x_(m-1)]
-R' = S/apply(m-1, j-> S_j^d)    
-R = S/apply(m, j-> S_j^d)    
-k = coker vars R
-r = map(R,R')
-M = pushForward(r, cosyzygy(2,k))
-M = pushForward(r,coker vars R)
-prune coker mcmApproximatione M
-(phi,psi) = mcmApproximation M
-isSurjective (alpha = (phi|psi))
-K = prune ker alpha
-source phi
-///
 
 
 end--
@@ -440,6 +305,7 @@ end--
 restart
 loadPackage("MCMApproximations", Reload=>true)
 installPackage "MCMApproximations"
+installPackage "CompleteIntersectionResolutions2"
 --installPackage ("CompleteIntersectionResolutions")
 -----Where does "high syzygy" behavior begin?
 --Conjecture: where regularity of the even and odd ext modules is 0 -- independently of whether there are socle elements in degree 0.
@@ -455,7 +321,6 @@ installPackage "MCMApproximations"
 --In case c= 4 even {2,1} seems to be good enough. Note that's a case where
 --reg ExtModule = 4.
 
-
 --One-step conjecture: if R is codim 1 in R', complete intersections in S,
 --and  M is a CM module over R, then:
 --the resoluttion of the "R'-CM-approx map" over S is equal to the 
@@ -466,7 +331,6 @@ installPackage "MCMApproximations"
 --Moreover, In this case, the Ext module of the essential R' CM approximation
 --is (Ext_R(M,k)/socle)/t
 
-
 --If this is true, then in the case when Ext_R(M,k) has regularity <= 1 AND if the reg Ext_R'(M',k) <= reg Ext_R(M,k), thi could continue
 --inductively. Note that reg(E/tE) <= reg(E) if t is a quasi-regular element on E (that is: a nzd on E/H^0_mm(E)). On the other hand,
 -- Ext_R'(M',k) ! =  Ext_R(M,k)/t, so we can't use this directly.
@@ -474,8 +338,13 @@ installPackage "MCMApproximations"
 --A crucial question is whether the socle of Ext_R(M,k) is represented by a free summand of the resolution.
 
 
+restart
+loadPackage("MCMApproximations", Reload=>true)
+loadPackage("CompleteIntersectionResolutions2", Reload =>true)
+--installPackage "MCMApproximations"
+--installPackage "CompleteIntersectionResolutions2"
 
-c = 4
+c = 2
 d = 3
 S = kk[x_0..x_(c-1)]
 ff = matrix{apply(c, j-> (S_j)^d)}
@@ -484,150 +353,43 @@ R = apply(c, j-> S/ideal ff_{0..j});
 
 (low,high) = (4,6)
 T = TateResolution1 (coker vars R_(c-1), low,high);
+
 MM = apply(-low+1..high-1, j->coker T.dd_j);
-for i from 0 to length MM -1 do(
-    print i;
-     testCM (c,MM_i))
-
-mcmApproximatione pushForward(projection(R,1,2), MM_5)
-
---Seems to me that for c=2 we should always get something good
-dim testCM(2, MM_2)
-
---with c= 2 only get the right result for reg = {0,0}
---But with c=3,we get the right result for reg = {1,0}
---with c=4 we get the right result even for reg = {1,1}
---and with c = 5 we get the right result for reg = {2,1}
-
---pattern seems to be that in the step from codim c to codim c-1,
---and the resolution of the residue field, we get a good result
---precisely when regularity ExtModule <= c-1.
 
 
-testCM(c, MM_4) 
-testCM(c, MM_5) 
-testCM(c, MM_6) 
-testRegs(c,MM_4)
-testRegs(c,MM_6)
+regularitySequence(R,MM_4)
+regularitySequence(R,MM_6)
 
+viewHelp CompleteIntersectionResolutions2
 
-(phi,psi) = mcmApproximation pushForward(projection(R,1,4), MM_6);
-M1 = prune source(phi|psi);
-M1e = source phi; should be a CM module without free summands of codim 1
-betti res M1
-betti res M1e
+compareAusAndT = (ff, U',M) ->(
+    --M a module over U = U'/(f);
+    --returns the Auslander Invariant of M as U' module
+    --(that is, the dimension of the coker of (MCMApproximatione->M)*U/mm
+    --and the dimension of coker t*(U/mm))
+    M':=pushForward(map(U,U'), M);
+    a := auslanderInvariant M';
+    F:=res M;
+    b := rank basis coker ((coker vars U)**((makeT(ff,F,2))_0));
+    {a,b})
+    
 
+U' = R_0
+gg = matrix{{R_0_1^3}}
+U = R_1
+F = res(MM_0, LengthLimit => 8)
 
-testRes(c,MM_4)
+netList apply(8, j-> compareAusAndT(gg,U',coker F.dd_(j+1)))
 
-E = ExtModule MM_4
-regularity E
+res prune M
 
-The 
-regularity evenExtModule(MM_5) 
-regularity oddExtModule(MM_4)
+rank basis coker ((coker vars U)**(makeT(gg,F,2))_0)
+F = TateResolution1 (coker vars U, low,high)
+prune coker ((makeT(gg,F,-2))_0)
 
-E1 = oddExtModule(N_3)
-E0= evenExtModule(N_3)
-betti res E0
-betti res E1
-matrixFactorization(ff,N_3)
-
-
-
-///
-
-
--- S poly ring
--- R' = S/f1
--- R = R'/f_2
---M an R module
---M' the CM approx of M over R'
---Our thm says that when M is a high syz, then
--- the min res of M' over S is part of the min res of M over S.
-
---Sasha suggested that one add the free R'-module to make the MCM approx,
---and the free kernel, and take the mapping cone between them;
---this produces another resolution with the same pattern of Koszul complexes.
---But it seems that the betti numbers will be wrong, even for high syzygies.
-
-compareRes = method()
-compareRes(Matrix, Module) := (ff, M) ->(
-    --ff a 1 x 2 matrix over S
-    --M a module over S/(ideal ff)
-    S:=ring ff;
-    R := ring M;
-    R' := S/(ideal ff_{0});
-    R'toR := map(R, R');
-    StoR' := map(R',S);
-    StoR := R'toR * StoR';
-    phi := mcmApproximation pushForward(R'toR, M);
-    K := prune ker phi;
-    if not isFreeModule  K then (
-	<<{R'toR,M};
-	error "mcmApproximation pushForward(R'toR, M);");
-    M'':= pushForward(StoR,M);
-    F := res M'';
-    G := res prune pushForward(StoR', source mcmApproximatione(pushForward(R'toR, M)));
-    G0 := res prune pushForward(StoR', source phi);
-    G1 := res prune pushForward(StoR',prune K);
-    <<"res of M,res of mcmApproximatione, res of mcmApproximation, res of kernel"<<endl;
-    {betti F, betti G, betti G0, betti G1}
-    )
-///
-S = kk[a,b]
-ff = matrix{{a^3, b^3}}
---ff = ff*random(source ff1, source ff1)
-R = S/ideal ff
-T = TateResolution1(coker vars R, 4,5)
-s = 1
-compareRes(ff, coker (T.dd_s))
-M = coker (T.dd_s)
-
-    R' = S/(ideal ff_{0});
-    R'toR = map(R, R');
-    StoR' = map(R',S);
-    StoR = R'toR * StoR';
-    phi = mcmApproximation pushForward(R'toR, M);
-phi
-prune    target phi
-K = prune ker phi
-prune coker phi
-    phie = mcmApproximatione pushForward(R'toR, M);
-
---Note that the numbers work for s = 1, but NOT for s=3, the case of a high syzygy
-highSyzygy coker vars R
-T.dd_2
-///
-S = ZZ/101[a,b,c]
-I = ideal"a2, b2"
-R = S/I
-M = coker vars R
-res M
-depth M
-depth 
-approxe M
-
-
-
---slow example:
-restart
-load "CMapprox.m2"
-S = ZZ/101[a_0..a_9]
-smat= genericSkewMatrix(S,a_0,5)
-I = pfaffians(4,smat)
-R = S/I
-M = coker vars R
-time mcmApproximatione M
-time approxe M
-
-approxe (R^1/ideal a_0)
-R1 = R/ideal a
-
-depth M
-depth R^1
-
-
-
-
+N = coker F.dd_(-3)
+ring N === U
+N' = pushForward(map(U,U'), N)
+prune coker mcmApproximatione N'
+auslanderInvariant N'
 
