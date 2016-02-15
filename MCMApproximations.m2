@@ -6,7 +6,7 @@ Authors => {{Name => "David Eisenbud",
 Email => "de@msri.org",
 HomePage => "http://www.msri.org/~de"}},
 Headline => "MCM Approximations and Complete Intersections",
-DebuggingMode => false,
+DebuggingMode => true,
 PackageExports => {"CompleteIntersectionResolutions"}
 )
 
@@ -15,7 +15,7 @@ export {
     "Total",
     "approx",
     "auslanderInvariant",
-    "depth",
+    "profondeur",
     "TateResolution1",
     "projection",
     "regularitySequence",
@@ -142,25 +142,24 @@ M0 = coker matrix{{Rc_0,Rc_1,Rc_2},{Rc_1,Rc_2,Rc_0}}
 betti res (M0, LengthLimit=> 5)
 M1 = prune syzygy(4, M0)
 betti res M1
-
 ///
 
-depth = method()
-depth(Ideal, Module) := (I,M) ->(
+profondeur = method()
+profondeur(Ideal, Module) := (I,M) ->(
     --requires R to be an affine ring (eg NOT ZZ[x])
     R := ring M;
     d := max(1,dim M); -- d=0 causes a crash
-    if not isCommutative R then error"depth undefined for noncommutative rings";
+    if not isCommutative R then error"profondeur undefined for noncommutative rings";
     F := M**dual res (R^1/I, LengthLimit => d);
     i := 0;    
     while HH_i F == 0 do i=i-1;
     -i)
 
-depth Module := M  ->(
-    --depth of a module with respect to the max ideal, via finite proj dim
+profondeur Module := M  ->(
+    --profondeur of a module with respect to the max ideal, via finite proj dim
     --gives error if the ultimate coeficient ring of R = ring M is not a field.
     R := ring M;
-    if not isCommutative R then error"depth undefined for noncommutative rings";
+    if not isCommutative R then error"profondeur undefined for noncommutative rings";
     (S,F) := flattenRing R;
     if not isField coefficientRing S then error"input must be a module over an affine ring";
     S0 := ring presentation S;
@@ -168,7 +167,7 @@ depth Module := M  ->(
     MM := pushForward(r,M);
     numgens S0 - pdim MM)
 
-depth Ring := R -> depth R^1
+profondeur Ring := R -> profondeur R^1
 
 ///
 restart
@@ -176,14 +175,14 @@ loadPackage("MCMApproximations", Reload=>true)
 ///
 doc ///
    Key
-    depth
+    profondeur
    Headline
-    computes the depth with respect to an ideal
+    computes the profondeur with respect to an ideal
    Usage
-    m = depth (I,M)
-    (depth,Ideal,Module)
-    (depth, Module)
-    (depth, Ring)
+    m = profondeur (I,M)
+    (profondeur,Ideal,Module)
+    (profondeur, Module)
+    (profondeur, Ring)
    Inputs
     I:Ideal
     M:Module
@@ -197,9 +196,9 @@ doc ///
 ///
 TEST///
 R = kk[a,b,c,d,e]/(ideal(a,b)*ideal(c,d))
-assert(depth R == 2)    
-assert(depth(ideal(a,d,e), R^1) == 2)
-assert(depth R^1 == 2)
+assert(profondeur R == 2)    
+assert(profondeur(ideal(a,d,e), R^1) == 2)
+assert(profondeur R^1 == 2)
 /// 
 
 --MCM approximation 
@@ -432,7 +431,7 @@ doc ///
    Headline
     Sets up a complete intersection for experiments
    Usage
-    R = prepareRings(c,d)
+    R = setupRings(c,d)
    Inputs
     c:ZZ
      desired codimension
@@ -455,20 +454,28 @@ doc ///
 
 
 setupModules = method()
-setupModules(List, Module) := (R,M) ->(
+setupModules(List,Module) := (R,M)->(
     --R_i is a ci of codim i in a ring S
     --returns (MM,kk,p) where
     --MM,kk are lists whose i-compoents are the module M and residue field k, but over R_i
     --p_i_j is the projection from R_j to R_i (c >= i >= j >= 0)
     c := length R-1;
     kk :=apply(c+1, i-> coker vars R_i);
-    p := apply(c+1, i->apply(toList(0..i), j->map(R_i,R_j)));
+    p := apply(c+1, i->apply(i+1, j->map(R_i,R_j)));
     MM := apply(c+1, j->prune pushForward(p_c_j, M));
     (MM,kk,p))
 ///
 restart
 loadPackage("MCMApproximations", Reload=>true)
 ///    
+
+TEST///
+c=3;d=2;
+R = setupRings(c,d);
+(M,k,p) = setupModules(R,coker vars R_c);
+assert(numcols  matrix p_c_c === 3 )
+///
+
 doc ///
    Key
     setupModules
@@ -533,27 +540,26 @@ projection = (R,i,j) -> (
 regularitySequence = method()
 regularitySequence(List, Module) := (R,M) ->(
     --R = complete intersection list R_(i+1) = R_i/f_(i+1), i= 0..c.
-    --M = module over R_(c-1)
+    --M = module over R_c
     --returns the list of pairs {reg evenExtModule M_i, reg oddExtModule M_i}
     --where M_i is the MCM approximation of M over R_i
-    c := length R;
-    MM := apply(c, j->source mcmApproximation(pushForward(projection(R,j,c), M),Total =>false));
-    apply(c, j-> 
-     {regularity evenExtModule MM_(c-1-j), regularity oddExtModule MM_(c-j-1)})
+    c := length R-1;
+    (MList,kkk,p) := setupModules(R,M);
+    MM := apply(c+1, j->source mcmApproximation(pushForward(p_c_j, M),Total =>false));
+    MM = select(MM, m-> not isFreeModule m);
+    apply(MM, m-> 
+     {regularity evenExtModule m, regularity oddExtModule m})
     )
 ///
 restart
 loadPackage("MCMApproximations", Reload=>true)
 ///
 TEST///
-c = 3
-d = 3
-S = ZZ/101[x_0..x_(c-1)]
-R = apply(c, j->(
-    S/ideal(apply(j+1, i-> S_i^d))
-    ))
-assert( (regularitySequence(R, coker vars R_(c-1))) === {{1,1},{0,0},{new InfiniteNumber from {-1},
-	    new InfiniteNumber from {-1}}} );
+c = 2
+d = 2
+R = setupRings(c,d)
+(M,k,p) = setupModules(R,coker vars R_c);
+regularitySequence(R,coker vars R_c)
 ///
 
 
@@ -599,16 +605,16 @@ loadPackage( "MCMApproximations", Reload=>true)
 TEST///
 kk = ZZ/101
 R = kk[x,y,z]
-assert(3==depth R)
-assert (2 == depth(ideal(x,y), R^1))
-assert(0 == depth coker vars R)
-assert (0 == depth(ideal(x,y), coker vars R))
+assert(3==profondeur R)
+assert (2 == profondeur(ideal(x,y), R^1))
+assert(0 == profondeur coker vars R)
+assert (0 == profondeur(ideal(x,y), coker vars R))
 R = ZZ/101[a..f]
 I = minors(2,genericSymmetricMatrix(R,a,3))
-assert (depth(R/I) ==3)
-assert(depth(R/I^2) == 0)
+assert (profondeur(R/I) ==3)
+assert(profondeur(R/I^2) == 0)
 mm = ideal vars (R/I)
-assert(depth(mm, (R/I)^1)== 3)
+assert(profondeur(mm, (R/I)^1)== 3)
 ///
 TEST///
 S = ZZ/101[a,b,c]
