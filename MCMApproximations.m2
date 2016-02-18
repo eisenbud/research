@@ -7,17 +7,16 @@ Email => "de@msri.org",
 HomePage => "http://www.msri.org/~de"}},
 Headline => "MCM Approximations and Complete Intersections",
 DebuggingMode => true,
-PackageExports => {"CompleteIntersectionResolutions"}
+PackageExports => {"CompleteIntersectionResolutions2"}
 )
 
 export {
-    "mcmApproximation", 
+    "approximation", 
     "Total",
     "approx",
     "auslanderInvariant",
     "profondeur",
     "TateResolution1",
-    "projection",
     "regularitySequence",
     "setupRings",
     "Characteristic", -- option for setupRings
@@ -176,13 +175,13 @@ loadPackage("MCMApproximations", Reload=>true)
 doc ///
    Key
     profondeur
+    (profondeur,Ideal,Module)
+    (profondeur, Module)
+    (profondeur, Ring)
    Headline
     computes the profondeur with respect to an ideal
    Usage
     m = profondeur (I,M)
-    (profondeur,Ideal,Module)
-    (profondeur, Module)
-    (profondeur, Ring)
    Inputs
     I:Ideal
     M:Module
@@ -202,8 +201,8 @@ assert(profondeur R^1 == 2)
 /// 
 
 --MCM approximation 
-mcmApproximatione = method(Options =>{CoDepth => -1})
-mcmApproximatione(ZZ,Module) := opts -> (n,M) ->(
+approximatione = method(Options =>{CoDepth => -1})
+approximatione(ZZ,Module) := opts -> (n,M) ->(
     --returns the map to M from the
     --dual of the n-th syz of the n-th syzy of M
     --n = dim ring M - depth M +1 -- this just slows things down!
@@ -225,21 +224,21 @@ betti res syzygy_1 M
 ///
 --<<docTemplate
 
-mcmApproximatione Module := opts -> M ->(
+approximatione Module := opts -> M ->(
     --returns the map from the essential MCM approximation
     n := 1+dim ring M;
     if opts.CoDepth == 0 then n = 1;
     if opts.CoDepth > 0 then n = opts.CoDepth;
-    mcmApproximatione(n, M)
+    approximatione(n, M)
     )
 
-mcmApproximation = method(Options =>{Total => true, CoDepth=>-1})
-mcmApproximation Module := opts -> M->(
+approximation = method(Options =>{Total => true, CoDepth=>-1})
+approximation Module := opts -> M->(
     --returns the list {phi, psi} where:
     --phi is the map from the essential MCM approximation
     --psi is the minimal map from a free module necessary to make
     -- alpha = (phi | psi) an epimorphism
-    phi := mcmApproximatione(M,CoDepth=>opts.CoDepth);
+    phi := approximatione(M,CoDepth=>opts.CoDepth);
     if opts.Total != true then return phi;
     psi := null;
     N := coker phi;
@@ -253,13 +252,43 @@ mcmApproximation Module := opts -> M->(
     psi = (matrix a)//matrix(MtoN);
     (phi, psi)
     )
-
---approx := mcmApproximation
+doc ///
+   Key
+    Total
+   Headline
+    option for approximation
+   Usage
+    approximation(M, total =>t)
+   Inputs
+    M:Module
+    t:Boolean
+   Description
+    Text
+     If t != true then return only the map from the non-free part of the MCM approximation
+     Otherwise, return the pair of maps that defines the MCM approximation.
+     Default is t ==true.
+   SeeAlso
+    approximation
+    auslanderInvariant
+    regularitySequence
+    CoDepth
 ///
-    phi = mcmApproximation(M, Total => false)
-    (mcmApproximation, Module)
-    [mcmApproximation, Total]
-    [mcmApproximation, CoDepth]
+
+doc ///
+   Key
+    approx
+   Headline
+    synonym for approximation
+   SeeAlso
+    approximation
+///
+
+--approx := approximation
+///
+    phi = approximation(M, Total => false)
+    (approximation, Module)
+    [approximation, Total]
+    [approximation, CoDepth]
 ///
 
 ///
@@ -269,15 +298,14 @@ loadPackage("MCMApproximations", Reload =>true)
 
 doc ///
    Key
-    mcmApproximation
+    approximation
+    (approximation, Module)
+    [approximation, Total]
+    [approximation, CoDepth]
    Headline
     returns pair of components of the map from the MCM approximation
    Usage
-    (phi,psi) = mcmApproximation M
-    phi = mcmApproximation(M, Total => false)
-    (mcmApproximation, Module)
-    [mcmApproximation, Total]
-    [mcmApproximation, CoDepth]
+    (phi,psi) = approximation M
    Inputs
     M:Module
    Outputs
@@ -314,26 +342,26 @@ doc ///
     Example
      R = ZZ/101[a,b]/ideal(a^2)
      k = coker vars R
-     mcmApproximation k
+     approximation k
      M = image vars R
-     mcmApproximation M
-     mcmApproximation(M, Total=>false)
-     mcmApproximation(M, CoDepth => 0)
+     approximation M
+     approximation(M, Total=>false)
+     approximation(M, CoDepth => 0)
    SeeAlso
     syzygy
     auslanderInvariant
 ///
 
 ///TEST
-assert( (mcmApproximation M) === (map(image map((R)^1,(R)^{{-1},{-1}},{{a, b}}),cokernel map((R)^{{-1},{-1}},(R)^{{-2},{-2}},{{-a, b}, {0, a}}),{{-1, 0}, {0, 1}}),map(image map((R)^1,(R)^{{-1},{-1}},{{a, b}}),(R)^0,0)) );
-assert( (mcmApproximation(M, Total=>false)) === map(image map((R)^1,(R)^{{-1},{-1}},{{a,b}}),cokernel map((R)^{{-1},{-1}},(R)^{{-2},{-2}},{{-a, b}, {0, a}}),{{-1, 0}, {0, 1}}) );
-assert( (mcmApproximation(M, CoDepth => 0)) === (map(image map((R)^1,(R)^{{-1},{-1}},{{a,b}}),cokernel map((R)^{{-1},{-1}},(R)^{{-2},{-2}},{{a, -b}, {0, a}}),{{1, 0}, {0,1}}),map(image map((R)^1,(R)^{{-1},{-1}},{{a, b}}),(R)^0,0)) );
+assert( (approximation M) === (map(image map((R)^1,(R)^{{-1},{-1}},{{a, b}}),cokernel map((R)^{{-1},{-1}},(R)^{{-2},{-2}},{{-a, b}, {0, a}}),{{-1, 0}, {0, 1}}),map(image map((R)^1,(R)^{{-1},{-1}},{{a, b}}),(R)^0,0)) );
+assert( (approximation(M, Total=>false)) === map(image map((R)^1,(R)^{{-1},{-1}},{{a,b}}),cokernel map((R)^{{-1},{-1}},(R)^{{-2},{-2}},{{-a, b}, {0, a}}),{{-1, 0}, {0, 1}}) );
+assert( (approximation(M, CoDepth => 0)) === (map(image map((R)^1,(R)^{{-1},{-1}},{{a,b}}),cokernel map((R)^{{-1},{-1}},(R)^{{-2},{-2}},{{a, -b}, {0, a}}),{{1, 0}, {0,1}}),map(image map((R)^1,(R)^{{-1},{-1}},{{a, b}}),(R)^0,0)) );
 ///
 
 auslanderInvariant = method(Options =>{CoDepth => -1})
 auslanderInvariant Module := opts->M-> (
     --number of free summands in the MCM approximation
-    phi := mcmApproximation(M, CoDepth => opts.CoDepth, Total=>false);
+    phi := approximation(M, CoDepth => opts.CoDepth, Total=>false);
     numgens prune coker phi)
 ///
 restart
@@ -353,12 +381,12 @@ loadPackage("MCMApproximations", Reload =>true)
 doc ///
    Key
     auslanderInvariant
+    (auslanderInvariant, Module)
+    [auslanderInvariant, CoDepth]
    Headline
     measures failure of surjectivity of the essential MCM approximation
    Usage
     a = auslanderInvariant M
-    (auslanderInvariant, Module)
-    [auslanderInvariant, CoDepth]
    Inputs
     M:Module
    Outputs
@@ -395,7 +423,7 @@ doc ///
      I = ideal vars R
      scan(5, i->print auslanderInvariant ((R^1)/(I^i)))
    SeeAlso
-    mcmApproximation
+    approximation
 ///
 
 
@@ -495,7 +523,7 @@ doc ///
     kk:List
      kk_i is the residule field of R_i, as a module
     p:List
-     p is the list of lists of projection maps, p_i_j: R_i->R_j for 0<=i<=j<=c
+     p is the list of lists of projection maps, p_i_j: R_j->R_i for 0<=j<=i<=c
    Description
     Text
      In the following examples, the syzygies all 
@@ -524,7 +552,7 @@ TateResolution1(Module,ZZ,ZZ) := (M,low,high) ->(
          print betti T;
 	 T
          )
-
+{*
 projection = (R,i,j) -> (
     --Assumes that R is a list of rings, and that R_(i+1) is a quotient of R_i
     --forms the projection maps 
@@ -536,7 +564,7 @@ projection = (R,i,j) -> (
     if i == 0 then map(R_(j-1),ambient R_0) else
     map(R_(j-1), R_(i-1))
     )
-
+*}
 regularitySequence = method()
 regularitySequence(List, Module) := (R,M) ->(
     --R = complete intersection list R_(i+1) = R_i/f_(i+1), i= 0..c.
@@ -545,11 +573,14 @@ regularitySequence(List, Module) := (R,M) ->(
     --where M_i is the MCM approximation of M over R_i
     c := length R-1;
     (MList,kkk,p) := setupModules(R,M);
-    MM := apply(c+1, j->source mcmApproximation(pushForward(p_c_j, M),Total =>false));
+    MM := apply(c+1, j->source approximation(pushForward(p_c_j, M),Total =>false));
     MM = select(MM, m-> not isFreeModule m);
-    apply(MM, m-> 
-     {regularity evenExtModule m, regularity oddExtModule m})
+    scan(reverse MM, m-> (
+     <<{regularity evenExtModule m, regularity oddExtModule m})
+     <<endl);
     )
+
+
 ///
 restart
 loadPackage("MCMApproximations", Reload=>true)
@@ -564,6 +595,41 @@ regularitySequence(R,coker vars R_c)
 
 
 beginDocumentation()
+
+doc ///
+   Key
+    regularitySequence
+    (regularitySequence, List,Module)
+   Headline
+    regularity of Ext modules for a sequence of MCM approximations
+   Usage
+    L = regularitySequence (R,M)
+
+   Inputs
+    R:List
+     list of rings R_i = S/(f_0..f_(i-1), complete intersections
+    M:Module
+     module over R_c where c = length R - 1.
+   Outputs
+    L:List
+     List of pairs {regularity evenExtModule M_i, regularity oddExtModule M_i)
+   Description
+    Text
+     Computes the non-free parts M_i of the MCM approximation to M over R_i, 
+     stopping when M_i becomes free, and
+     returns the list whose elements are the pairs of regularities, starting
+     with M_(c-1)
+     Note that the first pair is for the 
+    Example
+     c = 3;d=2
+     R = setupRings(c,d);
+     Rc = R_c
+     M = coker matrix{{Rc_0,Rc_1,Rc_2},{Rc_1,Rc_2,Rc_0}}
+     regularitySequence(R,M)
+   SeeAlso
+    approximation
+    auslanderInvariant
+///
 
 doc ///
 Key
@@ -648,7 +714,7 @@ R = S/ideal"a3,b3,c3"
 use S
 R' = S/ideal"a3,b3"
 M = coker vars R
-(phi,psi) = mcmApproximation(pushForward(map(R,R'),ker syz presentation M))
+(phi,psi) = approximation(pushForward(map(R,R'),ker syz presentation M))
 assert( (prune source phi) === cokernel map((R')^{{-4},{-4},{-4},{-4},{-4},{-4},{-3}},(R')^{{-5},{-5},{-5},{-5},{-5},{-5},{-6},{-6},{-6}},
 	      {{c,-b, 0, 0, 0, 0, a^2, 0, 0}, {0, 0, b, 0, -c, 0, 0, a^2, 0}, {a, 0, 0, 0, 0, -b, 0, 0, 0}, 
 		  {0, a, 0, 0,0, -c, 0, -b^2, 0}, {0, 0, a, c, 0, 0, 0, 0, b^2}, {0, 0, 0, b, a, 0, 0, 0, 0}, {0, 0, 0, 0, b^2, a^2, 0, 0, 0}}) )
@@ -656,8 +722,6 @@ assert( (prune source psi) === (R')^{{-4},{-4},{-4}} )
 assert(isSurjective(phi|psi)===true)
 assert( (prune ker (phi|psi)) === (R')^{{-5},{-5},{-5},{-6},{-6},{-6}} );
 ///
-
-
 
 
 end--
@@ -709,6 +773,8 @@ loadPackage("CompleteIntersectionResolutions2", Reload =>true)
 --installPackage "MCMApproximations"
 --installPackage "CompleteIntersectionResolutions2"
 
+--Conjecture 1: the "regularity of the successive MCM approximations is decreasing
+
 c = 2
 d = 3
 S = kk[x_0..x_(c-1)]
@@ -726,16 +792,6 @@ regularitySequence(R,MM_6)
 
 viewHelp CompleteIntersectionResolutions2
 
-compareAusAndT = (ff, U',M) ->(
-    --M a module over U = U'/(f);
-    --returns the Auslander Invariant of M as U' module
-    --(that is, the dimension of the coker of (MCMApproximatione->M)*U/mm
-    --and the dimension of coker t*(U/mm))
-    M':=pushForward(map(U,U'), M);
-    a := auslanderInvariant M';
-    F:=res M;
-    b := rank basis coker ((coker vars U)**((makeT(ff,F,2))_0));
-    {a,b})
     
 
 U' = R_0
@@ -754,7 +810,7 @@ prune coker ((makeT(gg,F,-2))_0)
 N = coker F.dd_(-3)
 ring N === U
 N' = pushForward(map(U,U'), N)
-prune coker mcmApproximation(N',Total=>false)
+prune coker approximation(N',Total=>false)
 auslanderInvariant N'
 
 
@@ -773,7 +829,7 @@ scan(range, i-> (
 	(M,kkk,p) = setupModules(R,MM0);
 	apply(c-1, j->(
 	a := auslanderInvariant M_(c-1-j);
-	phi = mcmApproximation(M_(c-1-j),Total=>false);
+	phi = approximation(M_(c-1-j),Total=>false);
 	b := numgens prune ker(kkk_(c-1-j)**phi);
 	re := regularity (Ee = evenExtModule(M_(c-1-j)));
 	ro := regularity (Eo = oddExtModule(M_(c-1-j)));	
@@ -794,46 +850,54 @@ betti res M0
 M1 = syzygy_4 M_0
 betti res M1
 ring M1
-mcmApproximation(M1,Total =>false)
+approximation(M1,Total =>false)
+
+
+------image of essential approximation, compared with ker t.
+restart
+loadPackage("MCMApproximations", Reload=>true)
+a = 3
+b = 4
+c = 3;d=3;
+S = setupRings(c,d)
+R = S_c
+R' = S_(c-1)
+M = coker matrix {{R_0,R_1,R_2},{R_1,R_2,R_0}}
+(MM,kk,p) = setupModules(S,M);
+
+F0 = res (M, LengthLimit =>3)
+F = dual res(coker dual F0.dd_a, LengthLimit =>a+b)[-3]
+N' = pushForward(map(R,R'),coker F.dd_(-b+1))
+G = res(N', LengthLimit =>a+b)[b]
+
+RG = tensor1(map(R,R'),G)
+alpha = map((F[-b])_0, (RG[-b])_0,1)
+extend(F[-b],RG[b],alpha)
+
+ff = presentation R
+ring ff === S_0
+ring F === R
+makeT(ff,F,2) 
+
+tensor1 = method()
+tensor1(RingMap,ChainComplex) := (p,C) ->(
+    complete C;
+    m := min C+1;
+    chainComplex apply(length C, i -> p C.dd_(i+m))[- min C]
+    )
+
+p = map(R,R')
+tensor1(map(R,R'),G)
 
 
 
-doc ///
-   Key
-    setupModules
-    (setupModules, List, Module)
-   Headline
-    Prepares modules over a complete intersection for experiment
-   Usage
-    (MM,kk,p) = setupModules(R,M)
-   Inputs
-    R:List
-     list of rings R_0..R_c as produce by setupRings
-    M:Module
-     module over R_c
-   Outputs
-    MM:List
-     MM_i is M as a module over R_i
-    kk:List
-     kk_i is the residule field of R_i, as a module
-    p:List
-     p is the list of lists of projection maps, p_i_j: R_i->R_j for 0<=i<=j<=c
-   Description
-    Text
-     In the following examples, the syzygies all 
-     have regularity evenExtModule MM_1 == 1
-     because the complexity of M is only 2.
-    Example
-     c = 3
-     R = setupRings(3,c);
-     Rc = R_c;
-     M = coker matrix{{Rc_0,Rc_1,Rc_2},{Rc_1,Rc_2,Rc_0}}
-     (MM,kk,p) = setupModules(R,syzygy_3 M);
-     apply(3, j->(
-	 (MM,kk,p) = setupModules(R,syzygy_j M);
-         apply(c, i-> 
-	     regularity evenExtModule MM_(i+1))
-     ))
-   SeeAlso
-    setupRings
-///
+compareAusAndT = (ff, U',M) ->(
+    --M a module over U = U'/(f);
+    --returns the Auslander Invariant of M as U' module
+    --(that is, the dimension of the coker of (MCMApproximatione->M)*U/mm
+    --and the dimension of coker t*(U/mm))
+    M':=pushForward(map(U,U'), M);
+    a := auslanderInvariant M';
+    F:=res M;
+    b := rank basis coker ((coker vars U)**((makeT(ff,F,2))_0));
+    {a,b})
