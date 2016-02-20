@@ -7,7 +7,7 @@ newPackage(
                         HomePage => "http://www.msri.org/~de"}},
               Headline => "Analyzing Resolutions over a Complete Intersection",
 	      PackageExports => {"BGG"},
-              DebuggingMode => false --should be false when submitted
+              DebuggingMode => true --should be false when submitted
               )
 	  export{
          --some utilities
@@ -202,6 +202,7 @@ oddExtModule Module := M -> (
      coker v1 presentation Eo
      )
 
+///
 makeT = method()
 makeT(Matrix, ChainComplex,ZZ) := (F,G,i) ->(
      {*
@@ -227,12 +228,59 @@ makeT(Matrix, ChainComplex,ZZ) := (F,G,i) ->(
 	     d2 = d2 - utemp**F_{i};
 	     utemp));
      --check: is d1*d0 = sum F_{i}*u_i 
+     error();
      if d1*d0 != map(Gtar, Gsour, sum(c, i-> u_i**F_{i})) then 
                   error{"doesn't add up"};
      ret := map(R,S);
      apply(u, u1 -> ret u1)
      )
 
+///
+
+makeT = method()
+makeT(Matrix, ChainComplex,ZZ) := (F,G,i) ->(
+     {*
+     If F is an m x 1 matrix and
+     G is a resolution of a module at least up to the i-th step,
+     over R = S/(ideal F), 
+     of codim c this returns a list of the c ci-operators
+     G_i \to G_{i-2}
+     corresponding to the entries of F.
+     *}
+     c := numcols F;
+     degsF := flatten((degrees F)_1);
+     R := ring G;
+     S := ring F;
+     d0 := sub(G.dd_i, S);
+     d1 := sub(G.dd_(i-1), S);
+     Gtar := target d1;
+     Gsour := source d0;
+     d2 := d1*d0;
+     T := (d2//(F**Gtar));
+     I := id_(source F);
+     u := apply(c, i-> (I^{i}**Gtar)*T);
+     --check: is d1*d0 = sum F_{i}*u_i 
+     if d1*d0 != map(Gtar, Gsour, sum(c, i-> u_i**F_{i})) then 
+                  error{"doesn't add up"};
+     ret := map(R,S);
+     apply(u, u1 -> ret u1)
+     )
+TEST///
+S = kk[a,b,c]
+ff1 = matrix"a3,b3,c3"
+setRandomSeed 0
+ff = ff1*random(source ff1, source ff1)
+R = S/(ideal ff)
+M = coker matrix {{R_0,R_1,R_2},{R_1,R_2,R_0}}
+F = res coker vars R
+F0 = res (M, LengthLimit =>3)
+generateAssertions"makeT(ff, F0, 2)"
+assert( (makeT(ff, F0, 2)) === {map((R)^{{-3},{-3}},(R)^{{-3},{-3},{-3},{-3},{-3}},{{39,
+      0, 0, -26, 0}, {0, 39, 0, 0, 26}}),map((R)^{{-3},{-3}},(R)^{{-3},{-3},{-3},{-3},{-3}},{{33
+      , 0, 0, 31, 0}, {0, 33, 0, 0,
+      -31}}),map((R)^{{-3},{-3}},(R)^{{-3},{-3},{-3},{-3},{-3}},{{8, 0, 0, -31, 0}, {0, 8, 0, 0,
+      31}})} )
+///
 
 splittings = method()
 splittings (Matrix, Matrix) := (a,b) -> (
