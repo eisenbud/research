@@ -1,3 +1,7 @@
+--To Do: move tateResolution1 into CompleteIntersectionResolutions ;
+--add coApproximations
+--look at examples!
+
 newPackage(
 "MCMApproximations",
 Version => "0.1",
@@ -6,7 +10,7 @@ Authors => {{Name => "David Eisenbud",
 Email => "de@msri.org",
 HomePage => "http://www.msri.org/~de"}},
 Headline => "MCM Approximations and Complete Intersections",
-DebuggingMode => false
+DebuggingMode => true
 )
 
 export {
