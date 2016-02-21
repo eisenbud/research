@@ -7,7 +7,7 @@ newPackage(
                         HomePage => "http://www.msri.org/~de"}},
               Headline => "Analyzing Resolutions over a Complete Intersection",
 	      PackageExports => {"BGG"},
-              DebuggingMode => true --should be false when submitted
+              DebuggingMode => false --should be false when submitted
               )
 	  export{
          --some utilities
@@ -202,71 +202,39 @@ oddExtModule Module := M -> (
      coker v1 presentation Eo
      )
 
-///
-makeT = method()
-makeT(Matrix, ChainComplex,ZZ) := (F,G,i) ->(
-     {*
-     If F is an m x 1 matrix and
-     G is a resolution of a module at least up to the i-th step,
-     over R = S/(ideal F), 
-     of codim c this returns a list of the c ci-operators
-     G_i \to G_{i-2}
-     corresponding to the entries of F.
-     *}
-     c := numcols F;
-     degsF := flatten((degrees F)_1);
-     R := ring G;
-     S := ring F;
-     d0 := sub(G.dd_i, S);
-     d1 := sub(G.dd_(i-1), S);
-     Gtar := target d1;
-     Gsour := source d0;
-     d2 := d1*d0;
-     utemp := local utemp;
-     u := apply(c,i ->(
-	     utemp = map(S^{-degsF_i}**Gtar, Gsour, d2//((target d2)**F_{i}));
-	     d2 = d2 - utemp**F_{i};
-	     utemp));
-     --check: is d1*d0 = sum F_{i}*u_i 
-     error();
-     if d1*d0 != map(Gtar, Gsour, sum(c, i-> u_i**F_{i})) then 
-                  error{"doesn't add up"};
-     ret := map(R,S);
-     apply(u, u1 -> ret u1)
-     )
-
-///
 
 makeT = method()
-makeT(Matrix, ChainComplex,ZZ) := (F,G,i) ->(
+makeT(Matrix, ChainComplex,ZZ) := (ff,F,i) ->(
      {*
-     If F is an m x 1 matrix and
-     G is a resolution of a module at least up to the i-th step,
-     over R = S/(ideal F), 
+     If ff is an c x 1 matrix and
+     F is a chain complex
+     over R = S/(ideal ff), 
      of codim c this returns a list of the c ci-operators
-     G_i \to G_{i-2}
-     corresponding to the entries of F.
+     F_i \to F_{i-2}
+     corresponding to the entries of ff.
      *}
-     c := numcols F;
-     degsF := flatten((degrees F)_1);
-     R := ring G;
-     S := ring F;
-     d0 := sub(G.dd_i, S);
-     d1 := sub(G.dd_(i-1), S);
-     Gtar := target d1;
-     Gsour := source d0;
+     c := numcols ff;
+     degsff := flatten((degrees ff)_1);
+     R := ring F;
+     S := ring ff;
+     complete F;
+     minF := min F;
+     d0 := sub(F.dd_i, S);
+     d1 := sub(F.dd_(i-1), S);
+     Ftar := target d1;
+     Fsour := source d0;
      d2 := d1*d0;
-     T := (d2//(F**Gtar));
-     I := id_(source F);
-     u := apply(c, i-> (I^{i}**Gtar)*T);
-     --check: is d1*d0 = sum F_{i}*u_i 
-     if d1*d0 != map(Gtar, Gsour, sum(c, i-> u_i**F_{i})) then 
+     T := (d2//(ff**Ftar));
+     I := id_(source ff);
+     u := apply(c, j-> (I^{j}**Ftar)*T);
+     --check: is d1*d0 = sum ff_{i}*u_i 
+     if d1*d0 != map(Ftar, Fsour, sum(c, i-> u_i**ff_{i})) then 
                   error{"doesn't add up"};
      ret := map(R,S);
      apply(u, u1 -> ret u1)
      )
 TEST///
-S = kk[a,b,c]
+S = ZZ/101[a,b,c]
 ff1 = matrix"a3,b3,c3"
 setRandomSeed 0
 ff = ff1*random(source ff1, source ff1)
@@ -274,12 +242,14 @@ R = S/(ideal ff)
 M = coker matrix {{R_0,R_1,R_2},{R_1,R_2,R_0}}
 F = res coker vars R
 F0 = res (M, LengthLimit =>3)
+makeT(ff, F0, 4)
+min F0
 generateAssertions"makeT(ff, F0, 2)"
-assert( (makeT(ff, F0, 2)) === {map((R)^{{-3},{-3}},(R)^{{-3},{-3},{-3},{-3},{-3}},{{39,
-      0, 0, -26, 0}, {0, 39, 0, 0, 26}}),map((R)^{{-3},{-3}},(R)^{{-3},{-3},{-3},{-3},{-3}},{{33
-      , 0, 0, 31, 0}, {0, 33, 0, 0,
-      -31}}),map((R)^{{-3},{-3}},(R)^{{-3},{-3},{-3},{-3},{-3}},{{8, 0, 0, -31, 0}, {0, 8, 0, 0,
-      31}})} )
+assert( (makeT(ff, F0, 2)) === {map((R)^{{-3},{-3}},(R)^{{-3},{-3},{-3},{-3},{-3}},{{39, 0, 0, -26, 0},
+      --------------------------------------------------------------------------------------------------------
+      {0, 39, 0, 0, 26}}),map((R)^{{-3},{-3}},(R)^{{-3},{-3},{-3},{-3},{-3}},{{33, 0, 0, 31, 0}, {0, 33, 0, 0,
+      --------------------------------------------------------------------------------------------------------
+      -31}}),map((R)^{{-3},{-3}},(R)^{{-3},{-3},{-3},{-3},{-3}},{{8, 0, 0, -31, 0}, {0, 8, 0, 0, 31}})} );
 ///
 
 splittings = method()
@@ -527,7 +497,7 @@ Hlist1 := apply(#Hlist, m -> htar_(toArray toList(0..m))*Hlist_m);
 h = Hlist1_0;
 scan(#Hlist1 -1, i-> h=h|Hlist1_(i+1));
 h = map(htar, directSum (Hlist1/source), h);
-
+--error();
 {d,h}
 )
 
@@ -578,8 +548,25 @@ hMaps List := mf-> (
         p -> (
           map(directSum ((components target h)_(toList(0..p))),
               directSum(((components source h)/components)_p),
-	      h_[p]^(toArray toList(0..p)))
-	     )))
+	      --(target h)^(toArray toList(0..p))*h*((source h)_[p]))))
+              h_[p]^(toArray toList(0..p)))))
+    	       )
+-- the commented line was necessary when we had ^[ ] being frobeniusPower in our init.m2
+
+///  
+restart
+loadPackage("CompleteIntersectionResolutions2", Reload =>true)
+setRandomSeed 0
+kk=ZZ/101
+S = kk[a,b]
+ff = matrix"a4,b4"
+R = S/ideal ff
+N = coker vars R
+M = highSyzygy N
+mf = matrixFactorization(ff, M)
+(hMaps mf)_0
+(hMaps mf)_1
+///
 
 ExtModuleData = method()
 ExtModuleData Module := M -> (
@@ -1028,13 +1015,27 @@ S2(ZZ,Module) := Matrix => (b,M)-> (
 
 
 TateResolution = method()
-TateResolution(Module,ZZ,ZZ) := (M,lower,upper) ->(
-    d := transpose (res(M, LengthLimit => upper)).dd_upper;
-    betti res (coker d, LengthLimit =>upper+lower)
-    )
+TateResolution(Module,ZZ,ZZ) := (M,low,high) ->(
+         d := transpose ((res(M, LengthLimit => high)).dd_high);
+	 F := res (coker d, LengthLimit =>(high+low+2));
+	 complete F;
+         T := (chainComplex reverse apply(high+low+1, j->transpose (F.dd_j)))[low];
+         print betti T;
+	 T
+         )
 TateResolution(Module,ZZ) := (M,b) -> TateResolution(M,b,b)
 TateResolution(Module) := M-> TateResolution(M,5,5)
 
+{*Old version returned a betti table; now use 
+betti TateResolution
+instead.
+
+TateResolution0 = method()
+TateResolution0(Module,ZZ,ZZ) := (M,lower,upper) ->(
+    d := transpose (res(M, LengthLimit => upper)).dd_upper;
+    betti res (coker d, LengthLimit =>upper+lower)
+    )
+*}
 ------------
 --special purpose code
 --
@@ -1391,7 +1392,7 @@ extVsCohomology(Matrix, Module) := (ff,N) ->(
     exter := ring Ee;
     E := exteriorExtModule(ff,MS);
     T := exteriorTorModule(ff,MS);
-TE := (betti (S^{-5})[6])**TateResolution(E,5,5);
+TE := (betti (S^{-5})[6])**betti TateResolution(E,5,5);
 TEe := (cohomologyTable(presentation (Ee), ring E,-5,5));	
 TEo:= cohomologyTable(presentation (Eo), ring E,-5,5);
     <<"Tate Resolution of Ext_S(M,k) as exterior module:"<<endl;
@@ -1909,8 +1910,8 @@ Description
   The group of routines ExtModule, evenExtModule, oddExtmodule,
   extModuleData (which call the routine
   Ext(M,N) of Avramov-Grayson) are useful for analyzing the
-  module Ext_R(M,k). TateResolution returns the betti table
-  of a specified part of the Tate resolution of a 
+  module Ext_R(M,k). TateResolution returns 
+  a specified part of the Tate resolution of a 
   maximal Cohen-Macaulay module M
   first calling the routine cosysyzy.
   
@@ -3844,3 +3845,40 @@ uninstallPackage "CompleteIntersectionResolutions2"
 installPackage "CompleteIntersectionResolutions2"
 
 
+
+
+--old version of makeT -- doesn't work.
+///
+makeT = method()
+makeT(Matrix, ChainComplex,ZZ) := (F,G,i) ->(
+     {*
+     If F is an m x 1 matrix and
+     G is a resolution of a module at least up to the i-th step,
+     over R = S/(ideal F), 
+     of codim c this returns a list of the c ci-operators
+     G_i \to G_{i-2}
+     corresponding to the entries of F.
+     *}
+     c := numcols F;
+     degsF := flatten((degrees F)_1);
+     R := ring G;
+     S := ring F;
+     d0 := sub(G.dd_i, S);
+     d1 := sub(G.dd_(i-1), S);
+     Gtar := target d1;
+     Gsour := source d0;
+     d2 := d1*d0;
+     utemp := local utemp;
+     u := apply(c,i ->(
+	     utemp = map(S^{-degsF_i}**Gtar, Gsour, d2//((target d2)**F_{i}));
+	     d2 = d2 - utemp**F_{i};
+	     utemp));
+     --check: is d1*d0 = sum F_{i}*u_i 
+--     error();
+     if d1*d0 != map(Gtar, Gsour, sum(c, i-> u_i**F_{i})) then 
+                  error{"doesn't add up"};
+     ret := map(R,S);
+     apply(u, u1 -> ret u1)
+     )
+
+///

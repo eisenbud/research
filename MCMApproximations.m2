@@ -1,4 +1,4 @@
---To Do: move tateResolution1 into CompleteIntersectionResolutions ;
+--To Do: 
 --add coApproximations
 --look at examples!
 
@@ -20,7 +20,6 @@ export {
     "approx",
     "auslanderInvariant",
     "profondeur",
-    "TateResolution1",
     "regularitySequence",
     "setupRings",
     "Characteristic", -- option for setupRings
@@ -546,16 +545,6 @@ doc ///
     setupRings
 ///
 
-
-TateResolution1 = method()
-TateResolution1(Module,ZZ,ZZ) := (M,low,high) ->(
-         d := transpose ((res(M, LengthLimit => high)).dd_high);
-	 F := res (coker d, LengthLimit =>(high+low+1));
-	 complete F;
-         T := (chainComplex reverse apply(high+low, j->transpose (F.dd_j)))[low];
-         print betti T;
-	 T
-         )
 {*
 projection = (R,i,j) -> (
     --Assumes that R is a list of rings, and that R_(i+1) is a quotient of R_i
@@ -858,40 +847,69 @@ approximation(M1,Total =>false)
 
 
 ------image of essential approximation, compared with ker t.
-restart
-loadPackage("MCMApproximations", Reload=>true)
-a = 3
-b = 4
-c = 3;d=3;
-S = setupRings(c,d)
-R = S_c
-R' = S_(c-1)
-M = coker matrix {{R_0,R_1,R_2},{R_1,R_2,R_0}}
-(MM,kk,p) = setupModules(S,M);
 
-F0 = res (M, LengthLimit =>3)
-F = dual res(coker dual F0.dd_a, LengthLimit =>a+b)[-3]
-N' = pushForward(map(R,R'),coker F.dd_(-b+1))
-G = res(N', LengthLimit =>a+b)[b]
-
-RG = tensor1(map(R,R'),G)
-alpha = map((F[-b])_0, (RG[-b])_0,1)
-extend(F[-b],RG[b],alpha)
-
-ff = presentation R
-ring ff === S_0
-ring F === R
-makeT(ff,F,2) 
-
-tensor1 = method()
-tensor1(RingMap,ChainComplex) := (p,C) ->(
-    complete C;
-    m := min C+1;
-    chainComplex apply(length C, i -> p C.dd_(i+m))[- min C]
+tensor (Ring,Matrix) := (R,phi) -> (
+    RR' := map(R, ring phi);
+    map(R**target phi, R**source phi, RR' matrix phi)
     )
 
-p = map(R,R')
-tensor1(map(R,R'),G)
+
+restart
+uninstallPackage("CompleteIntersectionResolutions2")
+installPackage("CompleteIntersectionResolutions2")
+check "CompleteIntersectionResolutions2"
+
+uninstallPackage"MCMApproximations"
+installPackage"MCMApproximations"
+check "MCMApproximations"
+
+restart
+loadPackage("MCMApproximations", Reload=>true)
+loadPackage("CompleteIntersectionResolutions2", Reload=>true)
+
+
+low = 3
+high = 10
+c = 3;d=3;
+S = setupRings(c,d);
+R = S_c
+ff = presentation R
+R' = S_(c-1)
+RR' = map(R,R')
+K = coefficientRing R
+KR = map(K,R)
+
+Mc = coker matrix {{R_0,R_1,R_2},{R_1,R_2,R_0}}
+(M,kk,p) = setupModules(S,Mc);
+T = TateResolution(Mc,low,high)
+
+tt = apply(toList(-low+2..high), i-> makeT(ff, T, i));
+
+phi' = apply(toList(-low+1..high), 
+    j->approximation(pushForward(RR', coker T.dd_j), Total => false));
+phi = phi'/(ph ->  prune map(R**target ph, R**source ph, RR' matrix ph));
+
+matrix{toList(-low..high-2), 
+       apply(tt, t->if isSurjective t_0 then 1 else 0)}
+matrix{toList(-low..high-1), 
+       apply(toList(-low+1..high), i->(numgens ker matrix  phi_(i+low-1)))}
+matrix{toList(-low..high-1),
+      apply(toList(-low+1..high), i->(regularity evenExtModule coker T.dd_i))}
+
+L = apply(toList(-low..high-low-1),i->(
+	m1 := map(coker T.dd_(i+1), coker T.dd_(i+3), tt_(i+low)_0);
+	m2 := phi_(i+2+low);
+	map(target m1, source m2, matrix (m1) * matrix(m2))));
+L/prune
+--these do NOT look stably 0! What's wrong?
+--and why can't we write m1*m2 ??
+
+
+
+
+
+
+
 
 
 
