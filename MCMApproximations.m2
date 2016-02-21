@@ -25,7 +25,8 @@ export {
     "Characteristic", -- option for setupRings
     "syzygy",
     "CoDepth",
-    "setupModules"
+    "setupModules",
+    "test"
     }
 
 --TateResolution1 can become "TateResolution" when we fix
@@ -716,17 +717,42 @@ assert(isSurjective(phi|psi)===true)
 assert( (prune ker (phi|psi)) === (R')^{{-5},{-5},{-5},{-6},{-6},{-6}} );
 ///
 
+test = method()
+test(List,Module,ZZ,ZZ) := (S,Mc, low, high) ->(
+c := length S -1;
+R' := S_(c-1);
+R := S_c;
+RR' := map(R,R');
+ff := presentation R;
+K := coefficientRing R;
+KR := map(K,R);
+(M,kk,p) := setupModules(S,Mc);
+<< regularitySequence(S,Mc)<<endl;
+T := TateResolution(Mc,low,high);
+tt := apply(toList(-low+2..high), i-> makeT(ff, T, i));
+phi' := apply(toList(-low+1..high), --was high-2
+    j->approximation(pushForward(RR', coker T.dd_j), Total => false));
+phi := phi'/(ph ->  prune map(R**target ph, R**source ph, RR' matrix ph));
+report := matrix{toList(-low+2..high), 
+       apply(toList(-low+2..high), i->if isSurjective tt_i_(c-1) then 0 else 1),
+       apply(toList(-low+2..high), i->(numgens ker KR matrix phi_(i+low-1))),
+       apply(toList(-low+2..high), i->(regularity evenExtModule coker T.dd_i))};
+<<"KEY:"<<endl;
+<<"report_(0,j) = i : index of a free module F_i in T"<<endl;
+<<"report_(1,j): whether the CI map emerging from F_i is surjective"<<endl;
+<<"report_(2,j): whether the CM approx embeds mod the max ideal"<<endl;
+<<"report_(3,j): regularity of the even ext module"<<endl;
+report)
 
 end--
-
 restart
-installPackage "MCMApproximations"
-viewHelp MCMApproximations
-installPackage "CompleteIntersectionResolutions2"
-loadPackage("MCMApproximations", Reload=>true)
+uninstallPackage("CompleteIntersectionResolutions2")
+installPackage("CompleteIntersectionResolutions2")
+check "CompleteIntersectionResolutions2"
 
-
-check"MCMApproximations"
+uninstallPackage"MCMApproximations"
+installPackage"MCMApproximations"
+check "MCMApproximations"
 
 --installPackage ("CompleteIntersectionResolutions")
 -----Where does "high syzygy" behavior begin?
@@ -759,54 +785,27 @@ check"MCMApproximations"
 
 --A crucial question is whether the socle of Ext_R(M,k) is represented by a free summand of the resolution.
 
-
+----------------- Where regularity and minimality criteria set in
+---we should add a test for the presence of socle in Ext^0.
 restart
 loadPackage("MCMApproximations", Reload=>true)
-loadPackage("CompleteIntersectionResolutions2", Reload =>true)
+low = 2
+high = 4
+c = 2; d=3;
+S = setupRings(c,d);
+R = S_c;
+--Mc = coker matrix {{R_0,R_1,R_2},{R_1,R_2,R_0}} -- with 3 vars
+-- Mc = coker matrix {{R_0,R_1,R_2},{R_1,R_2,R_3}} -- with 4 vars this is too slow
+Mc = coker random(R^1, R^{2:-2})
+Mc = coker random(R^2, R^{-2,-3})
+time test(S,Mc,low,high)
+
 --installPackage "MCMApproximations"
 --installPackage "CompleteIntersectionResolutions2"
 
+
+
 --Conjecture 1: the "regularity of the successive MCM approximations is decreasing
-
-c = 2
-d = 3
-S = kk[x_0..x_(c-1)]
-ff = matrix{apply(c, j-> (S_j)^d)}
-ff = ff*random(source ff, source ff);
-R = apply(c, j-> S/ideal ff_{0..j});
-
-(low,high) = (4,6)
-T = TateResolution1 (coker vars R_(c-1), low,high);
-
-MM = apply(-low+1..high-1, j->coker T.dd_j);
-
-regularitySequence(R,MM_4)
-regularitySequence(R,MM_6)
-
-viewHelp CompleteIntersectionResolutions2
-
-    
-
-U' = R_0
-gg = matrix{{R_0_1^3}}
-U = R_1
-F = res(MM_0, LengthLimit => 8)
-
-netList apply(8, j-> compareAusAndT(gg,U',coker F.dd_(j+1)))
-
-res prune M
-
-rank basis coker ((coker vars U)**(makeT(gg,F,2))_0)
-F = TateResolution1 (coker vars U, low,high)
-prune coker ((makeT(gg,F,-2))_0)
-
-N = coker F.dd_(-3)
-ring N === U
-N' = pushForward(map(U,U'), N)
-prune coker approximation(N',Total=>false)
-auslanderInvariant N'
-
-
 restart
 installPackage "MCMApproximations"
 loadPackage("MCMApproximations", Reload=>true)
@@ -833,93 +832,45 @@ scan(range, i-> (
 	))
     ))
 
-E = evenExtModule M0
-T = ring E
-mm = ideal vars ring E
-
-regularity E
-
-betti res M0
-M1 = syzygy_4 M_0
-betti res M1
-ring M1
-approximation(M1,Total =>false)
 
 
 ------image of essential approximation, compared with ker t.
+restart
+loadPackage("MCMApproximations", Reload=>true)
+loadPackage("CompleteIntersectionResolutions2", Reload=>true)
 
 tensor (Ring,Matrix) := (R,phi) -> (
     RR' := map(R, ring phi);
     map(R**target phi, R**source phi, RR' matrix phi)
     )
 
+--the following uses notation from "test";
+--should also test whether the kernel of t is the image of phi all mod the max ideal.
 
-restart
-uninstallPackage("CompleteIntersectionResolutions2")
-installPackage("CompleteIntersectionResolutions2")
-check "CompleteIntersectionResolutions2"
-
-uninstallPackage"MCMApproximations"
-installPackage"MCMApproximations"
-check "MCMApproximations"
-
-restart
-loadPackage("MCMApproximations", Reload=>true)
-loadPackage("CompleteIntersectionResolutions2", Reload=>true)
-
-
-low = 3
-high = 10
-c = 3;d=3;
-S = setupRings(c,d);
-R = S_c
-ff = presentation R
-R' = S_(c-1)
-RR' = map(R,R')
-K = coefficientRing R
-KR = map(K,R)
-
-Mc = coker matrix {{R_0,R_1,R_2},{R_1,R_2,R_0}}
-(M,kk,p) = setupModules(S,Mc);
-T = TateResolution(Mc,low,high)
-
-tt = apply(toList(-low+2..high), i-> makeT(ff, T, i));
-
-phi' = apply(toList(-low+1..high), 
-    j->approximation(pushForward(RR', coker T.dd_j), Total => false));
-phi = phi'/(ph ->  prune map(R**target ph, R**source ph, RR' matrix ph));
-
-matrix{toList(-low..high-2), 
-       apply(tt, t->if isSurjective t_0 then 1 else 0)}
-matrix{toList(-low..high-1), 
-       apply(toList(-low+1..high), i->(numgens ker matrix  phi_(i+low-1)))}
-matrix{toList(-low..high-1),
-      apply(toList(-low+1..high), i->(regularity evenExtModule coker T.dd_i))}
-
-L = apply(toList(-low..high-low-1),i->(
-	m1 := map(coker T.dd_(i+1), coker T.dd_(i+3), tt_(i+low)_0);
+L0 = apply(toList(-low..high-low-1),i->(
+	m1 := map(coker T.dd_(i+1), coker T.dd_(i+3), tt_(i+low)_2);
 	m2 := phi_(i+2+low);
+	{m1,m2}));
+
+L1 = apply(toList(-low..high-low-1),i->(
+	m1 := tt_(i+low)_2;
+	m2 := matrix phi_(i+2+low);
+	{m1,m2}));
+
+matrix{toList(-low..high-low-1),
+        apply(L1, p ->if KR(map(target p_0, source p_1, matrix p_0 * matrix p_1))!=0 then 1 else 0)}
+
+
+L2 = apply(toList(-low..high-low-1),i->(
+
+	m1 := map(coker T.dd_(i+1), coker T.dd_(i+3), tt_(i+low)_2);
+	m2 := phi_(i+2+low);
+	--why can't we write m1*m2? the target of m2 is supposedly the same as the source of m1!
 	map(target m1, source m2, matrix (m1) * matrix(m2))));
-L/prune
---these do NOT look stably 0! What's wrong?
---and why can't we write m1*m2 ??
 
+L3 = apply(toList(-low..high-low-1),i->(
+	m1 := tt_(i+low)_2;
+	m2 := matrix phi_(i+2+low);
+	{m1,m2};
+	m1*m2))
 
-
-
-
-
-
-
-
-
-compareAusAndT = (ff, U',M) ->(
-    --M a module over U = U'/(f);
-    --returns the Auslander Invariant of M as U' module
-    --(that is, the dimension of the coker of (MCMApproximatione->M)*U/mm
-    --and the dimension of coker t*(U/mm))
-    M':=pushForward(map(U,U'), M);
-    a := auslanderInvariant M';
-    F:=res M;
-    b := rank basis coker ((coker vars U)**((makeT(ff,F,2))_0));
-    {a,b})
