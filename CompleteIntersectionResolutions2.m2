@@ -1017,14 +1017,14 @@ S2(ZZ,Module) := Matrix => (b,M)-> (
 TateResolution = method()
 TateResolution(Module,ZZ,ZZ) := (M,low,high) ->(
          d := transpose ((res(M, LengthLimit => high)).dd_high);
-	 F := res (coker d, LengthLimit =>(high+low+2));
+	 F := res (coker d, LengthLimit =>(high-low+2));
 	 complete F;
-         T := (chainComplex reverse apply(high+low+1, j->transpose (F.dd_j)))[low];
+         T := (chainComplex reverse apply(high-low+1, j->transpose (F.dd_j)))[-low];
          print betti T;
 	 T
          )
 TateResolution(Module,ZZ) := (M,b) -> TateResolution(M,b,b)
-TateResolution(Module) := M-> TateResolution(M,5,5)
+TateResolution(Module) := M-> TateResolution(M,-5,5)
 
 {*Old version returned a betti table; now use 
 betti TateResolution
@@ -1392,7 +1392,7 @@ extVsCohomology(Matrix, Module) := (ff,N) ->(
     exter := ring Ee;
     E := exteriorExtModule(ff,MS);
     T := exteriorTorModule(ff,MS);
-TE := (betti (S^{-5})[6])**betti TateResolution(E,5,5);
+TE := (betti (S^{-5})[6])**betti TateResolution(E,-5,5);
 TEe := (cohomologyTable(presentation (Ee), ring E,-5,5));	
 TEo:= cohomologyTable(presentation (Eo), ring E,-5,5);
     <<"Tate Resolution of Ext_S(M,k) as exterior module:"<<endl;
@@ -2367,7 +2367,7 @@ doc ///
      E = ZZ/101[a,b,c, SkewCommutative=>true]
      M = coker map(E^2, E^{-1}, matrix"ab;bc")
      presentation M
-     TateResolution(M,2,7) 
+     TateResolution(M,-2,7) 
 ///
 
 doc ///

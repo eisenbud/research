@@ -1,11 +1,7 @@
---To Do: 
---add coApproximations
---look at examples!
-
 newPackage(
 "MCMApproximations",
-Version => "0.1",
-Date => "February 7, 2016",
+Version => "0.9",
+Date => "February 27, 2016",
 Authors => {{Name => "David Eisenbud",
 Email => "de@msri.org",
 HomePage => "http://www.msri.org/~de"}},
@@ -16,22 +12,20 @@ PackageExports => {"CompleteIntersectionResolutions2"}
 
 export {
     "approximation", 
-    "Total",
-    "approx",
+    "coApproximation",     
+    "Total", -- option for approximation
+    "CoDepth", -- option for approximation
+    "approx", --synonym for approximation
     "auslanderInvariant",
-    "profondeur",
-    "regularitySequence",
+    "profondeur", -- should be depth, but that's taken
+    "regularitySequence", --regularities [add socle dimensions] of exts of successive CM approximation
+    "syzygy",
+    "socleDegrees",
     "setupRings",
     "Characteristic", -- option for setupRings
-    "syzygy",
-    "CoDepth",
     "setupModules",
-    "test"
+    "test" -- gives info on an example
     }
-
---TateResolution1 can become "TateResolution" when we fix
---CompleteIntersectionResolutions
-
 
 {* The following code crashes M2 v 8.2
 S = ZZ/101[a]
@@ -40,6 +34,37 @@ res (coker vars R, LengthLimit => 0)
 *}
 
 
+socleDegrees = method()
+socleDegrees Module := M ->(
+    R := ring M;
+    k := coefficientRing R;
+    if not isField k then error"coefficient ring not a field";
+     flatten degrees target basis Hom(coker vars R,M)    
+    )
+doc ///
+   Key
+    socleDegrees
+    (socleDegrees, Module)
+   Headline
+    lists the degrees of the socle generators
+   Usage
+    L = socleDegrees M
+   Inputs
+    M:Module
+   Outputs
+    L:List
+   Description
+    Text
+     L is the list of socle degrees of M, with multiplicities. Thus
+     L = {} if the socle is 0.
+    Example
+     R = ZZ/101[x,y,z]
+     M0 = R^1/(ideal(x,y,z)*ideal (x,y));
+     M1 = coker random(R^{1,2}, R^{0,-1,-2}); -- dim 1
+     M2 = coker random(R^{1,2}, R^{0,-1,-2,-4}); -- dim 0"
+   SeeAlso
+    regularitySequence
+   ///
 syzygy = method(Options=>{CoDepth => -1})
 syzygy(ZZ,Module) := opts -> (k,M) -> (
     if k === 0 then return M;
@@ -61,6 +86,7 @@ syzygy(ZZ,Module) := opts -> (k,M) -> (
     return image dual G.dd_(-k+n));
     )
 TEST///
+     setRandomSeed 100;
      R = setupRings(2,2);
      M = syzygy_2 coker vars R_2;
      N = syzygy_2 syzygy(-2,M);
@@ -198,6 +224,7 @@ doc ///
      computation is done using the Auslander-Buchsbaum formula.
 ///
 TEST///
+setRandomSeed()
 R = kk[a,b,c,d,e]/(ideal(a,b)*ideal(c,d))
 assert(profondeur R == 2)    
 assert(profondeur(ideal(a,d,e), R^1) == 2)
@@ -236,7 +263,117 @@ approximatione Module := opts -> M ->(
     approximatione(n, M)
     )
 
-approximation = method(Options =>{Total => true, CoDepth=>-1})
+coSyzygyChain = method()
+coSyzygyChain(ZZ, Module) := (n,M) ->(
+    --assuming M is MCM, the script returns
+    --produces dual G of the  resolution of the dual of the second syzygy of M for n+1 steps,
+    --adjusted so that M == image G.dd_0. Thus the map G.dd_(-1) is the universal map
+    --of M into a free module, etc.
+    F := res(M,LengthLimit => 1);
+    G := res(coker dual F.dd_1, LengthLimit => n+1);
+    H := (dual G) [-1];
+    H)
+    
+coApproximation = method(Options =>{Total => true, CoDepth=>-1})
+coApproximation Module := opts -> M -> (
+    p := presentation M;
+    F0 := target p;
+    (phi,psi) := approximation(M, Total => opts.Total,CoDepth => opts.CoDepth);
+    M' := source (phi|psi);--the total MCM approximation.
+    q := matrix (phi | psi);
+    r := p//q;
+    r0 := id_F0//q;
+    k := syz q;
+    K := source k;
+    G := coSyzygyChain(1, M');
+    sour := F0 ++ K;
+    tar := G_(-1);
+    N := coker(G.dd_0*(r | k));
+    map(N,M, G.dd_0*r0)
+    )
+
+///
+restart
+loadPackage("MCMApproximations", Reload =>true)
+///
+
+TEST///setRandomSeed 100
+c = 3;d=3;
+S = setupRings(c,d)
+R = S_c
+Mc = coker vars R
+(M,k,p) = setupModules(S,Mc)
+M_(c-1)
+ca = coApproximation M_(c-1)
+M'' = coker ca
+N = target ca
+assert(profondeur M'' == dim ring M'') -- an MCM module
+assert(M'' == source approximation(M'', Total=>false)) -- no free summands
+assert(2 == length res(N, LengthLimit =>10)) -- projective dimension <\infty
+///
+
+--<<docTemplate
+doc ///
+   Key
+    coApproximation
+    (coApproximation, Module)
+    [coApproximation, CoDepth]
+   Headline
+    Maximal Cohen-Macaulay co-approximation of M
+   Usage
+    a = coApproximation M
+   Inputs
+    M:Module
+   Outputs
+    a:Matrix
+   Description
+    Text
+     If R is a Gorenstein ring, and M is a finitely generated R-module, then, according
+     to the theory of Auslander and Buchweitz (a good exposition is in Ding's Thesis) 
+     there are unique exact sequences
+     $$0\to K \to M' \to M\to 0$$
+     and 
+     $$0\to M \to N\to M''\to 0$$
+     such that K and N are of finite projective dimension, M' and M'' are 
+     maximal Cohen-Macaulay, and 
+     M'' has no free summands. 
+     The call
+     
+      approximation M  
+      
+      returns the map $M'\to M$, while the call
+      
+      coApproximation M
+      
+      returns the map $M\to N$.
+      
+      Since the script coApproximation begins by computing the approximation, it may
+      shorten the computation if the user knows the depth of M in advance, specified
+      with the option Depth => d.
+    Example
+     setRandomSeed 100
+     c = 3;d=3;
+     S = setupRings(c,d);
+     R = S_c; -- complete intersection, codim = c
+     R' = S_(c-1); --codim c-1
+     Mc = coker vars R;
+     (M,k,p) = setupModules(S,Mc); --M_(c-1) is Mc as an R_(c-1)-module
+     ca = coApproximation M_(c-1); 
+     M'' = coker ca;
+     N = target ca
+     profondeur M'' == dim ring M'' -- an MCM module
+     M'' == source approximation(M'', Total=>false) -- no free summands
+     2 == length res(N, LengthLimit =>10) -- projective dimension <\infty
+   SeeAlso
+    setupRings
+    setupModules
+    profondeur
+    approximation
+    syzygy
+///
+
+
+approximation = method(Options =>{CoDepth=>-1, Total =>true})
 approximation Module := opts -> M->(
     --returns the list {phi, psi} where:
     --phi is the map from the essential MCM approximation
@@ -247,7 +384,6 @@ approximation Module := opts -> M->(
     psi := null;
     N := coker phi;
     N1 := prune N;
-    
     if N1 == 0 then (
 	psi = map(M,(ring M)^0, 0);
         return (phi, psi));
@@ -256,13 +392,15 @@ approximation Module := opts -> M->(
     psi = (matrix a)//matrix(MtoN);
     (phi, psi)
     )
+
+
 doc ///
    Key
     Total
    Headline
     option for approximation
    Usage
-    approximation(M, total =>t)
+    approximation(M, Total =>t)
    Inputs
     M:Module
     t:Boolean
@@ -277,6 +415,8 @@ doc ///
     regularitySequence
     CoDepth
 ///
+
+
 
 doc ///
    Key
@@ -319,25 +459,34 @@ doc ///
      map from the free component
    Description
     Text
-     If R is a local or graded Gorenstein ring and M is an R-module 
-     then (phi, psi) are the two components of the universal map
-     from a maximal Cohen-Macaulay module onto M, 
-     as described by Auslander and Bridger;
-     thus
-     $$
-     (phi,psi): M' ++ R^t \to M
-     $$
-     where M', sometimes called the 
-     "essential MCM approximation",
-     has no free summand, and R^t is the free cover of the cokernel
-     of phi:M' --> M. The map (phi,psi)
-     has kernel of finite projective dimension (which is thus one less than
-     the CoDepth of M.)
+     If R is a local or standard graded
+     Gorenstein ring, and M is a finitely generated R-module, then, according
+     to the theory of Auslander and Buchweitz (a good exposition is in Ding's Thesis) 
+     there are unique exact sequences
+     $$0\to K \to M' \to M\to 0$$
+     and 
+     $$0\to M \to N\to M''\to 0$$
+     such that K and N are of finite projective dimension, M' and M'' are 
+     maximal Cohen-Macaulay, and 
+     M'' has no free summands. Thus, for example, the projective
+     dimension of K is one less than the CoDepth of M.)
  
-     The module M' is computed as syzygy(-k, syzygy(k,M)) for any k >= CoDepth M,
-     and the map M' --> M is induced by the comparison map of resolutions. 
+     The call
      
-     The rank t of the free summand is called the Auslander Invariant of M,
+      coApproximation M  
+      
+      returns the map $M\to N$, while the call
+      
+      approximation M
+      
+      returns the pair (phi,psi), which define the map $M'\to M$.
+      Here phi is the "essential MCM approximation" from the biggest summand M'0 of 
+      M' that has no free summands, and psi is the map from the free summand M'1.
+     
+     The module M'0 is computed as syzygy(-k, syzygy(k,M)) for any k >= CoDepth M,
+     and the map $M'0 \to M$ is induced by the comparison map of resolutions. 
+     
+     The rank t of the free summand M'1 is called the Auslander Invariant of M,
      and is returned by the call auslanderInvariant M.
      
      The CoDepth of M can be provided as an option to speed computation.
@@ -357,6 +506,7 @@ doc ///
 ///
 
 ///TEST
+setRandomSeed 100
 assert( (approximation M) === (map(image map((R)^1,(R)^{{-1},{-1}},{{a, b}}),cokernel map((R)^{{-1},{-1}},(R)^{{-2},{-2}},{{-a, b}, {0, a}}),{{-1, 0}, {0, 1}}),map(image map((R)^1,(R)^{{-1},{-1}},{{a, b}}),(R)^0,0)) );
 assert( (approximation(M, Total=>false)) === map(image map((R)^1,(R)^{{-1},{-1}},{{a,b}}),cokernel map((R)^{{-1},{-1}},(R)^{{-2},{-2}},{{-a, b}, {0, a}}),{{-1, 0}, {0, 1}}) );
 assert( (approximation(M, CoDepth => 0)) === (map(image map((R)^1,(R)^{{-1},{-1}},{{a,b}}),cokernel map((R)^{{-1},{-1}},(R)^{{-2},{-2}},{{a, -b}, {0, a}}),{{1, 0}, {0,1}}),map(image map((R)^1,(R)^{{-1},{-1}},{{a, b}}),(R)^0,0)) );
@@ -502,6 +652,7 @@ loadPackage("MCMApproximations", Reload=>true)
 ///    
 
 TEST///
+setRandomSeed 100
 c=3;d=2;
 R = setupRings(c,d);
 (M,k,p) = setupModules(R,coker vars R_c);
@@ -565,12 +716,17 @@ regularitySequence(List, Module) := (R,M) ->(
     --M = module over R_c
     --returns the list of pairs {reg evenExtModule M_i, reg oddExtModule M_i}
     --where M_i is the MCM approximation of M over R_i
+    em := null;
+    om := null;
     c := length R-1;
     (MList,kkk,p) := setupModules(R,M);
     MM := apply(c+1, j->source approximation(pushForward(p_c_j, M),Total =>false));
     MM = select(MM, m-> not isFreeModule m);
+    <<"reg even ext, soc degs even ext, reg odd ext, soc degs odd ext"<<endl<<endl;
     scan(reverse MM, m-> (
-     <<{regularity evenExtModule m, regularity oddExtModule m})
+	    em = evenExtModule m;
+	    om = oddExtModule m;
+     <<{regularity em, socleDegrees em, regularity om, socleDegrees om})
      <<endl);
     )
 
@@ -580,6 +736,7 @@ restart
 loadPackage("MCMApproximations", Reload=>true)
 ///
 TEST///
+setRandomSeed 100
 c = 2
 d = 2
 R = setupRings(c,d)
@@ -687,6 +844,7 @@ use S
 assert( (pushForward(map(R,S), M)) === cokernel map((S)^1,(S)^{{-1},{-1},{-1}},{{c, b, a}}) );
 ///
 TEST///
+setRandomSeed()
 c = 3
 R = setupRings(c,3)
 M = syzygy(1,coker vars R_c)
@@ -703,6 +861,7 @@ restart
 load"MCMApproximations.m2"
 ///
 TEST///
+setRandomSeed()
 S = ZZ/101[a,b,c]
 R = S/ideal"a3,b3,c3"
 use S
@@ -729,20 +888,59 @@ KR := map(K,R);
 (M,kk,p) := setupModules(S,Mc);
 << regularitySequence(S,Mc)<<endl;
 T := TateResolution(Mc,low,high);
-tt := apply(toList(-low+2..high), i-> makeT(ff, T, i));
-phi' := apply(toList(-low+1..high), --was high-2
+tt := apply(toList(low+2..high), i-> makeT(ff, T, i));
+phi' := apply(toList(low+1..high), --was high-2
     j->approximation(pushForward(RR', coker T.dd_j), Total => false));
 phi := phi'/(ph ->  prune map(R**target ph, R**source ph, RR' matrix ph));
-report := matrix{toList(-low+2..high), 
-       apply(toList(-low+2..high), i->if isSurjective tt_i_(c-1) then 0 else 1),
-       apply(toList(-low+2..high), i->(numgens ker KR matrix phi_(i+low-1))),
-       apply(toList(-low+2..high), i->(regularity evenExtModule coker T.dd_i))};
+report := matrix{toList(low+2..high), 
+       apply(toList(low+2..high), i->if isSurjective tt_i_(c-1) then 0 else 1),
+       apply(toList(low+2..high), i->(numgens ker KR matrix phi_(i+low-1))),
+       apply(toList(low+2..high), i->(regularity evenExtModule coker T.dd_i))};
 <<"KEY:"<<endl;
 <<"report_(0,j) = i : index of a free module F_i in T"<<endl;
 <<"report_(1,j): whether the CI map emerging from F_i is surjective"<<endl;
 <<"report_(2,j): whether the CM approx embeds mod the max ideal"<<endl;
 <<"report_(3,j): regularity of the even ext module"<<endl;
 report)
+
+--<<docTemplate
+doc ///
+   Key
+    test
+    (test, List, Module, ZZ, ZZ)
+   Headline
+    reports on factors related to the one-step resolution
+   Usage
+    report = test(S, Mc, low, high)
+   Inputs
+    S:List
+     list of successive rings S_0, S_0/(f_1) .. S_c = S_0/(f_1..f_c)
+    Mc:Module
+     module over S_c
+    low:ZZ
+     start of window of Tate resolution
+    high:ZZ
+     end of window of Tate resoluion
+    report:Matrix
+     matrix of integers:
+   Description
+    Text
+     "report_(0,j) = i : index of a free module F_i in T"
+     "report_(1,j): whether the CI map emerging from F_i is surjective"
+     "report_(2,j): whether the CM approx embeds mod the max ideal"
+     "report_(3,j): regularity of the even ext module"
+    Example
+      low = -2; high = 4;
+      c = 2; d=3;
+      S = setupRings(c,d);
+      R = S_c;
+      Mc = coker random(R^1, R^{2:-2})
+      Mc = coker random(R^2, R^{-2,-3})
+      time test(S,Mc,low,high)
+   SeeAlso
+    regularitySequence
+    socleDegrees
+///
 
 end--
 restart
@@ -753,7 +951,7 @@ check "CompleteIntersectionResolutions2"
 uninstallPackage"MCMApproximations"
 installPackage"MCMApproximations"
 check "MCMApproximations"
-
+viewHelp MCMApproximations
 --installPackage ("CompleteIntersectionResolutions")
 -----Where does "high syzygy" behavior begin?
 --Conjecture: where regularity of the even and odd ext modules is 0 -- independently of whether there are socle elements in degree 0.
@@ -789,7 +987,7 @@ check "MCMApproximations"
 ---we should add a test for the presence of socle in Ext^0.
 restart
 loadPackage("MCMApproximations", Reload=>true)
-low = 2
+low = -2
 high = 4
 c = 2; d=3;
 S = setupRings(c,d);
@@ -847,30 +1045,30 @@ tensor (Ring,Matrix) := (R,phi) -> (
 --the following uses notation from "test";
 --should also test whether the kernel of t is the image of phi all mod the max ideal.
 
-L0 = apply(toList(-low..high-low-1),i->(
+L0 = apply(toList(low..high+low-1),i->(
 	m1 := map(coker T.dd_(i+1), coker T.dd_(i+3), tt_(i+low)_2);
 	m2 := phi_(i+2+low);
 	{m1,m2}));
 
-L1 = apply(toList(-low..high-low-1),i->(
-	m1 := tt_(i+low)_2;
-	m2 := matrix phi_(i+2+low);
+L1 = apply(toList(low..high+low-1),i->(
+	m1 := tt_(i-low)_2;
+	m2 := matrix phi_(i+2-low);
 	{m1,m2}));
 
-matrix{toList(-low..high-low-1),
+matrix{toList(low..high+low-1),
         apply(L1, p ->if KR(map(target p_0, source p_1, matrix p_0 * matrix p_1))!=0 then 1 else 0)}
 
 
-L2 = apply(toList(-low..high-low-1),i->(
+L2 = apply(toList(low..high+low-1),i->(
 
-	m1 := map(coker T.dd_(i+1), coker T.dd_(i+3), tt_(i+low)_2);
-	m2 := phi_(i+2+low);
+	m1 := map(coker T.dd_(i+1), coker T.dd_(i+3), tt_(i-low)_2);
+	m2 := phi_(i+2-low);
 	--why can't we write m1*m2? the target of m2 is supposedly the same as the source of m1!
 	map(target m1, source m2, matrix (m1) * matrix(m2))));
 
-L3 = apply(toList(-low..high-low-1),i->(
-	m1 := tt_(i+low)_2;
-	m2 := matrix phi_(i+2+low);
+L3 = apply(toList(low..high+low-1),i->(
+	m1 := tt_(i-low)_2;
+	m2 := matrix phi_(i+2-low);
 	{m1,m2};
 	m1*m2))
 
