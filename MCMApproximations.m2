@@ -34,68 +34,81 @@ R = S/ideal(a^2)
 res (coker vars R, LengthLimit => 0)
 *}
 
-///
+
 layeredResolution = method()
 layeredResolution(Matrix, Module) := (ff, M) ->(
     --ff is a 1 x c matrix over a Gorenstein ring S
     --M is an S-module annihilated by I = ideal ff.
-    cod = numcols ff;
-    if cod <=1 then return res M
-    S = ring ff;
-    R = S/I
-    MR = R**M
-
-    ff' = ff_{0..cod-2}  
-    R' = S/(ideal ff')
-    p = map(R,R')
-    MR' = R'**M
---    M1 = prune MR'
---    fix1 = (M1.cache.pruningMap)^(-1)
-    (alpha, beta) = approximation MR'
-    B0 = source beta
-    M' = source alpha
-    gamma = map(MR', M'++B0, alpha|beta)
-    BB1 = ker gamma
-    B1 = minimalPresentation BB1 
-    assert(isFreeModule B1)
-    psib = inducedMap(M' ++ B0, BB1)*(B1.cache.pruningMap)
-    psi = psib^[0]
-    b = psib^[1]
-    assert(source psi == B1 and source b == B1)    
-    assert(target psi == M' and target b == B0)
-    q = map(R',S)
-    bS = substitute(b,S)
-    B0S = target bS
-    KK = koszul(ff')
-    B = chainComplex{bS}
---    BK = B**KK
-    --F' = layeredResolution(ff', M')
-    F' = res pushForward(q,M')
+    cod := numcols ff;
+    if cod <=1 then return res M;
+    S := ring ff;
+    R := S/(ideal ff);
+    MR := prune R**M;
     
-    psiS = map(F'_0,pushForward(q,B1),substitute(matrix psi,S))
-    Psi1 = extend(F',B[1],matrix psiS)
-    Psi2 = Psi1**KK
-    Psi = extend(F',F'**KK, id_(F'_0))*Psi2
-    cone Psi
-    map(pushforward(map(R,S),M), F'_0++B0S, *****)
+    ff' := ff_{0..cod-2};
+    R' := S/(ideal ff');
+    p := map(R,R');
+    MR' := prune R'**M;
+    (alpha, beta) := approximation MR';
+    B0 := source beta;
+    M' := source alpha;
+    gamma := map(MR', M'++B0, alpha|beta);
+    BB1 := ker gamma;
+    B1 := minimalPresentation BB1;
+    assert(isFreeModule B1);
+    psib := inducedMap(M' ++ B0, BB1)*(B1.cache.pruningMap);
+    psi := psib^[0];
+    b := psib^[1];
+    assert(source psi == B1 and source b == B1);
+    assert(target psi == M' and target b == B0);
+    q := map(R',S);
+    bS := substitute(b,S);
+    B0S := target bS;
+    KK := koszul(ff');
+    B := chainComplex{bS};
+
+    F' := layeredResolution(ff', pushForward(q,M'));
+    --F' := res pushForward(q,M');
+        
+    psiS := map(F'_0,substitute(B1, S),substitute(matrix psi,S));
+    Psi1 := extend(F',B[1],matrix psiS);
+    Psi2 := Psi1**KK;
+    Psi := extend(F',F'**KK, id_(F'_0))*Psi2;
+    L := cone Psi;
+    assert( HH_1 L == 0);
+    assert(HH_2 L == 0);
+    L
     )
-///
+
 ///
 restart
 loadPackage("MCMApproximations", Reload =>true)
 S = ZZ/101[a,b,c]
-ff = matrix"a3, b3"
-ff' = matrix"a3"
+ff = matrix"a3, b3,c3" 
+cod = numcols ff
+
 I = ideal ff
-I' = ideal ff'
 R = S/I
-R' = S/I'
 kkk = coker vars R
-M = syzygy(2,kkk)
-M1 = pushForward(map(R,R'), syzygy(2,kkk))
-approximation M1
+MR = syzygy(2,kkk)
+M = prune pushForward(map(R,S), MR)
+
+ff' = ff_{0..cod-2}
+R' = S/ideal(ff')
+M' = source approximation(pushForward(map(R,R'),R**M), Total=>false)
+M'S = pushForward(map(R',S), M')
+layeredResolution(ff', M'S)
 
 layeredResolution(ff, M)
+
+I' = ideal ff'
+R' = S/I'
+degrees target presentation M
+res M
+MR' = pushForward(map(R,R'), MR)
+approximation MR
+
+
 ///
 
 
