@@ -48,27 +48,29 @@ layeredResolution(Matrix, Module) := (ff, M) ->(
     ff' := ff_{0..cod-2};
     R' := S/(ideal ff');
     p := map(R,R');
-    MR' := prune R'**M;
+    MR' := prune(R'**M);
     (alpha, beta) := approximation MR';
     B0 := source beta;
     M' := source alpha;
+    prunedM' :=prune M';
+    fix := (prunedM'.cache.pruningMap)^(-1);
     gamma := map(MR', M'++B0, alpha|beta);
     BB1 := ker gamma;
     B1 := minimalPresentation BB1;
     assert(isFreeModule B1);
-    psib := inducedMap(M' ++ B0, BB1)*(B1.cache.pruningMap);
+    psib := (fix++id_(B0)) *inducedMap(M' ++ B0, BB1)*(B1.cache.pruningMap);
     psi := psib^[0];
     b := psib^[1];
     assert(source psi == B1 and source b == B1);
-    assert(target psi == M' and target b == B0);
+    assert(target psi == prunedM' and target b == B0);
     q := map(R',S);
     bS := substitute(b,S);
     B0S := target bS;
     KK := koszul(ff');
     B := chainComplex{bS};
 
-    F' := layeredResolution(ff', pushForward(q,M'));
-    --F' := res pushForward(q,M');
+    F' := layeredResolution(ff', pushForward(q,prunedM'));
+--    F' := res pushForward(q,prunedM');
         
     psiS := map(F'_0,substitute(B1, S),substitute(matrix psi,S));
     Psi1 := extend(F',B[1],matrix psiS);
@@ -77,6 +79,7 @@ layeredResolution(Matrix, Module) := (ff, M) ->(
     L := cone Psi;
     assert( HH_1 L == 0);
     assert(HH_2 L == 0);
+--    error();
     L
     )
 
@@ -86,12 +89,15 @@ loadPackage("MCMApproximations", Reload =>true)
 S = ZZ/101[a,b,c]
 ff = matrix"a3, b3,c3" 
 cod = numcols ff
-
 I = ideal ff
 R = S/I
 kkk = coker vars R
-MR = syzygy(2,kkk)
+MR = syzygy(4,kkk)
 M = prune pushForward(map(R,S), MR)
+
+
+layeredResolution(ff, M)
+--Need to put in the iso M --> coker(layeredResolution(ff,M).dd_1)
 
 ff' = ff_{0..cod-2}
 R' = S/ideal(ff')
@@ -99,7 +105,6 @@ M' = source approximation(pushForward(map(R,R'),R**M), Total=>false)
 M'S = pushForward(map(R',S), M')
 layeredResolution(ff', M'S)
 
-layeredResolution(ff, M)
 
 I' = ideal ff'
 R' = S/I'
