@@ -64,15 +64,17 @@ layeredResolution(Matrix, Module) := (ff, M) ->(
     assert(source psi == B1 and source b == B1);
     assert(target psi == prunedM' and target b == B0);
     q := map(R',S);
+    prunedM'S = pushForward(q,prunedM');
     bS := substitute(b,S);
     B0S := target bS;
+    B1S := source bS;    
     KK := koszul(ff');
     B := chainComplex{bS};
-
-    F' := layeredResolution(ff', pushForward(q,prunedM'));
+    
+    F' := layeredResolution(ff', prunedM'S));
 --    F' := res pushForward(q,prunedM');
-        
-    psiS := map(F'_0,substitute(B1, S),substitute(matrix psi,S));
+--    pro := map(prunedM'S, F'_0, id_(F'_0));
+    psiS := map(F'_0, B1S, substitute(matrix psi,S));
     Psi1 := extend(F',B[1],matrix psiS);
     Psi2 := Psi1**KK;
     Psi := extend(F',F'**KK, id_(F'_0))*Psi2;
@@ -95,9 +97,12 @@ kkk = coker vars R
 MR = syzygy(4,kkk)
 M = prune pushForward(map(R,S), MR)
 
-
 layeredResolution(ff, M)
 --Need to put in the iso M --> coker(layeredResolution(ff,M).dd_1)
+
+    F0 = substitute(B1,S);
+    map(pM', F0, 
+
 
 ff' = ff_{0..cod-2}
 R' = S/ideal(ff')
