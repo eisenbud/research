@@ -1685,7 +1685,7 @@ doc ///
 
 -------------Irena's Formula-----------
 --for a in NN
-time scan(20,a'->(
+time scan(500,a'->(
 a := a'+1;
 b := ceiling((a-1)/2);
 s := sum(toList(b..a), i->
