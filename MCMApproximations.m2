@@ -10,6 +10,10 @@ DebuggingMode => true,
 PackageExports => {"CompleteIntersectionResolutions2"}
 )
 
+--to do: documentation and tests for layered.
+--maybe move layered into CompleteIntersectionResolutions rather than here.
+--the infinite layered resolution; Name??
+ 
 export {
     "approximation", 
     "coApproximation",     
@@ -35,6 +39,7 @@ res (coker vars R, LengthLimit => 0)
 *}
 
 
+///
 layeredResolution = method()
 layeredResolution(Matrix, Module) := (ff, M) ->(
     --ff is a 1 x c matrix over a Gorenstein ring S
@@ -92,6 +97,63 @@ layeredResolution(Matrix, Module) := (ff, M) ->(
 --Check exactness
 --    scan(length L -1, s->assert( HH_(s+1) L == 0));
 
+    (L,aug)
+    )
+///
+
+layeredResolution = method()
+layeredResolution(Matrix, Module) := (ff, M) ->(
+    --ff is a 1 x c matrix over a Gorenstein ring S
+    --M is an S-module annihilated by I = ideal ff.
+    --returns a pair (L,aug), where aug: L_0 \to M is the augmentation.
+    --Here L_0 = L'_0 ++ B_0, and L' is the resolution of M', the 
+    --MCM approximation of M over R' = S/(ideal ff'), and ff' = ff_{0..(c-2)}.
+    L := null;
+    cod := numcols ff;
+    if cod <=1 then return (L = res M, map(M,L_0,id_(L_0)));
+    S := ring ff;
+    R := S/(ideal ff);
+    ff' := ff_{0..cod-2};
+    R' := S/(ideal ff');
+    p:= map(R,R');
+    q := map(R',S);
+        
+    MR := prune R**M;
+    MR' := prune(R'**M);
+    (alpha, beta) := approximation MR';
+    B0 := source beta;
+    M' := source alpha;
+--    assert(M' == prune M');
+
+    gamma := map(MR', M'++B0, (alpha)|beta);
+    BB1 := ker gamma;
+    B1 := minimalPresentation BB1;
+--    assert(isFreeModule B1);
+    psib :=  inducedMap(M' ++ B0, BB1)*(B1.cache.pruningMap);
+    psi := psib^[0];
+    b := psib^[1];
+--    assert(source psi == B1 and source b == B1);
+--    assert(target psi == M' and target b == B0);
+    M'S := pushForward(q,M');
+    bS := substitute(b,S);
+    B0S := target bS;
+    B1S := source bS;    
+    KK := koszul(ff');
+    B := chainComplex{bS};
+    
+    (L',aug') := layeredResolution(ff', M'S);
+    assert(target aug' == M'S);
+    psiS0 := map(M'S, B1S, sub(matrix psi,S));
+    psiS := psiS0//aug';
+    Psi1 := extend(L',B[1],matrix psiS);
+    Psi2 := Psi1**KK;
+    Psi := extend(L',L'**KK, id_(L'_0))*Psi2;
+    L = cone Psi; -- L', the target of Psi, is the first summand, so this is L_0==L'_0++B_0
+    assert(L_0 == L'_0 ++ B_0);
+    m := (sub((matrix alpha),S)*matrix aug') |sub(matrix beta,S);
+    aug := map(M,L'_0++B_0,m);
+--Check exactness
+--    scan(length L -1, s->assert( HH_(s+1) L == 0));
     (L,aug)
     )
 
@@ -319,21 +381,29 @@ approximatione(ZZ,Module) := opts -> (n,M) ->(
     --returns the map to M from the
     --dual of the n-th syz of the n-th syzy of M
     --n = dim ring M - depth M +1 -- this just slows things down!
+    --if n' were 1 or 2 we would not in general get minimal presentations
     F := res(M, LengthLimit =>n);
     G := res(coker transpose F.dd_n, LengthLimit =>n);
     F' := chainComplex reverse apply(n, j-> transpose F.dd_(j+1));
     phi := extend(G, F', id_(G_0));
-    map(M, coker transpose G.dd_n, transpose phi_n)
+--    error();
+    M' := prune coker transpose G.dd_n;
+      map(M, M', transpose (matrix(M'.cache.pruningMap)^(-1) * phi_n))  
+--    map(M, coker transpose G.dd_n', transpose phi_n')
 )
 
 ///
 restart
 loadPackage("MCMApproximations", Reload =>true)
-R = ZZ/101[a,b,c]/ideal(a^3,b^3)
-Rc = R/ideal(b^3, c^3) 
-M = prune pushForward(map(Rc,R), coker matrix"a,b,c;b,c,a")
-n= 3
-betti res syzygy_1 M
+S = ZZ/101[a,b,c]
+ff = matrix"a3,b3,c3"
+ff' = matrix"a3,b3"
+R = S/ideal ff
+R' = S/ideal ff'
+kkk = coker vars R
+M = prune pushForward(map(R,R'), syzygy(2,kkk))
+source ((approximation M)_0)
+prune oo
 ///
 --<<docTemplate
 
@@ -390,7 +460,7 @@ ca = coApproximation M_(c-1)
 M'' = coker ca
 N = target ca
 assert(profondeur M'' == dim ring M'') -- an MCM module
-assert(M'' == source approximation(M'', Total=>false)) -- no free summands
+assert(betti res prune M'' == betti res source approximation(prune M'', Total=>false)) -- no free summands
 assert(2 == length res(N, LengthLimit =>10)) -- projective dimension <\infty
 ///
 
@@ -597,6 +667,7 @@ assert( (approximation(M, CoDepth => 0)) === (map(image map((R)^1,(R)^{{-1},{-1}
 auslanderInvariant = method(Options =>{CoDepth => -1})
 auslanderInvariant Module := opts->M-> (
     --number of free summands in the MCM approximation
+    if isFreeModule M then return numgens M;
     phi := approximation(M, CoDepth => opts.CoDepth, Total=>false);
     numgens prune coker phi)
 ///
