@@ -7,7 +7,7 @@ newPackage(
                         HomePage => "http://www.msri.org/~de"}},
               Headline => "Analyzing Resolutions over a Complete Intersection",
 	      PackageExports => {"BGG"},
-              DebuggingMode => false --should be false when submitted
+              DebuggingMode => true --should be false when submitted
               )
 	  export{
          --some utilities
@@ -54,6 +54,7 @@ newPackage(
 	   "sumTwoMonomials",
     	--modules over the exterior algebra
 	   "makeHomotopies",
+	   "shamash",
 	   "makeHomotopies1",
     	   "makeHomotopiesOnHomology",
 	   "exteriorHomologyModule",
@@ -66,8 +67,52 @@ newPackage(
        --the inverse problem: represent a module as an Ext_R(M,k)
 	   "moduleAsExt",
 	   "hfModuleAsExt",
-	   "complexity"
+	   "complexity",
+	   "Shamash"
 	   }
+
+///
+Shamash = method()
+Shamash(Matrix, ChainComplex) := (ff, F) ->()
+    --Given a 1 x 1 matrix ff over a ring R and a chain complex F
+    --admitting a homotopy for ff_0, produce the Shamash complex
+    --for ff_0 on F as a chain complex Fbar over Rbar = R/ideal ff.
+    H =  makeHomotopies(ff,F)
+--have to change H so that the maps of homological degree <-1 are given, and are 0
+    G = apply(1+length F, i->directSum(
+	         if even i then apply(1+i//2, j->F_(2*j))
+	     	 else apply(i+1//2, j->F_(1+2*j))))
+    --make a function taking an index j to the map from G_j to G_(j-1).
+    dd = j->(if even j then matrix(apply((j-1)//2+1, p-> apply(j//2+1, q ->(
+			G_(j-1)^[p]*H#{{q-p+1},2*q}*G_j_[q]
+			))))
+	else matrix(apply((j-1)//2+1, p-> apply(j//2+1, q ->(
+			G_(j-1)^[p]*H#{{q-p},1+2*q}*G_j_[q]
+			))))
+		    
+--i+1 is odd:
+    dOdd = apply((1+length F)//2, i->(j = (i-1)//2;
+	                             map(F'_j,F'_(j+1),
+	       matrix(apply(j//2 + 1, p->apply(i+2,q->G_i^[p]*H#{{q-p},q}*G_(i+1)_[q]))
+--i+1 is even
+    dEven = apply((length F)//2, i->map(F'_i,F'_(i+1),
+ 	       matrix(apply(j//2+1, p->apply(i+2,q->G_i^[p]*H#{{q-p},q}*G_(i+1)_[q]))
+    
+    F' = chainComplex apply(length F, i-> if even(i+1) then dEven_((i+1)//2) else dOdd_((i+2)//2))
+    
+///
+
+///
+restart
+loadPackage("CompleteIntersectionResolutions2", Reload =>true)
+S = ZZ/101[x,y,z]
+R = S/ideal"x3,y3"
+M = R^1/ideal(x,y,z)
+F = res M
+ff = matrix{{z^3}}
+
+///
+
 
 dualWithComponents = method()
 dualWithComponents Module := M -> (
@@ -2580,7 +2625,7 @@ Description
   sum_{J<I} H#\{I\setminus J, \} H#\{J, \} = 0.
   $$
   
-  To make themaps homogeneous, $H\#\{J,i\}$ is actually a map from
+  To make the maps homogeneous, $H\#\{J,i\}$ is actually a map from
   a an appropriate negative twist of F to a shift of S.
  Example
   kk=ZZ/101
@@ -3832,6 +3877,7 @@ assert(isFreeModule E);
 assert(rank E==1);
 ///
 
+
 end--
 restart
 notify=true
@@ -3847,38 +3893,13 @@ installPackage "CompleteIntersectionResolutions2"
 
 
 
---old version of makeT -- doesn't work.
-///
-makeT = method()
-makeT(Matrix, ChainComplex,ZZ) := (F,G,i) ->(
-     {*
-     If F is an m x 1 matrix and
-     G is a resolution of a module at least up to the i-th step,
-     over R = S/(ideal F), 
-     of codim c this returns a list of the c ci-operators
-     G_i \to G_{i-2}
-     corresponding to the entries of F.
-     *}
-     c := numcols F;
-     degsF := flatten((degrees F)_1);
-     R := ring G;
-     S := ring F;
-     d0 := sub(G.dd_i, S);
-     d1 := sub(G.dd_(i-1), S);
-     Gtar := target d1;
-     Gsour := source d0;
-     d2 := d1*d0;
-     utemp := local utemp;
-     u := apply(c,i ->(
-	     utemp = map(S^{-degsF_i}**Gtar, Gsour, d2//((target d2)**F_{i}));
-	     d2 = d2 - utemp**F_{i};
-	     utemp));
-     --check: is d1*d0 = sum F_{i}*u_i 
---     error();
-     if d1*d0 != map(Gtar, Gsour, sum(c, i-> u_i**F_{i})) then 
-                  error{"doesn't add up"};
-     ret := map(R,S);
-     apply(u, u1 -> ret u1)
-     )
 
-///
+shamash = method()
+shamash(matrix, ChainComplex, ZZ) := (ff, F, len) ->(
+--ff should be a 1x1 matrix, and F the initial segment of
+--a resolution of length at least len, of a module M over a ring R'.
+--(the end can be zeros).
+--The script returns a resolution of 
+
+
+    )

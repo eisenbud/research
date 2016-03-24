@@ -29,7 +29,8 @@ export {
     "setupRings",
     "Characteristic", -- option for setupRings
     "setupModules",
-    "test" -- gives info on an example
+    "test", -- gives info on an example
+    "onePoly"
     }
 
 {* The following code crashes M2 v 8.2
@@ -42,11 +43,12 @@ res (coker vars R, LengthLimit => 0)
 ///
 layeredResolution = method()
 layeredResolution(Matrix, Module) := (ff, M) ->(
-    --ff is a 1 x c matrix over a Gorenstein ring S
-    --M is an S-module annihilated by I = ideal ff.
-    --returns a pair (L,aug), where aug: L_0 \to M is the augmentation.
-    --Here L_0 = L'_0 ++ B_0, and L' is the resolution of M', the 
-    --MCM approximation of M over R' = S/(ideal ff'), and ff' = ff_{0..(c-2)}.
+    --ff is a 1 x c matrix over a Gorenstein ring S and ff' = ff_{0..(c-2)}.
+    --M is an S-module annihilated by I = ideal ff that is an MCM module over S/I.
+    --returns a pair (L,aug), where L is an S-free resolution of M 
+    --and aug: L_0 \to M is the augmentation.
+    --Here L_0 = L'_0 ++ B_0, and L' is the S-free resolution of M', the 
+    --MCM approximation of M over R' = S/(ideal ff').
     L := null;
     cod := numcols ff;
     if cod <=1 then return (L = res M, map(M,L_0,id_(L_0)));
@@ -96,12 +98,91 @@ layeredResolution(Matrix, Module) := (ff, M) ->(
     aug := map(M,L'_0++B_0,m);
 --Check exactness
 --    scan(length L -1, s->assert( HH_(s+1) L == 0));
-
     (L,aug)
     )
 ///
 
+
 layeredResolution = method()
+layeredResolution(Matrix, Module, ZZ) := (ff, M, len) ->(
+    --ff is a 1 x c matrix over a Gorenstein ring S and ff' = ff_{0..(c-2)}.
+    --M is an S-module annihilated by I = ideal ff that is an MCM module over R := S/I.
+    --returns a pair (L,aug), where L is the first len steps of an R-free resolution of M 
+    --and aug: L_0 \to M is the augmentation.
+    --Let R' = S/(ff'), and let
+    --        B_1 --> B_0 ++ M' --> M
+    -- be the MCM approximation of M over R'.
+    -- If L' is the R'-free resolution of M', then
+    --     L_0 = R\otimes (L'_0 ++ B_0),
+    --     L_1 = R\otimes (L'_1 ++ B_1).
+    -- and L is the Shamash construction applied to the box complex.
+    )
+///
+S = ring ff
+cod = numcols ff
+ff' = ff_{0..cod-2}
+R = ring M
+R' = S/ideal ff'
+StoR = map(R,S)    
+R'toR = map(R,R')
+StoR' = map(R',S)
+if cod == 0 then (
+    L = res(M,LengthLimit => len);
+    return (L, map(M,L_0,id_(L_0))));
+MR' = pushForward(R'toR,M)
+    (alpha, beta) = approximation MR';
+    B0 = source beta;
+    M' = source alpha;
+--    pM' :=prune M';-- why isn't M' already pruned??
+
+--    pM'ToM' := (pM'.cache.pruningMap);
+--    M'TopM' := pM'ToM'^(-1);
+    
+--    gamma := map(MR', pM'++B0, (alpha*pM'ToM')|beta);
+    gamma = map(MR', M'++B0, (alpha|beta));
+    BB1 = ker gamma;
+    B1 = minimalPresentation BB1;
+--    assert(isFreeModule B1);
+    psib =  inducedMap(M' ++ B0, BB1)*(B1.cache.pruningMap);
+    psi = psib^[0];
+    b = psib^[1];
+--(L',aug') = layeredResolution(ff',M',len)
+L' = res(M', LengthLimit=> len)
+aug' = map(M', L'_0, id_(L'_0))
+--
+B = chainComplex {b}
+Psi = extend(L', B[1], matrix(psi//aug'))
+box = cone Psi
+L = Shamash(R'**ff_{cod-1}, box)
+--H = makeHomotopies(R'**ff_{cod-1}, box)
+aug = map(M,L_0, id_(L_0))
+(L,aug)
+)
+///
+
+///
+restart
+loadPackage("MCMApproximations", Reload =>true)
+S = ZZ/101[a,b,c]
+ff = matrix"a3, b3,c3" 
+len = 5
+cod = numcols ff
+I = ideal ff
+R = S/I
+q = map(R,S)
+M = coker vars R
+M0 = coker vars R
+M0= coker random(R^2, R^{4:-1})
+
+scan(5, s->(
+M= pushForward(q,syzygy(s,M0));
+<<time(L = (layeredResolution(ff, M))_0);<<endl;
+print (betti L == betti res M);
+))
+///
+
+
+
 layeredResolution(Matrix, Module) := (ff, M) ->(
     --ff is a 1 x c matrix over a Gorenstein ring S
     --M is an S-module annihilated by I = ideal ff.
@@ -1093,6 +1174,41 @@ doc ///
    SeeAlso
     regularitySequence
     socleDegrees
+///
+
+
+onePoly = method()
+onePoly Module := M ->(
+    --the hilbert polynomial of the even ext module of a high syzygy, made into a poly that
+    --whose values, in the case of a ci of quadrics, are all the bett numbers
+    Ee := evenExtModule M;
+    Eo := oddExtModule M;
+    re := regularity Ee;
+    ro := regularity Eo;
+    pe := hilbertPolynomial(Ee, Projective => false);
+    i := local i;
+    U := QQ[i];
+    V := ring pe;
+    double := map(U,V, matrix map(U^1, U^1, {{(1/2)*U_0}}));
+    ppe := double pe;
+    (ppe, max (2*re+2, 2*ro+3))
+)
+///
+--Test of the conjecture that, in the case of a CI of quadrics with at most one form
+--of higher degree, the even and odd Betti numbers agree eventually with a single polynomial
+--(Avramov's "one polynomial" conjecture.)
+restart
+loadPackage("MCMApproximations", Reload=>true)
+S = ZZ/101[a,b,c,d]
+ff = matrix"a2,b2,c3d2"
+cod = numcols ff
+R = S/ideal ff
+M = coker random(R^{0,1}, R^{2:-1, 2:-2})
+M = R^1/ideal"ab, c2,a3c+d4"
+(ppe, r) = onePoly M
+L1 = apply(r + 2*cod, j-> sub(ppe, {(ring ppe)_0=>j}))
+L2 = apply(r+2*cod, i -> rank ((res(M, LengthLimit =>r+6))_i))
+L1-L2 -- having one poly is equivalent to having 2*cod trailing zeros (if r is big enough
 ///
 
 end--
