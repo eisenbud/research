@@ -33,7 +33,7 @@ export {
     "onePoly"
     }
 
-{* The following code crashes M2 v 8.2
+{* test: The following code crashes M2 v 8.2
 S = ZZ/101[a]
 R = S/ideal(a^2)
 res (coker vars R, LengthLimit => 0)
