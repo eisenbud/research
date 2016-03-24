@@ -54,7 +54,6 @@ newPackage(
 	   "sumTwoMonomials",
     	--modules over the exterior algebra
 	   "makeHomotopies",
-	   "shamash",
 	   "makeHomotopies1",
     	   "makeHomotopiesOnHomology",
 	   "exteriorHomologyModule",
@@ -71,50 +70,66 @@ newPackage(
 	   "Shamash"
 	   }
 
+{*
+restart
+loadPackage("CompleteIntersectionResolutions2", Reload=>true)
+
+     S = ZZ/101[x,y,z]
+     R = S/ideal"x3,y3"
+     M = R^1/ideal(x,y,z)
+     ff = matrix{{z^3}}
+     --
+     m = random(R^3, R^{3:-1})
+     ff = matrix{{det m}}
+     M = coker m     
+     R1 = R/ideal ff
+     F = res M
+     FF = Shamash(ff,F,5)
+     betti FF
+
+    H =  makeHomotopies(ff,F)
+
+     GG = Shamash(R1,F,4)
+     betti FF
+     betti GG
+     ring GG
+     apply(length GG, i->prune HH_i FF)
+*}
 
 Shamash = method()
-Shamash(Matrix, ChainComplex) := (ff, F) ->(
+Shamash(Matrix, ChainComplex,ZZ) := (ff, F, len) ->(
     --Given a 1 x 1 matrix ff over a ring R and a chain complex F
     --admitting a homotopy for ff_0, produce the Shamash complex
     -- F as a chain complex Fbar over Rbar = R/ideal ff.
+    R := ring ff;
+    deg := (degrees source ff)_0_0;
     H :=  makeHomotopies(ff,F);
     --simplify the notation for the map from F_j to F_i
-    d := (i,j) -> if (even(i-j) or (i-j<(-1))) then map(F_i,F_j,0) else 
-                                                   map(F_i,F_j, H#{{(1+i-j)//2},j});
-    --make the modules
-    G := apply(1+length F, i->directSum(
-	         if even i then apply(1+i//2, j->F_(2*j))
-	     	 else apply(i+1//2, j->F_(1+2*j))));
+    d := (i,j) -> if (even(i-j) or (i-j<(-1)) or (F_i==0) or (F_j==0)) 
+                     then map(F_i,F_j,0) else 
+                          map(F_i,F_j, H#{{(1+i-j)//2},j});
+--    error();
+        --make the modules
+    G := apply(1+len, i->directSum(
+	         if even i then apply(1+i//2, j->R^{ -deg*((i-2*j)//2)}**F_(2*j))
+	     	 else apply((i+1)//2, j->R^{ -deg*(i-(2*j+1))//2}**F_(1+2*j))));
     --make maps G_(i) to G_(i-1)
     D := i-> if even i then
     	   --if i is even then G_i = F_0++..++F_i, a total of i//2 terms, and G_(i-1) = F_1++.. has i//2-1 terms
            map(G_(i-1),G_i,matrix apply(i//2, p-> apply(1+i//2, q-> d(2*p+1,2*q)))) else
            map(G_(i-1),G_i,matrix apply(1+(i-1)//2, p-> apply(1+i//2, q-> d(2*p,2*q+1))));
     Rbar := ring ff/ideal ff;
-    chainComplex apply(length F, i-> Rbar**D(i+1))
+    chainComplex apply(len, i-> Rbar**D(i+1))
 )
-Shamash(Ring, ChainComplex) := (Rbar, F) ->(
+
+Shamash(Ring, ChainComplex,ZZ) := (Rbar, F, len) ->(
     P := map(Rbar,ring F);
     ff := gens ker P;
     if numcols ff != 1 then error"given ring must be quotient of ring of complex by one element";
-    FF := Shamash(ff, F);
+    FF := Shamash(ff, F,len);
     P := map(Rbar, ring FF, vars Rbar);
     P FF
 )    
-
-///
-restart
-loadPackage("CompleteIntersectionResolutions2", Reload =>true)
-S = ZZ/101[x,y,z]
-R = S/ideal"x3,y3"
-M = R^1/ideal(x,y,z)
-F = res M
-ff = matrix{{z^3}}
-Shamash(ff,F)
-Rbar = R/ideal(z^3)
-Shamash(Rbar,F)
-///
-
 
 dualWithComponents = method()
 dualWithComponents Module := M -> (
@@ -280,24 +295,6 @@ makeT(Matrix, ChainComplex,ZZ) := (ff,F,i) ->(
      ret := map(R,S);
      apply(u, u1 -> ret u1)
      )
-TEST///
-S = ZZ/101[a,b,c]
-ff1 = matrix"a3,b3,c3"
-setRandomSeed 0
-ff = ff1*random(source ff1, source ff1)
-R = S/(ideal ff)
-M = coker matrix {{R_0,R_1,R_2},{R_1,R_2,R_0}}
-F = res coker vars R
-F0 = res (M, LengthLimit =>3)
-makeT(ff, F0, 4)
-min F0
---generateAssertions"makeT(ff, F0, 2)"
-assert( (makeT(ff, F0, 2)) === {map((R)^{{-3},{-3}},(R)^{{-3},{-3},{-3},{-3},{-3}},{{39, 0, 0, -26, 0},
-      --------------------------------------------------------------------------------------------------------
-      {0, 39, 0, 0, 26}}),map((R)^{{-3},{-3}},(R)^{{-3},{-3},{-3},{-3},{-3}},{{33, 0, 0, 31, 0}, {0, 33, 0, 0,
-      --------------------------------------------------------------------------------------------------------
-      -31}}),map((R)^{{-3},{-3}},(R)^{{-3},{-3},{-3},{-3},{-3}},{{8, 0, 0, -31, 0}, {0, 8, 0, 0, 31}})} );
-///
 
 splittings = method()
 splittings (Matrix, Matrix) := (a,b) -> (
@@ -3563,8 +3560,95 @@ doc ///
     stableHom
 ///
 
+doc ///
+   Key
+    Shamash
+    (Shamash, Matrix, ChainComplex, ZZ)
+    (Shamash, Ring, ChainComplex, ZZ)
+   Headline
+    Computes the Shamash Complex
+   Usage
+    FF = Shamash(ff,F,len)
+    FF = Shamash(Rbar,F,len)
+   Inputs
+    ff:Matrix
+     1 x 1 Matrix over ring F.
+    Rbar:Ring
+     ring F mod ideal ff
+    F:ChainComplex
+     starting from F_0, defined over the same ring as ff
+    len: ZZ
+   Outputs
+    FF:ChainComplex
+     chain complex over (ring F)/(ideal ff)
+   Description
+    Text
+     Let R = ring F = ring ff, and Rbar = R/(ideal ff).
+     The complex F should admit a system of higher homotopies for the entry of ff,
+     returned by the call makeHomotopies(ff,F).
+     
+     The complex FF has terms 
+     
+     FF_(2*i) = F_0 ++ F_2 ++ .. ++ F_i
+     
+     FF_(2*i+1) = F_1 ++ F_3 ++..++F_(2*i+1)
+     
+     and maps made from the higher homotopies
+     In the form Shamash(Rbar,F) the complex F is moved over to the ring Rbar.
+    Example
+     S = ZZ/101[x,y,z]
+     R = S/ideal"x3,y3"
+     M = R^1/ideal(x,y,z)
+     ff = matrix{{z^3}}
+     R1 = R/ideal ff
+     F = res M
+     betti F
+     FF = Shamash(ff,F)
+     GG = Shamash(R1,F)
+     betti FF
+     betti GG
+     ring GG
+     apply(length GG, i->prune HH_i FF)
+   Caveat
+    F is assumed to be a homological complex starting from F_0.
+    The matrix ff must be 1x1.
+   SeeAlso
+    makeHomotopies
+///
+
 
 ------TESTs------
+TEST///
+S = ZZ/101[a,b,c]
+ff1 = matrix"a3,b3,c3"
+setRandomSeed 0
+ff = ff1*random(source ff1, source ff1)
+R = S/(ideal ff)
+M = coker matrix {{R_0,R_1,R_2},{R_1,R_2,R_0}}
+F = res coker vars R
+F0 = res (M, LengthLimit =>3)
+makeT(ff, F0, 4)
+min F0
+--generateAssertions"makeT(ff, F0, 2)"
+assert( (makeT(ff, F0, 2)) === {map((R)^{{-3},{-3}},(R)^{{-3},{-3},{-3},{-3},{-3}},{{39, 0, 0, -26, 0},
+      --------------------------------------------------------------------------------------------------------
+      {0, 39, 0, 0, 26}}),map((R)^{{-3},{-3}},(R)^{{-3},{-3},{-3},{-3},{-3}},{{33, 0, 0, 31, 0}, {0, 33, 0, 0,
+      --------------------------------------------------------------------------------------------------------
+      -31}}),map((R)^{{-3},{-3}},(R)^{{-3},{-3},{-3},{-3},{-3}},{{8, 0, 0, -31, 0}, {0, 8, 0, 0, 31}})} );
+///
+
+///TEST
+S = ZZ/101[x,y,z]
+R = S/ideal"x3,y3"
+M = R^1/ideal(x,y,z)
+F = res M
+ff = matrix{{z^3}}
+FF = Shamash(ff,F)
+scan(length FF -1, i->assert(0==(HH_(i+1)FF)))
+Rbar = R/ideal(z^3)
+assert (Shamash(Rbar,F) == (map(Rbar,ring FF))FF)
+///
+
 TEST///
 kk=ZZ/101
 S = kk[a,b]
@@ -3896,12 +3980,4 @@ installPackage "CompleteIntersectionResolutions2"
 
 
 
-shamash = method()
-shamash(matrix, ChainComplex, ZZ) := (ff, F, len) ->(
---ff should be a 1x1 matrix, and F the initial segment of
---a resolution of length at least len, of a module M over a ring R'.
---(the end can be zeros).
---The script returns a resolution of 
 
-
-    )

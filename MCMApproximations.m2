@@ -39,150 +39,8 @@ R = S/ideal(a^2)
 res (coker vars R, LengthLimit => 0)
 *}
 
-
-///
 layeredResolution = method()
-layeredResolution(Matrix, Module) := (ff, M) ->(
-    --ff is a 1 x c matrix over a Gorenstein ring S and ff' = ff_{0..(c-2)}.
-    --M is an S-module annihilated by I = ideal ff that is an MCM module over S/I.
-    --returns a pair (L,aug), where L is an S-free resolution of M 
-    --and aug: L_0 \to M is the augmentation.
-    --Here L_0 = L'_0 ++ B_0, and L' is the S-free resolution of M', the 
-    --MCM approximation of M over R' = S/(ideal ff').
-    L := null;
-    cod := numcols ff;
-    if cod <=1 then return (L = res M, map(M,L_0,id_(L_0)));
-    S := ring ff;
-    R := S/(ideal ff);
-    ff' := ff_{0..cod-2};
-    R' := S/(ideal ff');
-    p:= map(R,R');
-    q := map(R',S);
-        
-    MR := prune R**M;
-    MR' := prune(R'**M);
-    (alpha, beta) := approximation MR';
-    B0 := source beta;
-    M' := source alpha;
-    pM' :=prune M';-- why isn't M' already pruned??
-
-    pM'ToM' := (pM'.cache.pruningMap);
-    M'TopM' := pM'ToM'^(-1);
-    
-    gamma := map(MR', pM'++B0, (alpha*pM'ToM')|beta);
-    BB1 := ker gamma;
-    B1 := minimalPresentation BB1;
---    assert(isFreeModule B1);
-    psib :=  inducedMap(pM' ++ B0, BB1)*(B1.cache.pruningMap);
-    psi := psib^[0];
-    b := psib^[1];
---    assert(source psi == B1 and source b == B1);
---    assert(target psi == pM' and target b == B0);
-    pM'S := pushForward(q,pM');
-    bS := substitute(b,S);
-    B0S := target bS;
-    B1S := source bS;    
-    KK := koszul(ff');
-    B := chainComplex{bS};
-    
-    (L',aug') := layeredResolution(ff', pM'S);
-    assert(target aug' == pM'S);
-    psiS0 := map(pM'S, B1S, sub(matrix psi,S));
-    psiS := psiS0//aug';
-    Psi1 := extend(L',B[1],matrix psiS);
-    Psi2 := Psi1**KK;
-    Psi := extend(L',L'**KK, id_(L'_0))*Psi2;
-    L = cone Psi; -- L', the target of Psi, is the first summand, so this is L_0==L'_0++B_0
-    assert(L_0 == L'_0 ++ B_0);
-    m := (sub((matrix alpha)*matrix pM'ToM',S)*matrix aug') |sub(matrix beta,S);
-    aug := map(M,L'_0++B_0,m);
---Check exactness
---    scan(length L -1, s->assert( HH_(s+1) L == 0));
-    (L,aug)
-    )
-///
-
-
-layeredResolution = method()
-layeredResolution(Matrix, Module, ZZ) := (ff, M, len) ->(
-    --ff is a 1 x c matrix over a Gorenstein ring S and ff' = ff_{0..(c-2)}.
-    --M is an S-module annihilated by I = ideal ff that is an MCM module over R := S/I.
-    --returns a pair (L,aug), where L is the first len steps of an R-free resolution of M 
-    --and aug: L_0 \to M is the augmentation.
-    --Let R' = S/(ff'), and let
-    --        B_1 --> B_0 ++ M' --> M
-    -- be the MCM approximation of M over R'.
-    -- If L' is the R'-free resolution of M', then
-    --     L_0 = R\otimes (L'_0 ++ B_0),
-    --     L_1 = R\otimes (L'_1 ++ B_1).
-    -- and L is the Shamash construction applied to the box complex.
-    )
-///
-S = ring ff
-cod = numcols ff
-ff' = ff_{0..cod-2}
-R = ring M
-R' = S/ideal ff'
-StoR = map(R,S)    
-R'toR = map(R,R')
-StoR' = map(R',S)
-if cod == 0 then (
-    L = res(M,LengthLimit => len);
-    return (L, map(M,L_0,id_(L_0))));
-MR' = pushForward(R'toR,M)
-    (alpha, beta) = approximation MR';
-    B0 = source beta;
-    M' = source alpha;
---    pM' :=prune M';-- why isn't M' already pruned??
-
---    pM'ToM' := (pM'.cache.pruningMap);
---    M'TopM' := pM'ToM'^(-1);
-    
---    gamma := map(MR', pM'++B0, (alpha*pM'ToM')|beta);
-    gamma = map(MR', M'++B0, (alpha|beta));
-    BB1 = ker gamma;
-    B1 = minimalPresentation BB1;
---    assert(isFreeModule B1);
-    psib =  inducedMap(M' ++ B0, BB1)*(B1.cache.pruningMap);
-    psi = psib^[0];
-    b = psib^[1];
---(L',aug') = layeredResolution(ff',M',len)
-L' = res(M', LengthLimit=> len)
-aug' = map(M', L'_0, id_(L'_0))
---
-B = chainComplex {b}
-Psi = extend(L', B[1], matrix(psi//aug'))
-box = cone Psi
-L = Shamash(R'**ff_{cod-1}, box)
---H = makeHomotopies(R'**ff_{cod-1}, box)
-aug = map(M,L_0, id_(L_0))
-(L,aug)
-)
-///
-
-///
-restart
-loadPackage("MCMApproximations", Reload =>true)
-S = ZZ/101[a,b,c]
-ff = matrix"a3, b3,c3" 
-len = 5
-cod = numcols ff
-I = ideal ff
-R = S/I
-q = map(R,S)
-M = coker vars R
-M0 = coker vars R
-M0= coker random(R^2, R^{4:-1})
-
-scan(5, s->(
-M= pushForward(q,syzygy(s,M0));
-<<time(L = (layeredResolution(ff, M))_0);<<endl;
-print (betti L == betti res M);
-))
-///
-
-
-
+--version that produces the finite layered resolution
 layeredResolution(Matrix, Module) := (ff, M) ->(
     --ff is a 1 x c matrix over a Gorenstein ring S
     --M is an S-module annihilated by I = ideal ff.
@@ -237,6 +95,125 @@ layeredResolution(Matrix, Module) := (ff, M) ->(
 --    scan(length L -1, s->assert( HH_(s+1) L == 0));
     (L,aug)
     )
+
+
+
+layeredResolution(Matrix, Module, ZZ) := (ff, M, len) ->(
+    --ff is a 1 x c matrix over a Gorenstein ring S and ff' = ff_{0..(c-2)}, ff'' = ff_{c-1}.
+    --R = S/ideal ff
+    --R' = S/ideal ff'
+    --NOTE R =!= R'/ideal ff''; we need to use a map to go between them.
+    --M is an MCM R-module.
+    --The script returns a pair (L,aug), where L is the first len steps of an R-free resolution of M 
+    --and aug: L_0 \to M is the augmentation.
+    -- Let
+    --        B_1 --> B_0 ++ M' --> M
+    -- be the MCM approximation of M over R'.
+    -- If L' is the layered R'-free resolution of M', then
+    --     L_0 = R\otimes (L'_0 ++ B_0),
+    --     L_1 = R\otimes (L'_1 ++ B_1).
+    -- and L is the Shamash construction applied to the box complex.
+    -- The resolution is returned over the ring R.
+    
+    ff := gens ker map(R, ring M);
+    S := ring M;
+    if R =!= S/ideal ff then error"rings don't match
+    cod := numcols ff;
+    if cod == 0 then (
+    	L := res(M,LengthLimit => len);
+    	return (L, map(M,L_0,id_(L_0))));
+    ff' := ff_{0..cod-2};
+    R' := S/ideal ff';
+    ff'' := R'** ff_{cod-1};
+    R := R'/ideal ff'';
+    R'toR := map(R,R');
+    MR := R**M;
+    MR':= pushForward(R'toR,MR);
+    (alpha, beta) := approximation MR';
+    B0 := source beta;
+    M' := source alpha;
+    gamma := map(MR', M'++B0, (alpha|beta));
+    BB1 := ker gamma;
+    B1 := minimalPresentation BB1;
+    psib :=  inducedMap(M' ++ B0, BB1)*(B1.cache.pruningMap);
+    psi := psib^[0];
+    b := psib^[1];
+    M'S := pushForward(map(R',S),M');
+--error();
+(L',aug') := layeredResolution(ff',M'S,len);
+--L' := res(M', LengthLimit=> len);
+--    aug' = map(M', L'_0, id_(L'_0));
+    B := chainComplex {b};
+    Psi := extend(L', B[1], matrix(psi//aug'));
+    box := cone Psi;
+    aug1 := R**map(MR',box_0, (alpha|beta)*map(M'++ B0, box_0, aug'++id_(B0)));
+    aug0 := map(MR,R**MR', id_(cover MR));
+    L =  Shamash(R, box, len);
+    aug := map(MR, L_0, aug0*aug1);
+    R1 := S/ideal ff;
+    Q := map(R1, ring L);
+    L1 := Q L;
+    augR1 := map(M**R1, Q L_0, Q matrix aug);
+    assert (ring(L1) === ring augR1);
+    assert(ring L1 === R1);
+    (L1, augR1)
+    )
+
+
+///
+restart
+loadPackage("MCMApproximations", Reload =>true)
+S1 = ZZ/101[a,b,c]
+len = 5
+--codim 0
+ff = matrix{{}}
+M = S1^1
+(FF, aug) = layeredResolution(ff,M,len)
+ring FF
+--codim 1
+use S1
+ff = matrix"a3" 
+R1 = S1/ideal ff
+M2 = syzygy(3,coker vars R1)
+M = pushForward(map(R1,S1), M2)
+(FF, aug) = layeredResolution(ff,M,len)
+assert(betti FF == betti (F = res (R1**M, LengthLimit=>5)))
+--codim 2
+use S1
+ff = matrix"a3, b3" 
+R1 = S1/ideal ff
+M2 = syzygy(2,coker vars R1)
+M = pushForward(map(R1,S1), M2)
+betti res M
+layeredResolution(ff,M,len)
+
+///
+
+
+
+///
+restart
+loadPackage("MCMApproximations", Reload =>true)
+///
+///TEST
+S = ZZ/101[a,b,c]
+ff = matrix"a3, b3,c3" 
+len = 5
+cod = numcols ff
+I = ideal ff
+R = S/I
+q = map(R,S)
+M = coker vars R
+M0 = coker vars R
+M0= coker random(R^2, R^{4:-1})
+M = pushForward(q,syzygy(3,M0))
+layeredResolution(ff,pushForward(q,M0))
+scan(2, s->(
+M= pushForward(q,syzygy(s+3,M0));
+L = (layeredResolution(ff, M))_0;
+assert (betti L == betti res M);
+))
+///
 
 ///
 restart
@@ -1341,3 +1318,65 @@ L3 = apply(toList(low..high+low-1),i->(
 	{m1,m2};
 	m1*m2))
 
+///
+--inactive copy: real program is below!
+layeredResolution = method()
+layeredResolution(Matrix, Module) := (ff, M) ->(
+    --ff is a 1 x c matrix over a Gorenstein ring S and ff' = ff_{0..(c-2)}.
+    --M is an S-module annihilated by I = ideal ff that is an MCM module over S/I.
+    --returns a pair (L,aug), where L is an S-free resolution of M 
+    --and aug: L_0 \to M is the augmentation.
+    --Here L_0 = L'_0 ++ B_0, and L' is the S-free resolution of M', the 
+    --MCM approximation of M over R' = S/(ideal ff').
+    L := null;
+    cod := numcols ff;
+    if cod <=1 then return (L = res M, map(M,L_0,id_(L_0)));
+    S := ring ff;
+    R := S/(ideal ff);
+    ff' := ff_{0..cod-2};
+    R' := S/(ideal ff');
+    p:= map(R,R');
+    q := map(R',S);
+        
+    MR := prune R**M;
+    MR' := prune(R'**M);
+    (alpha, beta) := approximation MR';
+    B0 := source beta;
+    M' := source alpha;
+    pM' :=prune M';-- why isn't M' already pruned??
+
+    pM'ToM' := (pM'.cache.pruningMap);
+    M'TopM' := pM'ToM'^(-1);
+    
+    gamma := map(MR', pM'++B0, (alpha*pM'ToM')|beta);
+    BB1 := ker gamma;
+    B1 := minimalPresentation BB1;
+--    assert(isFreeModule B1);
+    psib :=  inducedMap(pM' ++ B0, BB1)*(B1.cache.pruningMap);
+    psi := psib^[0];
+    b := psib^[1];
+--    assert(source psi == B1 and source b == B1);
+--    assert(target psi == pM' and target b == B0);
+    pM'S := pushForward(q,pM');
+    bS := substitute(b,S);
+    B0S := target bS;
+    B1S := source bS;    
+    KK := koszul(ff');
+    B := chainComplex{bS};
+    
+    (L',aug') := layeredResolution(ff', pM'S);
+    assert(target aug' == pM'S);
+    psiS0 := map(pM'S, B1S, sub(matrix psi,S));
+    psiS := psiS0//aug';
+    Psi1 := extend(L',B[1],matrix psiS);
+    Psi2 := Psi1**KK;
+    Psi := extend(L',L'**KK, id_(L'_0))*Psi2;
+    L = cone Psi; -- L', the target of Psi, is the first summand, so this is L_0==L'_0++B_0
+    assert(L_0 == L'_0 ++ B_0);
+    m := (sub((matrix alpha)*matrix pM'ToM',S)*matrix aug') |sub(matrix beta,S);
+    aug := map(M,L'_0++B_0,m);
+--Check exactness
+--    scan(length L -1, s->assert( HH_(s+1) L == 0));
+    (L,aug)
+    )
+///
