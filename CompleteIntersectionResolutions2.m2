@@ -71,36 +71,36 @@ newPackage(
 	   "Shamash"
 	   }
 
-///
+
 Shamash = method()
-Shamash(Matrix, ChainComplex) := (ff, F) ->()
+Shamash(Matrix, ChainComplex) := (ff, F) ->(
     --Given a 1 x 1 matrix ff over a ring R and a chain complex F
     --admitting a homotopy for ff_0, produce the Shamash complex
-    --for ff_0 on F as a chain complex Fbar over Rbar = R/ideal ff.
-    H =  makeHomotopies(ff,F)
---have to change H so that the maps of homological degree <-1 are given, and are 0
-    G = apply(1+length F, i->directSum(
+    -- F as a chain complex Fbar over Rbar = R/ideal ff.
+    H :=  makeHomotopies(ff,F);
+    --simplify the notation for the map from F_j to F_i
+    d := (i,j) -> if (even(i-j) or (i-j<(-1))) then map(F_i,F_j,0) else 
+                                                   map(F_i,F_j, H#{{(1+i-j)//2},j});
+    --make the modules
+    G := apply(1+length F, i->directSum(
 	         if even i then apply(1+i//2, j->F_(2*j))
-	     	 else apply(i+1//2, j->F_(1+2*j))))
-    --make a function taking an index j to the map from G_j to G_(j-1).
-    dd = j->(if even j then matrix(apply((j-1)//2+1, p-> apply(j//2+1, q ->(
-			G_(j-1)^[p]*H#{{q-p+1},2*q}*G_j_[q]
-			))))
-	else matrix(apply((j-1)//2+1, p-> apply(j//2+1, q ->(
-			G_(j-1)^[p]*H#{{q-p},1+2*q}*G_j_[q]
-			))))
-		    
---i+1 is odd:
-    dOdd = apply((1+length F)//2, i->(j = (i-1)//2;
-	                             map(F'_j,F'_(j+1),
-	       matrix(apply(j//2 + 1, p->apply(i+2,q->G_i^[p]*H#{{q-p},q}*G_(i+1)_[q]))
---i+1 is even
-    dEven = apply((length F)//2, i->map(F'_i,F'_(i+1),
- 	       matrix(apply(j//2+1, p->apply(i+2,q->G_i^[p]*H#{{q-p},q}*G_(i+1)_[q]))
-    
-    F' = chainComplex apply(length F, i-> if even(i+1) then dEven_((i+1)//2) else dOdd_((i+2)//2))
-    
-///
+	     	 else apply(i+1//2, j->F_(1+2*j))));
+    --make maps G_(i) to G_(i-1)
+    D := i-> if even i then
+    	   --if i is even then G_i = F_0++..++F_i, a total of i//2 terms, and G_(i-1) = F_1++.. has i//2-1 terms
+           map(G_(i-1),G_i,matrix apply(i//2, p-> apply(1+i//2, q-> d(2*p+1,2*q)))) else
+           map(G_(i-1),G_i,matrix apply(1+(i-1)//2, p-> apply(1+i//2, q-> d(2*p,2*q+1))));
+    Rbar := ring ff/ideal ff;
+    chainComplex apply(length F, i-> Rbar**D(i+1))
+)
+Shamash(Ring, ChainComplex) := (Rbar, F) ->(
+    P := map(Rbar,ring F);
+    ff := gens ker P;
+    if numcols ff != 1 then error"given ring must be quotient of ring of complex by one element";
+    FF := Shamash(ff, F);
+    P := map(Rbar, ring FF, vars Rbar);
+    P FF
+)    
 
 ///
 restart
@@ -110,7 +110,9 @@ R = S/ideal"x3,y3"
 M = R^1/ideal(x,y,z)
 F = res M
 ff = matrix{{z^3}}
-
+Shamash(ff,F)
+Rbar = R/ideal(z^3)
+Shamash(Rbar,F)
 ///
 
 
