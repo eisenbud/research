@@ -116,17 +116,17 @@ layeredResolution(Matrix, Module, ZZ) := (ff, M, len) ->(
     -- The resolution is returned over the ring R.
     cod := numcols ff;
     R := ring M;
-    S := if cod >0 then ring ff else ring M;
+    S := if cod >0 then ring ff else R;
     StoR := map(R,S);
     MS := pushForward(StoR, M);
     
     if cod == 0 then (
     	L := res(M,LengthLimit => len);
-    	return (L, map(M,L_0,id_(L_0))));
+    	return (L, map(M, L_0, id_(L_0))));
     ff' := ff_{0..cod-2};
     R' := S/ideal ff';
     ff'' := R'** ff_{cod-1};
-    R1 := R'/ideal ff'';
+--    R1 := R'/ideal ff'';
     
     R'toR := map(R,R');
 --    MR := R**M;
@@ -151,15 +151,9 @@ assert(ring b === R');
     Psi := extend(L', B[1], matrix(psi//aug'));
     box := cone Psi;
     L =  Shamash(R, box, len);    
-aug := map(M, L_0, 
-          R**matrix( 
+    aug := map(M, L_0, 
+          R'toR matrix( 
 	      map(MR',M'++B0, (alpha|beta))*map(M'++ B0, box_0, aug'++id_(B0))));
-///    augR' := map(MR', box_0, (alpha|beta)*map(M'++ B0, box_0, aug'++id_(B0)));
-    aug1 := R**map(MR',box_0, (alpha|beta)*map(M'++ B0, box_0, aug'++id_(B0)));
-    aug0 := map(M,R**MR', id_(cover M));
-
-    aug := map(M, L_0, aug0*aug1);
-///
     (L, aug)
     )
 
@@ -167,30 +161,86 @@ aug := map(M, L_0,
 ///
 restart
 loadPackage("MCMApproximations", Reload =>true)
+///
+
+--<<docTemplate
+doc ///
+   Key
+    layeredResolution
+    (layeredResolution, Matrix, Module)
+    (layeredResolution, Matrix, Module, ZZ)    
+   Headline
+    layered finite and infinite layered resolutions of CM modules
+   Usage
+    (FF, aug) = layeredResolution(ff,M)
+    (FF, aug) = layeredResolution(ff,M,len)    
+   Inputs
+    ff:Matrix
+     1 x c matrix whose entries are a regular sequence in the Gorenstein ring S
+    M:Module
+     MCM module over R, represented as an S-module in the first case and as an R-module in the second
+    len:ZZ
+     length of the segment of the resolution to be computed over R, in the second form.
+   Outputs
+    FF:ChainComplex
+     resolution of M over S in the first case; length len segment of the resolution over R in the second.
+   Description
+    Text
+     The resolutions computed are those described in the paper "Layered Resolutions of Cohen-Macaulay modules"
+     by Eisenbud and Peeva. They are both minimal when M is a suffiently high syzygy of a module N.
+     Here is an example computing 5 terms of an infinite resolution:
+    Example
+     S = ZZ/101[a,b,c]
+     ff = matrix"a3, b3, c3" 
+     R = S/ideal ff
+     M = syzygy(2,coker vars R)
+     (FF, aug) = layeredResolution(ff,M,5)
+     betti FF
+     betti res(M, LengthLimit=>5)
+     C = chainComplex flatten {{aug} |apply(len-1, i-> FF.dd_(i+1))}
+     apply(5, j-> prune HH_j C == 0)
+    Text
+     And one computing the whole finite resolution
+    MS = pushForward(map(R,S), M);
+    (GG, aug) = layeredResolution(ff,MS)
+    betti GG
+    betti res MS
+     C = chainComplex flatten {{aug} |apply(length GG -1, i-> GG.dd_(i+1))}    
+     apply(length GG +1 , j-> prune HH_j C == 0)     
+///
+
+///TEST
 S1 = ZZ/101[a,b,c]
-len = 5
+len = 4
 --codim 0
 ff = matrix{{}}
 M = S1^1
 (FF, aug) = layeredResolution(ff,M,len)
-ring FF
+betti FF == betti res(M, LengthLimit=>len)
 --codim 1
 use S1
 ff = matrix"a3" 
 R1 = S1/ideal ff
 M = syzygy(3,coker vars R1)
 (FF, aug) = layeredResolution(ff,M,len)
+betti FF == betti res(M, LengthLimit=>len)
 --codim 2
 use S1
 ff = matrix"a3, b3" 
 R1 = S1/ideal ff
 M = syzygy(2,coker vars R1)
-layeredResolution(ff,M,len)
-aug1 := 
-R**
-
-source alpha == M'
-source beta == B0
+(FF, aug) = layeredResolution(ff,M,len)
+assert(betti FF == betti res(M, LengthLimit=>len))
+--codim 3
+use S1
+len = 5
+ff = matrix"a3, b3, c3" 
+R1 = S1/ideal ff
+M = syzygy(2,coker vars R1)
+(FF, aug) = layeredResolution(ff,M,len)
+assert(betti FF == betti res(M, LengthLimit=>len))
+C = chainComplex flatten {{aug} |apply(len-1, i-> FF.dd_(i+1))}
+scan(len, j-> assert(prune HH_j C == 0))
 ///
 
 
