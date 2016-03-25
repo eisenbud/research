@@ -127,7 +127,7 @@ Shamash(Ring, ChainComplex,ZZ) := (Rbar, F, len) ->(
     ff := gens ker P;
     if numcols ff != 1 then error"given ring must be quotient of ring of complex by one element";
     FF := Shamash(ff, F,len);
-    P := map(Rbar, ring FF, vars Rbar);
+    P = map(Rbar, ring FF, vars Rbar);
     P FF
 )    
 

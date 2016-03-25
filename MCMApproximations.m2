@@ -114,21 +114,23 @@ layeredResolution(Matrix, Module, ZZ) := (ff, M, len) ->(
     --     L_1 = R\otimes (L'_1 ++ B_1).
     -- and L is the Shamash construction applied to the box complex.
     -- The resolution is returned over the ring R.
-    
-    ff := gens ker map(R, ring M);
-    S := ring M;
-    if R =!= S/ideal ff then error"rings don't match
     cod := numcols ff;
+    R := ring M;
+    S := if cod >0 then ring ff else ring M;
+    StoR := map(R,S);
+    MS := pushForward(StoR, M);
+    
     if cod == 0 then (
     	L := res(M,LengthLimit => len);
     	return (L, map(M,L_0,id_(L_0))));
     ff' := ff_{0..cod-2};
     R' := S/ideal ff';
     ff'' := R'** ff_{cod-1};
-    R := R'/ideal ff'';
+    R1 := R'/ideal ff'';
+    
     R'toR := map(R,R');
-    MR := R**M;
-    MR':= pushForward(R'toR,MR);
+--    MR := R**M;
+    MR':= pushForward(R'toR,M);
     (alpha, beta) := approximation MR';
     B0 := source beta;
     M' := source alpha;
@@ -138,25 +140,27 @@ layeredResolution(Matrix, Module, ZZ) := (ff, M, len) ->(
     psib :=  inducedMap(M' ++ B0, BB1)*(B1.cache.pruningMap);
     psi := psib^[0];
     b := psib^[1];
-    M'S := pushForward(map(R',S),M');
 --error();
-(L',aug') := layeredResolution(ff',M'S,len);
+(L',aug') := layeredResolution(ff',M',len);
 --L' := res(M', LengthLimit=> len);
 --    aug' = map(M', L'_0, id_(L'_0));
+assert(ring L' === R');
+assert(ring aug' === R');
+assert(ring b === R');
     B := chainComplex {b};
     Psi := extend(L', B[1], matrix(psi//aug'));
     box := cone Psi;
+    L =  Shamash(R, box, len);    
+aug := map(M, L_0, 
+          R**matrix( 
+	      map(MR',M'++B0, (alpha|beta))*map(M'++ B0, box_0, aug'++id_(B0))));
+///    augR' := map(MR', box_0, (alpha|beta)*map(M'++ B0, box_0, aug'++id_(B0)));
     aug1 := R**map(MR',box_0, (alpha|beta)*map(M'++ B0, box_0, aug'++id_(B0)));
-    aug0 := map(MR,R**MR', id_(cover MR));
-    L =  Shamash(R, box, len);
-    aug := map(MR, L_0, aug0*aug1);
-    R1 := S/ideal ff;
-    Q := map(R1, ring L);
-    L1 := Q L;
-    augR1 := map(M**R1, Q L_0, Q matrix aug);
-    assert (ring(L1) === ring augR1);
-    assert(ring L1 === R1);
-    (L1, augR1)
+    aug0 := map(M,R**MR', id_(cover M));
+
+    aug := map(M, L_0, aug0*aug1);
+///
+    (L, aug)
     )
 
 
@@ -174,19 +178,19 @@ ring FF
 use S1
 ff = matrix"a3" 
 R1 = S1/ideal ff
-M2 = syzygy(3,coker vars R1)
-M = pushForward(map(R1,S1), M2)
+M = syzygy(3,coker vars R1)
 (FF, aug) = layeredResolution(ff,M,len)
-assert(betti FF == betti (F = res (R1**M, LengthLimit=>5)))
 --codim 2
 use S1
 ff = matrix"a3, b3" 
 R1 = S1/ideal ff
-M2 = syzygy(2,coker vars R1)
-M = pushForward(map(R1,S1), M2)
-betti res M
+M = syzygy(2,coker vars R1)
 layeredResolution(ff,M,len)
+aug1 := 
+R**
 
+source alpha == M'
+source beta == B0
 ///
 
 
