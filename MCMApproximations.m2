@@ -1,3 +1,6 @@
+--to do: doc for setupRings, setupModules, Total;
+--improve package documentation for MCMApproximations
+
 newPackage(
 "MCMApproximations",
 Version => "0.9",
@@ -6,31 +9,26 @@ Authors => {{Name => "David Eisenbud",
 Email => "de@msri.org",
 HomePage => "http://www.msri.org/~de"}},
 Headline => "MCM Approximations and Complete Intersections",
-DebuggingMode => true,
-PackageExports => {"CompleteIntersectionResolutions2"}
+--PackageExports => {"CompleteIntersectionResolutions2"},
+DebuggingMode => true
 )
 
---to do: documentation and tests for layered.
---maybe move layered into CompleteIntersectionResolutions rather than here.
---the infinite layered resolution; Name??
- 
 export {
     "approximation", 
     "coApproximation",     
     "Total", -- option for approximation
     "CoDepth", -- option for approximation
     "approx", --synonym for approximation
-    "layeredResolution",
     "auslanderInvariant",
     "profondeur", -- should be depth, but that's taken
-    "regularitySequence", --regularities [add socle dimensions] of exts of successive CM approximation
+--    "regularitySequence", --regularities [add socle dimensions] of exts of successive CM approximation
     "syzygy",
     "socleDegrees",
     "setupRings",
     "Characteristic", -- option for setupRings
-    "setupModules",
-    "test", -- gives info on an example
-    "onePoly"
+    "setupModules"
+--    "test", -- gives info on an example
+--    "onePoly"
     }
 
 {* test: The following code crashes M2 v 8.2
@@ -39,257 +37,6 @@ R = S/ideal(a^2)
 res (coker vars R, LengthLimit => 0)
 *}
 
-layeredResolution = method()
---version that produces the finite layered resolution
-layeredResolution(Matrix, Module) := (ff, M) ->(
-    --ff is a 1 x c matrix over a Gorenstein ring S
-    --M is an S-module annihilated by I = ideal ff.
-    --returns a pair (L,aug), where aug: L_0 \to M is the augmentation.
-    --Here L_0 = L'_0 ++ B_0, and L' is the resolution of M', the 
-    --MCM approximation of M over R' = S/(ideal ff'), and ff' = ff_{0..(c-2)}.
-    L := null;
-    cod := numcols ff;
-    if cod <=1 then return (L = res M, map(M,L_0,id_(L_0)));
-    S := ring ff;
-    R := S/(ideal ff);
-    ff' := ff_{0..cod-2};
-    R' := S/(ideal ff');
-    p:= map(R,R');
-    q := map(R',S);
-        
-    MR := prune R**M;
-    MR' := prune(R'**M);
-    (alpha, beta) := approximation MR';
-    B0 := source beta;
-    M' := source alpha;
---    assert(M' == prune M');
-
-    gamma := map(MR', M'++B0, (alpha)|beta);
-    BB1 := ker gamma;
-    B1 := minimalPresentation BB1;
---    assert(isFreeModule B1);
-    psib :=  inducedMap(M' ++ B0, BB1)*(B1.cache.pruningMap);
-    psi := psib^[0];
-    b := psib^[1];
---    assert(source psi == B1 and source b == B1);
---    assert(target psi == M' and target b == B0);
-    M'S := pushForward(q,M');
-    bS := substitute(b,S);
-    B0S := target bS;
-    B1S := source bS;    
-    KK := koszul(ff');
-    B := chainComplex{bS};
-    
-    (L',aug') := layeredResolution(ff', M'S);
-    assert(target aug' == M'S);
-    psiS0 := map(M'S, B1S, sub(matrix psi,S));
-    psiS := psiS0//aug';
-    Psi1 := extend(L',B[1],matrix psiS);
-    Psi2 := Psi1**KK;
-    Psi := extend(L',L'**KK, id_(L'_0))*Psi2;
-    L = cone Psi; -- L', the target of Psi, is the first summand, so this is L_0==L'_0++B_0
-    assert(L_0 == L'_0 ++ B_0);
-    m := (sub((matrix alpha),S)*matrix aug') |sub(matrix beta,S);
-    aug := map(M,L'_0++B_0,m);
---Check exactness
---    scan(length L -1, s->assert( HH_(s+1) L == 0));
-    (L,aug)
-    )
-
-
-
-layeredResolution(Matrix, Module, ZZ) := (ff, M, len) ->(
-    --ff is a 1 x c matrix over a Gorenstein ring S and ff' = ff_{0..(c-2)}, ff'' = ff_{c-1}.
-    --R = S/ideal ff
-    --R' = S/ideal ff'
-    --NOTE R =!= R'/ideal ff''; we need to use a map to go between them.
-    --M is an MCM R-module.
-    --The script returns a pair (L,aug), where L is the first len steps of an R-free resolution of M 
-    --and aug: L_0 \to M is the augmentation.
-    -- Let
-    --        B_1 --> B_0 ++ M' --> M
-    -- be the MCM approximation of M over R'.
-    -- If L' is the layered R'-free resolution of M', then
-    --     L_0 = R\otimes (L'_0 ++ B_0),
-    --     L_1 = R\otimes (L'_1 ++ B_1).
-    -- and L is the Shamash construction applied to the box complex.
-    -- The resolution is returned over the ring R.
-    cod := numcols ff;
-    R := ring M;
-    S := if cod >0 then ring ff else R;
-    StoR := map(R,S);
-    MS := pushForward(StoR, M);
-    
-    if cod == 0 then (
-    	L := res(M,LengthLimit => len);
-    	return (L, map(M, L_0, id_(L_0))));
-    ff' := ff_{0..cod-2};
-    R' := S/ideal ff';
-    ff'' := R'** ff_{cod-1};
---    R1 := R'/ideal ff'';
-    
-    R'toR := map(R,R');
---    MR := R**M;
-    MR':= pushForward(R'toR,M);
-    (alpha, beta) := approximation MR';
-    B0 := source beta;
-    M' := source alpha;
-    gamma := map(MR', M'++B0, (alpha|beta));
-    BB1 := ker gamma;
-    B1 := minimalPresentation BB1;
-    psib :=  inducedMap(M' ++ B0, BB1)*(B1.cache.pruningMap);
-    psi := psib^[0];
-    b := psib^[1];
---error();
-(L',aug') := layeredResolution(ff',M',len);
---L' := res(M', LengthLimit=> len);
---    aug' = map(M', L'_0, id_(L'_0));
-assert(ring L' === R');
-assert(ring aug' === R');
-assert(ring b === R');
-    B := chainComplex {b};
-    Psi := extend(L', B[1], matrix(psi//aug'));
-    box := cone Psi;
-    L =  Shamash(R, box, len);    
-    aug := map(M, L_0, 
-          R'toR matrix( 
-	      map(MR',M'++B0, (alpha|beta))*map(M'++ B0, box_0, aug'++id_(B0))));
-    (L, aug)
-    )
-
-
-///
-restart
-loadPackage("MCMApproximations", Reload =>true)
-///
-
---<<docTemplate
-doc ///
-   Key
-    layeredResolution
-    (layeredResolution, Matrix, Module)
-    (layeredResolution, Matrix, Module, ZZ)    
-   Headline
-    layered finite and infinite layered resolutions of CM modules
-   Usage
-    (FF, aug) = layeredResolution(ff,M)
-    (FF, aug) = layeredResolution(ff,M,len)    
-   Inputs
-    ff:Matrix
-     1 x c matrix whose entries are a regular sequence in the Gorenstein ring S
-    M:Module
-     MCM module over R, represented as an S-module in the first case and as an R-module in the second
-    len:ZZ
-     length of the segment of the resolution to be computed over R, in the second form.
-   Outputs
-    FF:ChainComplex
-     resolution of M over S in the first case; length len segment of the resolution over R in the second.
-   Description
-    Text
-     The resolutions computed are those described in the paper "Layered Resolutions of Cohen-Macaulay modules"
-     by Eisenbud and Peeva. They are both minimal when M is a suffiently high syzygy of a module N.
-     Here is an example computing 5 terms of an infinite resolution:
-    Example
-     S = ZZ/101[a,b,c]
-     ff = matrix"a3, b3, c3" 
-     R = S/ideal ff
-     M = syzygy(2,coker vars R)
-     (FF, aug) = layeredResolution(ff,M,5)
-     betti FF
-     betti res(M, LengthLimit=>5)
-     C = chainComplex flatten {{aug} |apply(len-1, i-> FF.dd_(i+1))}
-     apply(5, j-> prune HH_j C == 0)
-    Text
-     And one computing the whole finite resolution
-    MS = pushForward(map(R,S), M);
-    (GG, aug) = layeredResolution(ff,MS)
-    betti GG
-    betti res MS
-     C = chainComplex flatten {{aug} |apply(length GG -1, i-> GG.dd_(i+1))}    
-     apply(length GG +1 , j-> prune HH_j C == 0)     
-///
-
-///TEST
-S1 = ZZ/101[a,b,c]
-len = 4
---codim 0
-ff = matrix{{}}
-M = S1^1
-(FF, aug) = layeredResolution(ff,M,len)
-betti FF == betti res(M, LengthLimit=>len)
---codim 1
-use S1
-ff = matrix"a3" 
-R1 = S1/ideal ff
-M = syzygy(3,coker vars R1)
-(FF, aug) = layeredResolution(ff,M,len)
-betti FF == betti res(M, LengthLimit=>len)
---codim 2
-use S1
-ff = matrix"a3, b3" 
-R1 = S1/ideal ff
-M = syzygy(2,coker vars R1)
-(FF, aug) = layeredResolution(ff,M,len)
-assert(betti FF == betti res(M, LengthLimit=>len))
---codim 3
-use S1
-len = 5
-ff = matrix"a3, b3, c3" 
-R1 = S1/ideal ff
-M = syzygy(2,coker vars R1)
-(FF, aug) = layeredResolution(ff,M,len)
-assert(betti FF == betti res(M, LengthLimit=>len))
-C = chainComplex flatten {{aug} |apply(len-1, i-> FF.dd_(i+1))}
-scan(len, j-> assert(prune HH_j C == 0))
-///
-
-
-
-///
-restart
-loadPackage("MCMApproximations", Reload =>true)
-///
-///TEST
-S = ZZ/101[a,b,c]
-ff = matrix"a3, b3,c3" 
-len = 5
-cod = numcols ff
-I = ideal ff
-R = S/I
-q = map(R,S)
-M = coker vars R
-M0 = coker vars R
-M0= coker random(R^2, R^{4:-1})
-M = pushForward(q,syzygy(3,M0))
-layeredResolution(ff,pushForward(q,M0))
-scan(2, s->(
-M= pushForward(q,syzygy(s+3,M0));
-L = (layeredResolution(ff, M))_0;
-assert (betti L == betti res M);
-))
-///
-
-///
-restart
-loadPackage("MCMApproximations", Reload =>true)
-S = ZZ/101[a,b,c]
-ff = matrix"a3, b3,c3" 
-cod = numcols ff
-I = ideal ff
-R = S/I
-q = map(R,S)
-M0 = coker vars R
-M0= coker random(R^2, R^{4:-1})
-
-scan(5, s->(
-M= pushForward(q,syzygy(s,M0));
-<<time(L = (layeredResolution(ff, M))_0);<<endl;
-print (betti L == betti res M);
-))
-///
-
-
-
 socleDegrees = method()
 socleDegrees Module := M ->(
     R := ring M;
@@ -297,6 +44,173 @@ socleDegrees Module := M ->(
     if not isField k then error"coefficient ring not a field";
      flatten degrees target basis Hom(coker vars R,M)    
     )
+
+syzygy = method(Options=>{CoDepth => -1})
+syzygy(ZZ,Module) := opts -> (k,M) -> (
+    if k === 0 then return M;
+    F := null;
+
+    if k>0 then (
+	F = res(M, LengthLimit => k+1);
+	return coker F.dd_(k+1));
+    
+    if k<0 then (
+	n := numgens ring M;
+	if opts.CoDepth == 0 then
+	n = 1 else
+	if opts.CoDepth >0 then
+	n = opts.CoDepth;
+	F  = res(M, LengthLimit => n);
+	M1 := image dual F.dd_(n);
+	G := res(M1, LengthLimit => -k+n);
+    return image dual G.dd_(-k+n));
+    )
+
+profondeur = method()
+profondeur(Ideal, Module) := (I,M) ->(
+    --requires R to be an affine ring (eg NOT ZZ[x])
+    R := ring M;
+    d := max(1,dim M); -- d=0 causes a crash
+    if not isCommutative R then error"profondeur undefined for noncommutative rings";
+    F := M**dual res (R^1/I, LengthLimit => d);
+    i := 0;    
+    while HH_i F == 0 do i=i-1;
+    -i)
+
+profondeur Module := M  ->(
+    --profondeur of a module with respect to the max ideal, via finite proj dim
+    --gives error if the ultimate coeficient ring of R = ring M is not a field.
+    R := ring M;
+    if not isCommutative R then error"profondeur undefined for noncommutative rings";
+    (S,F) := flattenRing R;
+    if not isField coefficientRing S then error"input must be a module over an affine ring";
+    S0 := ring presentation S;
+    r := F*map(S,S0); 
+    MM := pushForward(r,M);
+    numgens S0 - pdim MM)
+
+profondeur Ring := R -> profondeur R^1
+
+
+--MCM approximation 
+approximatione = method(Options =>{CoDepth => -1})
+approximatione(ZZ,Module) := opts -> (n,M) ->(
+    --returns the map to M from the
+    --dual of the n-th syz of the n-th syzy of M
+    --n = dim ring M - depth M +1 -- this just slows things down!
+    --if n' were 1 or 2 we would not in general get minimal presentations
+    F := res(M, LengthLimit =>n);
+    G := res(coker transpose F.dd_n, LengthLimit =>n);
+    F' := chainComplex reverse apply(n, j-> transpose F.dd_(j+1));
+    phi := extend(G, F', id_(G_0));
+--    error();
+    M' := prune coker transpose G.dd_n;
+      map(M, M', transpose (matrix(M'.cache.pruningMap)^(-1) * phi_n))  
+--    map(M, coker transpose G.dd_n', transpose phi_n')
+)
+
+approximatione Module := opts -> M ->(
+    --returns the map from the essential MCM approximation
+    n := 1+dim ring M;
+    if opts.CoDepth == 0 then n = 1;
+    if opts.CoDepth > 0 then n = opts.CoDepth;
+    approximatione(n, M)
+    )
+
+coSyzygyChain = method()
+coSyzygyChain(ZZ, Module) := (n,M) ->(
+    --assuming M is MCM, the script returns
+    --produces dual G of the  resolution of the dual of the second syzygy of M for n+1 steps,
+    --adjusted so that M == image G.dd_0. Thus the map G.dd_(-1) is the universal map
+    --of M into a free module, etc.
+    F := res(M,LengthLimit => 1);
+    G := res(coker dual F.dd_1, LengthLimit => n+1);
+    H := (dual G) [-1];
+    H)
+    
+coApproximation = method(Options =>{Total => true, CoDepth=>-1})
+coApproximation Module := opts -> M -> (
+    p := presentation M;
+    F0 := target p;
+    (phi,psi) := approximation(M, Total => opts.Total,CoDepth => opts.CoDepth);
+    M' := source (phi|psi);--the total MCM approximation.
+    q := matrix (phi | psi);
+    r := p//q;
+    r0 := id_F0//q;
+    k := syz q;
+    K := source k;
+    G := coSyzygyChain(1, M');
+    sour := F0 ++ K;
+    tar := G_(-1);
+    N := coker(G.dd_0*(r | k));
+    map(N,M, G.dd_0*r0)
+    )
+
+approximation = method(Options =>{CoDepth=>-1, Total =>true})
+approximation Module := opts -> M->(
+    --returns the list {phi, psi} where:
+    --phi is the map from the essential MCM approximation
+    --psi is the minimal map from a free module necessary to make
+    -- alpha = (phi | psi) an epimorphism
+    phi := approximatione(M,CoDepth=>opts.CoDepth);
+    if opts.Total != true then return phi;
+    psi := null;
+    N := coker phi;
+    N1 := prune N;
+    if N1 == 0 then (
+	psi = map(M,(ring M)^0, 0);
+        return (phi, psi));
+    MtoN := map(N,M, id_(cover M));
+    a := N1.cache.pruningMap;
+    psi = (matrix a)//matrix(MtoN);
+    (phi, psi)
+    )
+
+auslanderInvariant = method(Options =>{CoDepth => -1})
+auslanderInvariant Module := opts->M-> (
+    --number of free summands in the MCM approximation
+    if isFreeModule M then return numgens M;
+    phi := approximation(M, CoDepth => opts.CoDepth, Total=>false);
+    numgens prune coker phi)
+
+setupRings = method(Options =>{Characteristic => 101})
+setupRings(ZZ,ZZ) := opts -> (c,d)->(
+    x := local x;
+    p := opts.Characteristic;
+    S := ZZ/101[x_0..x_(c-1)];
+    ff := matrix{apply(c, i->S_i^d)};
+    ff = ff*random(source ff, source ff);
+    {S}|apply(c, j->(S/ideal(ff_{0..j}))
+	)
+    )
+
+setupModules = method()
+setupModules(List,Module) := (R,M)->(
+    --R_i is a ci of codim i in a ring S
+    --returns (MM,kk,p) where
+    --MM,kk are lists whose i-compoents are the module M and residue field k, but over R_i
+    --p_i_j is the projection from R_j to R_i (c >= i >= j >= 0)
+    c := length R-1;
+    kk :=apply(c+1, i-> coker vars R_i);
+    p := apply(c+1, i->apply(i+1, j->map(R_i,R_j)));
+    MM := apply(c+1, j->prune pushForward(p_c_j, M));
+    (MM,kk,p))
+
+
+-----DOCUMENTATION
+doc ///
+Key
+  MCMApproximations
+Headline
+  Maximal Cohen-Macaulay Approximations and Complete Intersections
+Description
+  Text
+  Example
+Caveat
+SeeAlso
+///
+
+
 doc ///
    Key
     socleDegrees
@@ -318,40 +232,8 @@ doc ///
      M0 = R^1/(ideal(x,y,z)*ideal (x,y));
      M1 = coker random(R^{1,2}, R^{0,-1,-2}); -- dim 1
      M2 = coker random(R^{1,2}, R^{0,-1,-2,-4}); -- dim 0"
-   SeeAlso
-    regularitySequence
    ///
-syzygy = method(Options=>{CoDepth => -1})
-syzygy(ZZ,Module) := opts -> (k,M) -> (
-    if k === 0 then return M;
-    F := null;
 
-    if k>0 then (
-	F = res(M, LengthLimit => k+1);
-	return coker F.dd_(k+1));
-    
-    if k<0 then (
-	n := numgens ring M;
-	if opts.CoDepth == 0 then
-	n = 1 else
-	if opts.CoDepth >0 then
-	n = opts.CoDepth;
-	F  = res(M, LengthLimit => n);
-	M1 := image dual F.dd_(n);
-	G := res(M1, LengthLimit => -k+n);
-    return image dual G.dd_(-k+n));
-    )
-TEST///
-     setRandomSeed 100;
-     R = setupRings(2,2);
-     M = syzygy_2 coker vars R_2;
-     N = syzygy_2 syzygy(-2,M);
-     assert(betti M == betti N)
-     N = prune syzygy(-2,syzygy(2,M),CoDepth =>0);
-     assert(betti M == betti N)
-///
-
---<<docTemplate
 doc ///
    Key
     CoDepth
@@ -404,60 +286,6 @@ doc ///
    SeeAlso
     setupRings
 ///
-///
-restart
-loadPackage("MCMApproximations", Reload=>true)
-///
-
-///
-restart
-loadPackage("MCMApproximations", Reload =>true)
-R = kk[a,b,c]/ideal(a^3,b^3,c^3)
-M = coker vars R
-res M	
-syzygy(1,M)
-betti res syzygy(-1,M)
-
-c = 3
-R =setupRings(c,3)
-Rc=R_(c-1)
-M0 = coker vars Rc
-M0 = coker matrix{{Rc_0,Rc_1,Rc_2},{Rc_1,Rc_2,Rc_0}}
-
-betti res (M0, LengthLimit=> 5)
-M1 = prune syzygy(4, M0)
-betti res M1
-///
-
-profondeur = method()
-profondeur(Ideal, Module) := (I,M) ->(
-    --requires R to be an affine ring (eg NOT ZZ[x])
-    R := ring M;
-    d := max(1,dim M); -- d=0 causes a crash
-    if not isCommutative R then error"profondeur undefined for noncommutative rings";
-    F := M**dual res (R^1/I, LengthLimit => d);
-    i := 0;    
-    while HH_i F == 0 do i=i-1;
-    -i)
-
-profondeur Module := M  ->(
-    --profondeur of a module with respect to the max ideal, via finite proj dim
-    --gives error if the ultimate coeficient ring of R = ring M is not a field.
-    R := ring M;
-    if not isCommutative R then error"profondeur undefined for noncommutative rings";
-    (S,F) := flattenRing R;
-    if not isField coefficientRing S then error"input must be a module over an affine ring";
-    S0 := ring presentation S;
-    r := F*map(S,S0); 
-    MM := pushForward(r,M);
-    numgens S0 - pdim MM)
-
-profondeur Ring := R -> profondeur R^1
-
-///
-restart
-loadPackage("MCMApproximations", Reload=>true)
-///
 doc ///
    Key
     profondeur
@@ -479,104 +307,7 @@ doc ///
      When the ideal I is not specified, the maximal ideal is used, and the 
      computation is done using the Auslander-Buchsbaum formula.
 ///
-TEST///
-setRandomSeed()
-R = kk[a,b,c,d,e]/(ideal(a,b)*ideal(c,d))
-assert(profondeur R == 2)    
-assert(profondeur(ideal(a,d,e), R^1) == 2)
-assert(profondeur R^1 == 2)
-/// 
 
---MCM approximation 
-approximatione = method(Options =>{CoDepth => -1})
-approximatione(ZZ,Module) := opts -> (n,M) ->(
-    --returns the map to M from the
-    --dual of the n-th syz of the n-th syzy of M
-    --n = dim ring M - depth M +1 -- this just slows things down!
-    --if n' were 1 or 2 we would not in general get minimal presentations
-    F := res(M, LengthLimit =>n);
-    G := res(coker transpose F.dd_n, LengthLimit =>n);
-    F' := chainComplex reverse apply(n, j-> transpose F.dd_(j+1));
-    phi := extend(G, F', id_(G_0));
---    error();
-    M' := prune coker transpose G.dd_n;
-      map(M, M', transpose (matrix(M'.cache.pruningMap)^(-1) * phi_n))  
---    map(M, coker transpose G.dd_n', transpose phi_n')
-)
-
-///
-restart
-loadPackage("MCMApproximations", Reload =>true)
-S = ZZ/101[a,b,c]
-ff = matrix"a3,b3,c3"
-ff' = matrix"a3,b3"
-R = S/ideal ff
-R' = S/ideal ff'
-kkk = coker vars R
-M = prune pushForward(map(R,R'), syzygy(2,kkk))
-source ((approximation M)_0)
-prune oo
-///
---<<docTemplate
-
-approximatione Module := opts -> M ->(
-    --returns the map from the essential MCM approximation
-    n := 1+dim ring M;
-    if opts.CoDepth == 0 then n = 1;
-    if opts.CoDepth > 0 then n = opts.CoDepth;
-    approximatione(n, M)
-    )
-
-coSyzygyChain = method()
-coSyzygyChain(ZZ, Module) := (n,M) ->(
-    --assuming M is MCM, the script returns
-    --produces dual G of the  resolution of the dual of the second syzygy of M for n+1 steps,
-    --adjusted so that M == image G.dd_0. Thus the map G.dd_(-1) is the universal map
-    --of M into a free module, etc.
-    F := res(M,LengthLimit => 1);
-    G := res(coker dual F.dd_1, LengthLimit => n+1);
-    H := (dual G) [-1];
-    H)
-    
-coApproximation = method(Options =>{Total => true, CoDepth=>-1})
-coApproximation Module := opts -> M -> (
-    p := presentation M;
-    F0 := target p;
-    (phi,psi) := approximation(M, Total => opts.Total,CoDepth => opts.CoDepth);
-    M' := source (phi|psi);--the total MCM approximation.
-    q := matrix (phi | psi);
-    r := p//q;
-    r0 := id_F0//q;
-    k := syz q;
-    K := source k;
-    G := coSyzygyChain(1, M');
-    sour := F0 ++ K;
-    tar := G_(-1);
-    N := coker(G.dd_0*(r | k));
-    map(N,M, G.dd_0*r0)
-    )
-
-///
-restart
-loadPackage("MCMApproximations", Reload =>true)
-///
-
-TEST///setRandomSeed 100
-c = 3;d=3;
-S = setupRings(c,d)
-R = S_c
-Mc = coker vars R
-(M,k,p) = setupModules(S,Mc)
-M_(c-1)
-ca = coApproximation M_(c-1)
-M'' = coker ca
-N = target ca
-assert(profondeur M'' == dim ring M'') -- an MCM module
-assert(betti res prune M'' == betti res source approximation(prune M'', Total=>false)) -- no free summands
-assert(2 == length res(N, LengthLimit =>10)) -- projective dimension <\infty
-///
-
---<<docTemplate
 doc ///
    Key
     coApproximation
@@ -635,29 +366,6 @@ doc ///
     approximation
     syzygy
 ///
-
-
-approximation = method(Options =>{CoDepth=>-1, Total =>true})
-approximation Module := opts -> M->(
-    --returns the list {phi, psi} where:
-    --phi is the map from the essential MCM approximation
-    --psi is the minimal map from a free module necessary to make
-    -- alpha = (phi | psi) an epimorphism
-    phi := approximatione(M,CoDepth=>opts.CoDepth);
-    if opts.Total != true then return phi;
-    psi := null;
-    N := coker phi;
-    N1 := prune N;
-    if N1 == 0 then (
-	psi = map(M,(ring M)^0, 0);
-        return (phi, psi));
-    MtoN := map(N,M, id_(cover M));
-    a := N1.cache.pruningMap;
-    psi = (matrix a)//matrix(MtoN);
-    (phi, psi)
-    )
-
-
 doc ///
    Key
     Total
@@ -676,7 +384,6 @@ doc ///
    SeeAlso
     approximation
     auslanderInvariant
-    regularitySequence
     CoDepth
 ///
 
@@ -689,19 +396,6 @@ doc ///
     synonym for approximation
    SeeAlso
     approximation
-///
-
---approx := approximation
-///
-    phi = approximation(M, Total => false)
-    (approximation, Module)
-    [approximation, Total]
-    [approximation, CoDepth]
-///
-
-///
-restart
-loadPackage("MCMApproximations", Reload =>true)
 ///
 
 doc ///
@@ -768,35 +462,6 @@ doc ///
     syzygy
     auslanderInvariant
 ///
-
-///TEST
-setRandomSeed 100
-assert( (approximation M) === (map(image map((R)^1,(R)^{{-1},{-1}},{{a, b}}),cokernel map((R)^{{-1},{-1}},(R)^{{-2},{-2}},{{-a, b}, {0, a}}),{{-1, 0}, {0, 1}}),map(image map((R)^1,(R)^{{-1},{-1}},{{a, b}}),(R)^0,0)) );
-assert( (approximation(M, Total=>false)) === map(image map((R)^1,(R)^{{-1},{-1}},{{a,b}}),cokernel map((R)^{{-1},{-1}},(R)^{{-2},{-2}},{{-a, b}, {0, a}}),{{-1, 0}, {0, 1}}) );
-assert( (approximation(M, CoDepth => 0)) === (map(image map((R)^1,(R)^{{-1},{-1}},{{a,b}}),cokernel map((R)^{{-1},{-1}},(R)^{{-2},{-2}},{{a, -b}, {0, a}}),{{1, 0}, {0,1}}),map(image map((R)^1,(R)^{{-1},{-1}},{{a, b}}),(R)^0,0)) );
-///
-
-auslanderInvariant = method(Options =>{CoDepth => -1})
-auslanderInvariant Module := opts->M-> (
-    --number of free summands in the MCM approximation
-    if isFreeModule M then return numgens M;
-    phi := approximation(M, CoDepth => opts.CoDepth, Total=>false);
-    numgens prune coker phi)
-///
-restart
-loadPackage("MCMApproximations", Reload =>true)
-     S = ZZ/101[a,b,c,d]
-     N = matrix{{0,a,0,0,c},
-	     	{0,0,b,c,0},
-		{0,0,0,a,0},
-		{0,0,0,0,b},
-		{0,0,0,0,0}}
-     M = N-transpose N
-     J = pfaffians(4,M)
-     R = S/J
-     auslanderInvariant coker vars R
-///
-
 doc ///
    Key
     auslanderInvariant
@@ -844,19 +509,6 @@ doc ///
    SeeAlso
     approximation
 ///
-
-
-setupRings = method(Options =>{Characteristic => 101})
-setupRings(ZZ,ZZ) := opts -> (c,d)->(
-    x := local x;
-    p := opts.Characteristic;
-    S := ZZ/101[x_0..x_(c-1)];
-    ff := matrix{apply(c, i->S_i^d)};
-    ff = ff*random(source ff, source ff);
-    {S}|apply(c, j->(S/ideal(ff_{0..j}))
-	)
-    )
---<<docTemplate
 doc ///
    Key
     Characteristic
@@ -900,22 +552,44 @@ doc ///
 ///
 
 
-setupModules = method()
-setupModules(List,Module) := (R,M)->(
-    --R_i is a ci of codim i in a ring S
-    --returns (MM,kk,p) where
-    --MM,kk are lists whose i-compoents are the module M and residue field k, but over R_i
-    --p_i_j is the projection from R_j to R_i (c >= i >= j >= 0)
-    c := length R-1;
-    kk :=apply(c+1, i-> coker vars R_i);
-    p := apply(c+1, i->apply(i+1, j->map(R_i,R_j)));
-    MM := apply(c+1, j->prune pushForward(p_c_j, M));
-    (MM,kk,p))
-///
-restart
-loadPackage("MCMApproximations", Reload=>true)
-///    
 
+-----TESTS
+TEST///
+     setRandomSeed 100;
+     R = setupRings(2,2);
+     M = syzygy_2 coker vars R_2;
+     N = syzygy_2 syzygy(-2,M);
+     assert(betti M == betti N)
+     N = prune syzygy(-2,syzygy(2,M),CoDepth =>0);
+     assert(betti M == betti N)
+///
+TEST///
+setRandomSeed()
+R = kk[a,b,c,d,e]/(ideal(a,b)*ideal(c,d))
+assert(profondeur R == 2)    
+assert(profondeur(ideal(a,d,e), R^1) == 2)
+assert(profondeur R^1 == 2)
+/// 
+TEST///setRandomSeed 100
+c = 3;d=3;
+S = setupRings(c,d)
+R = S_c
+Mc = coker vars R
+(M,k,p) = setupModules(S,Mc)
+M_(c-1)
+ca = coApproximation M_(c-1)
+M'' = coker ca
+N = target ca
+assert(profondeur M'' == dim ring M'') -- an MCM module
+assert(betti res prune M'' == betti res source approximation(prune M'', Total=>false)) -- no free summands
+assert(2 == length res(N, LengthLimit =>10)) -- projective dimension <\infty
+///
+///TEST
+setRandomSeed 100
+assert( (approximation M) === (map(image map((R)^1,(R)^{{-1},{-1}},{{a, b}}),cokernel map((R)^{{-1},{-1}},(R)^{{-2},{-2}},{{-a, b}, {0, a}}),{{-1, 0}, {0, 1}}),map(image map((R)^1,(R)^{{-1},{-1}},{{a, b}}),(R)^0,0)) );
+assert( (approximation(M, Total=>false)) === map(image map((R)^1,(R)^{{-1},{-1}},{{a,b}}),cokernel map((R)^{{-1},{-1}},(R)^{{-2},{-2}},{{-a, b}, {0, a}}),{{-1, 0}, {0, 1}}) );
+assert( (approximation(M, CoDepth => 0)) === (map(image map((R)^1,(R)^{{-1},{-1}},{{a,b}}),cokernel map((R)^{{-1},{-1}},(R)^{{-2},{-2}},{{a, -b}, {0, a}}),{{1, 0}, {0,1}}),map(image map((R)^1,(R)^{{-1},{-1}},{{a, b}}),(R)^0,0)) );
+///
 TEST///
 setRandomSeed 100
 c=3;d=2;
@@ -923,167 +597,6 @@ R = setupRings(c,d);
 (M,k,p) = setupModules(R,coker vars R_c);
 assert(numcols  matrix p_c_c === 3 )
 ///
-
-doc ///
-   Key
-    setupModules
-    (setupModules, List, Module)
-   Headline
-    Prepares modules over a complete intersection for experiment
-   Usage
-    (MM,kk,p) = setupModules(R,M)
-   Inputs
-    R:List
-     list of rings R_0..R_c as produce by setupRings
-    M:Module
-     module over R_c
-   Outputs
-    MM:List
-     MM_i is M as a module over R_i
-    kk:List
-     kk_i is the residule field of R_i, as a module
-    p:List
-     p is the list of lists of projection maps, p_i_j: R_j->R_i for 0<=j<=i<=c
-   Description
-    Text
-     In the following examples, the syzygies all 
-     have regularity evenExtModule MM_1 == 1
-     because the complexity of M is only 2.
-    Example
-     needsPackage "CompleteIntersectionResolutions"
-     c = 3
-     R = setupRings(3,c);
-     Rc = R_c;
-     M = coker matrix{{Rc_0,Rc_1,Rc_2},{Rc_1,Rc_2,Rc_0}}
-     (MM,kk,p) = setupModules(R,syzygy_3 M);
-     regularity evenExtModule MM_3
-     regularity evenExtModule MM_1     
-   SeeAlso
-    setupRings
-///
-
-{*
-projection = (R,i,j) -> (
-    --Assumes that R is a list of rings, and that R_(i+1) is a quotient of R_i
-    --forms the projection maps 
-    --NOTE R_i = R(i+1) in our usual notation!
-    --projection(R,i,j) is R(j) --> R(i).
-    c := length R;
-    if i>j then error "need first index <= second";
-    if i<0 or j>c then error "indices between 0 and c";
-    if i == 0 then map(R_(j-1),ambient R_0) else
-    map(R_(j-1), R_(i-1))
-    )
-*}
-regularitySequence = method()
-regularitySequence(List, Module) := (R,M) ->(
-    --R = complete intersection list R_(i+1) = R_i/f_(i+1), i= 0..c.
-    --M = module over R_c
-    --returns the list of pairs {reg evenExtModule M_i, reg oddExtModule M_i}
-    --where M_i is the MCM approximation of M over R_i
-    em := null;
-    om := null;
-    c := length R-1;
-    (MList,kkk,p) := setupModules(R,M);
-    MM := apply(c+1, j->source approximation(pushForward(p_c_j, M),Total =>false));
-    MM = select(MM, m-> not isFreeModule m);
-    <<"reg even ext, soc degs even ext, reg odd ext, soc degs odd ext"<<endl<<endl;
-    scan(reverse MM, m-> (
-	    em = evenExtModule m;
-	    om = oddExtModule m;
-     <<{regularity em, socleDegrees em, regularity om, socleDegrees om})
-     <<endl);
-    )
-
-
-///
-restart
-loadPackage("MCMApproximations", Reload=>true)
-///
-TEST///
-setRandomSeed 100
-c = 2
-d = 2
-R = setupRings(c,d)
-(M,k,p) = setupModules(R,coker vars R_c);
-regularitySequence(R,coker vars R_c)
-///
-
-
-beginDocumentation()
-
-doc ///
-   Key
-    regularitySequence
-    (regularitySequence, List,Module)
-   Headline
-    regularity of Ext modules for a sequence of MCM approximations
-   Usage
-    L = regularitySequence (R,M)
-
-   Inputs
-    R:List
-     list of rings R_i = S/(f_0..f_(i-1), complete intersections
-    M:Module
-     module over R_c where c = length R - 1.
-   Outputs
-    L:List
-     List of pairs {regularity evenExtModule M_i, regularity oddExtModule M_i)
-   Description
-    Text
-     Computes the non-free parts M_i of the MCM approximation to M over R_i, 
-     stopping when M_i becomes free, and
-     returns the list whose elements are the pairs of regularities, starting
-     with M_(c-1)
-     Note that the first pair is for the 
-    Example
-     c = 3;d=2
-     R = setupRings(c,d);
-     Rc = R_c
-     M = coker matrix{{Rc_0,Rc_1,Rc_2},{Rc_1,Rc_2,Rc_0}}
-     regularitySequence(R,M)
-   SeeAlso
-    approximation
-    auslanderInvariant
-///
-
-doc ///
-Key
-  MCMApproximations
-Headline
-  Maximal Cohen-Macaulay Approximations and Complete Intersections
-Description
-  Text
-  Example
-Caveat
-SeeAlso
-///
-{*
-doc ///
-Key
-  Headline
-Usage
-Inputs
-Outputs
-Consequences
-Description
-  Text
-  Example
-  Code
-  Pre
-Caveat
-SeeAlso
-///
-*}
-TEST ///
--- test code and assertions here
--- may have as many TEST sections as needed
-///
-///
-restart
-loadPackage( "MCMApproximations", Reload=>true)
-///
-
 TEST///
 kk = ZZ/101
 R = kk[x,y,z]
@@ -1120,11 +633,6 @@ assert (1 ==auslanderInvariant syzygy_2 MM_1)
 assert(p_1_0 === map(R_1,R_0))
 ///
 
-
-///
-restart
-load"MCMApproximations.m2"
-///
 TEST///
 setRandomSeed()
 S = ZZ/101[a,b,c]
@@ -1141,118 +649,34 @@ assert(isSurjective(phi|psi)===true)
 assert( (prune ker (phi|psi)) === (R')^{{-5},{-5},{-5},{-6},{-6},{-6}} );
 ///
 
-test = method()
-test(List,Module,ZZ,ZZ) := (S,Mc, low, high) ->(
-c := length S -1;
-R' := S_(c-1);
-R := S_c;
-RR' := map(R,R');
-ff := presentation R;
-K := coefficientRing R;
-KR := map(K,R);
-(M,kk,p) := setupModules(S,Mc);
-<< regularitySequence(S,Mc)<<endl;
-T := TateResolution(Mc,low,high);
-tt := apply(toList(low+2..high), i-> makeT(ff, T, i));
-phi' := apply(toList(low+1..high), --was high-2
-    j->approximation(pushForward(RR', coker T.dd_j), Total => false));
-phi := phi'/(ph ->  prune map(R**target ph, R**source ph, RR' matrix ph));
-report := matrix{toList(low+2..high), 
-       apply(toList(low+2..high), i->if isSurjective tt_i_(c-1) then 0 else 1),
-       apply(toList(low+2..high), i->(numgens ker KR matrix phi_(i+low-1))),
-       apply(toList(low+2..high), i->(regularity evenExtModule coker T.dd_i))};
-<<"KEY:"<<endl;
-<<"report_(0,j) = i : index of a free module F_i in T"<<endl;
-<<"report_(1,j): whether the CI map emerging from F_i is surjective"<<endl;
-<<"report_(2,j): whether the CM approx embeds mod the max ideal"<<endl;
-<<"report_(3,j): regularity of the even ext module"<<endl;
-report)
-
---<<docTemplate
-doc ///
-   Key
-    test
-    (test, List, Module, ZZ, ZZ)
-   Headline
-    reports on factors related to the one-step resolution
-   Usage
-    report = test(S, Mc, low, high)
-   Inputs
-    S:List
-     list of successive rings S_0, S_0/(f_1) .. S_c = S_0/(f_1..f_c)
-    Mc:Module
-     module over S_c
-    low:ZZ
-     start of window of Tate resolution
-    high:ZZ
-     end of window of Tate resoluion
-    report:Matrix
-     matrix of integers:
-   Description
-    Text
-     "report_(0,j) = i : index of a free module F_i in T"
-     "report_(1,j): whether the CI map emerging from F_i is surjective"
-     "report_(2,j): whether the CM approx embeds mod the max ideal"
-     "report_(3,j): regularity of the even ext module"
-    Example
-      low = -2; high = 4;
-      c = 2; d=3;
-      S = setupRings(c,d);
-      R = S_c;
-      Mc = coker random(R^1, R^{2:-2})
-      Mc = coker random(R^2, R^{-2,-3})
-      time test(S,Mc,low,high)
-   SeeAlso
-    regularitySequence
-    socleDegrees
-///
-
-
-onePoly = method()
-onePoly Module := M ->(
-    --the hilbert polynomial of the even ext module of a high syzygy, made into a poly that
-    --whose values, in the case of a ci of quadrics, are all the bett numbers
-    Ee := evenExtModule M;
-    Eo := oddExtModule M;
-    re := regularity Ee;
-    ro := regularity Eo;
-    pe := hilbertPolynomial(Ee, Projective => false);
-    i := local i;
-    U := QQ[i];
-    V := ring pe;
-    double := map(U,V, matrix map(U^1, U^1, {{(1/2)*U_0}}));
-    ppe := double pe;
-    (ppe, max (2*re+2, 2*ro+3))
-)
-///
---Test of the conjecture that, in the case of a CI of quadrics with at most one form
---of higher degree, the even and odd Betti numbers agree eventually with a single polynomial
---(Avramov's "one polynomial" conjecture.)
-restart
-loadPackage("MCMApproximations", Reload=>true)
-S = ZZ/101[a,b,c,d]
-ff = matrix"a2,b2,c3d2"
+///TEST
+S = ZZ/101[a,b,c]
+ff = matrix"a3, b3,c3" 
+len = 5
 cod = numcols ff
-R = S/ideal ff
-M = coker random(R^{0,1}, R^{2:-1, 2:-2})
-M = R^1/ideal"ab, c2,a3c+d4"
-(ppe, r) = onePoly M
-L1 = apply(r + 2*cod, j-> sub(ppe, {(ring ppe)_0=>j}))
-L2 = apply(r+2*cod, i -> rank ((res(M, LengthLimit =>r+6))_i))
-L1-L2 -- having one poly is equivalent to having 2*cod trailing zeros (if r is big enough
+I = ideal ff
+R = S/I
+q = map(R,S)
+M = coker vars R
+M0 = coker vars R
+M0= coker random(R^2, R^{4:-1})
+M = pushForward(q,syzygy(3,M0))
+layeredResolution(ff,pushForward(q,M0))
+scan(2, s->(
+M= pushForward(q,syzygy(s+3,M0));
+L = (layeredResolution(ff, M))_0;
+assert (betti L == betti res M);
+))
 ///
 
 end--
 restart
-uninstallPackage("CompleteIntersectionResolutions2")
-installPackage("CompleteIntersectionResolutions2")
-check "CompleteIntersectionResolutions2"
-
+loadPackage("MCMApproximations", Reload=>true)
 uninstallPackage"MCMApproximations"
 installPackage"MCMApproximations"
 check "MCMApproximations"
 viewHelp MCMApproximations
---installPackage ("CompleteIntersectionResolutions")
+
 -----Where does "high syzygy" behavior begin?
 --Conjecture: where regularity of the even and odd ext modules is 0 -- independently of whether there are socle elements in degree 0.
 --but to produce the behavior, the CM approx method is necessary; our matrixFactorization script won't do it!
@@ -1373,64 +797,86 @@ L3 = apply(toList(low..high+low-1),i->(
 	m1*m2))
 
 ///
---inactive copy: real program is below!
-layeredResolution = method()
-layeredResolution(Matrix, Module) := (ff, M) ->(
-    --ff is a 1 x c matrix over a Gorenstein ring S and ff' = ff_{0..(c-2)}.
-    --M is an S-module annihilated by I = ideal ff that is an MCM module over S/I.
-    --returns a pair (L,aug), where L is an S-free resolution of M 
-    --and aug: L_0 \to M is the augmentation.
-    --Here L_0 = L'_0 ++ B_0, and L' is the S-free resolution of M', the 
-    --MCM approximation of M over R' = S/(ideal ff').
-    L := null;
-    cod := numcols ff;
-    if cod <=1 then return (L = res M, map(M,L_0,id_(L_0)));
-    S := ring ff;
-    R := S/(ideal ff);
-    ff' := ff_{0..cod-2};
-    R' := S/(ideal ff');
-    p:= map(R,R');
-    q := map(R',S);
-        
-    MR := prune R**M;
-    MR' := prune(R'**M);
-    (alpha, beta) := approximation MR';
-    B0 := source beta;
-    M' := source alpha;
-    pM' :=prune M';-- why isn't M' already pruned??
 
-    pM'ToM' := (pM'.cache.pruningMap);
-    M'TopM' := pM'ToM'^(-1);
-    
-    gamma := map(MR', pM'++B0, (alpha*pM'ToM')|beta);
-    BB1 := ker gamma;
-    B1 := minimalPresentation BB1;
---    assert(isFreeModule B1);
-    psib :=  inducedMap(pM' ++ B0, BB1)*(B1.cache.pruningMap);
-    psi := psib^[0];
-    b := psib^[1];
---    assert(source psi == B1 and source b == B1);
---    assert(target psi == pM' and target b == B0);
-    pM'S := pushForward(q,pM');
-    bS := substitute(b,S);
-    B0S := target bS;
-    B1S := source bS;    
-    KK := koszul(ff');
-    B := chainComplex{bS};
-    
-    (L',aug') := layeredResolution(ff', pM'S);
-    assert(target aug' == pM'S);
-    psiS0 := map(pM'S, B1S, sub(matrix psi,S));
-    psiS := psiS0//aug';
-    Psi1 := extend(L',B[1],matrix psiS);
-    Psi2 := Psi1**KK;
-    Psi := extend(L',L'**KK, id_(L'_0))*Psi2;
-    L = cone Psi; -- L', the target of Psi, is the first summand, so this is L_0==L'_0++B_0
-    assert(L_0 == L'_0 ++ B_0);
-    m := (sub((matrix alpha)*matrix pM'ToM',S)*matrix aug') |sub(matrix beta,S);
-    aug := map(M,L'_0++B_0,m);
---Check exactness
---    scan(length L -1, s->assert( HH_(s+1) L == 0));
-    (L,aug)
-    )
+///
+--Test of the conjecture that, in the case of a CI of quadrics with at most one form
+--of higher degree, the even and odd Betti numbers agree eventually with a single polynomial
+--(Avramov's "one polynomial" conjecture.)
+restart
+loadPackage("MCMApproximations", Reload=>true)
+S = ZZ/101[a,b,c,d]
+ff = matrix"a2,b2,c3d2"
+cod = numcols ff
+R = S/ideal ff
+M = coker random(R^{0,1}, R^{2:-1, 2:-2})
+M = R^1/ideal"ab, c2,a3c+d4"
+(ppe, r) = onePoly M
+L1 = apply(r + 2*cod, j-> sub(ppe, {(ring ppe)_0=>j}))
+L2 = apply(r+2*cod, i -> rank ((res(M, LengthLimit =>r+6))_i))
+L1-L2 -- having one poly is equivalent to having 2*cod trailing zeros (if r is big enough
+///
+
+--study of regularity sequences:
+test = method()
+test(List,Module,ZZ,ZZ) := (S,Mc, low, high) ->(
+c := length S -1;
+R' := S_(c-1);
+R := S_c;
+RR' := map(R,R');
+ff := presentation R;
+K := coefficientRing R;
+KR := map(K,R);
+(M,kk,p) := setupModules(S,Mc);
+<< regularitySequence(S,Mc)<<endl;
+T := TateResolution(Mc,low,high);
+tt := apply(toList(low+2..high), i-> makeT(ff, T, i));
+phi' := apply(toList(low+1..high), --was high-2
+    j->approximation(pushForward(RR', coker T.dd_j), Total => false));
+phi := phi'/(ph ->  prune map(R**target ph, R**source ph, RR' matrix ph));
+report := matrix{toList(low+2..high), 
+       apply(toList(low+2..high), i->if isSurjective tt_i_(c-1) then 0 else 1),
+       apply(toList(low+2..high), i->(numgens ker KR matrix phi_(i+low-1))),
+       apply(toList(low+2..high), i->(regularity evenExtModule coker T.dd_i))};
+<<"KEY:"<<endl;
+<<"report_(0,j) = i : index of a free module F_i in T"<<endl;
+<<"report_(1,j): whether the CI map emerging from F_i is surjective"<<endl;
+<<"report_(2,j): whether the CM approx embeds mod the max ideal"<<endl;
+<<"report_(3,j): regularity of the even ext module"<<endl;
+report)
+doc ///
+   Key
+    test
+    (test, List, Module, ZZ, ZZ)
+   Headline
+    reports on factors related to the one-step resolution
+   Usage
+    report = test(S, Mc, low, high)
+   Inputs
+    S:List
+     list of successive rings S_0, S_0/(f_1) .. S_c = S_0/(f_1..f_c)
+    Mc:Module
+     module over S_c
+    low:ZZ
+     start of window of Tate resolution
+    high:ZZ
+     end of window of Tate resoluion
+    report:Matrix
+     matrix of integers:
+   Description
+    Text
+     "report_(0,j) = i : index of a free module F_i in T"
+     "report_(1,j): whether the CI map emerging from F_i is surjective"
+     "report_(2,j): whether the CM approx embeds mod the max ideal"
+     "report_(3,j): regularity of the even ext module"
+    Example
+      low = -2; high = 4;
+      c = 2; d=3;
+      S = setupRings(c,d);
+      R = S_c;
+      Mc = coker random(R^1, R^{2:-2})
+      Mc = coker random(R^2, R^{-2,-3})
+      time test(S,Mc,low,high)
+   SeeAlso
+    regularitySequence
+    socleDegrees
 ///

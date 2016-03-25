@@ -1,3 +1,5 @@
+--to do: doc for onePoly
+
 newPackage(
               "CompleteIntersectionResolutions2",
               Version => "0.9", 
@@ -6,9 +8,9 @@ newPackage(
                         Email => "de@msri.org", 
                         HomePage => "http://www.msri.org/~de"}},
               Headline => "Analyzing Resolutions over a Complete Intersection",
-	      PackageExports => {"BGG"},
-              DebuggingMode => true --should be false when submitted
-              )
+              DebuggingMode => true, --should be false when submitted
+	      PackageExports => {"BGG","MCMApproximations"}              
+	      )
 	  export{
          --some utilities
 	   "splittings",
@@ -47,6 +49,9 @@ newPackage(
 	   "mfBound",
 	   "finiteBettiNumbers",
            "infiniteBettiNumbers",
+	--Resolutions
+	   "Shamash",
+	   "layeredResolution",
 	   "makeFiniteResolution",	   
 	   "makeFiniteResolution2",	   	   
 	--some families of examples
@@ -67,7 +72,9 @@ newPackage(
 	   "moduleAsExt",
 	   "hfModuleAsExt",
 	   "complexity",
-	   "Shamash"
+	--some experiments
+	    "regularitySequence",
+	    "onePoly"
 	   }
 
 {*
@@ -95,6 +102,27 @@ loadPackage("CompleteIntersectionResolutions2", Reload=>true)
      ring GG
      apply(length GG, i->prune HH_i FF)
 *}
+
+regularitySequence = method()
+regularitySequence(List, Module) := (R,M) ->(
+    --R = complete intersection list R_(i+1) = R_i/f_(i+1), i= 0..c.
+    --M = module over R_c
+    --returns the list of pairs {reg evenExtModule M_i, reg oddExtModule M_i}
+    --where M_i is the MCM approximation of M over R_i
+    needsPackage "CompleteIntersectionResolutions2";
+    em := null;
+    om := null;
+    c := length R-1;
+    (MList,kkk,p) := setupModules(R,M);
+    MM := apply(c+1, j->source approximation(pushForward(p_c_j, M),Total =>false));
+    MM = select(MM, m-> not isFreeModule m);
+    <<"reg even ext, soc degs even ext, reg odd ext, soc degs odd ext"<<endl<<endl;
+    scan(reverse MM, m-> (
+	    em = evenExtModule m;
+	    om = oddExtModule m;
+     <<{regularity em, socleDegrees em, regularity om, socleDegrees om})
+     <<endl);
+    )
 
 Shamash = method()
 Shamash(Matrix, ChainComplex,ZZ) := (ff, F, len) ->(
@@ -130,6 +158,125 @@ Shamash(Ring, ChainComplex,ZZ) := (Rbar, F, len) ->(
     P = map(Rbar, ring FF, vars Rbar);
     P FF
 )    
+
+layeredResolution = method()
+--version that produces the finite layered resolution
+layeredResolution(Matrix, Module) := (ff, M) ->(
+    --ff is a 1 x c matrix over a Gorenstein ring S
+    --M is an S-module annihilated by I = ideal ff.
+    --returns a pair (L,aug), where aug: L_0 \to M is the augmentation.
+    --Here L_0 = L'_0 ++ B_0, and L' is the resolution of M', the 
+    --MCM approximation of M over R' = S/(ideal ff'), and ff' = ff_{0..(c-2)}.
+    L := null;
+    cod := numcols ff;
+    if cod <=1 then return (L = res M, map(M,L_0,id_(L_0)));
+    S := ring ff;
+    R := S/(ideal ff);
+    ff' := ff_{0..cod-2};
+    R' := S/(ideal ff');
+    p:= map(R,R');
+    q := map(R',S);
+        
+    MR := prune R**M;
+    MR' := prune(R'**M);
+    (alpha, beta) := approximation MR';
+    B0 := source beta;
+    M' := source alpha;
+--    assert(M' == prune M');
+
+    gamma := map(MR', M'++B0, (alpha)|beta);
+    BB1 := ker gamma;
+    B1 := minimalPresentation BB1;
+--    assert(isFreeModule B1);
+    psib :=  inducedMap(M' ++ B0, BB1)*(B1.cache.pruningMap);
+    psi := psib^[0];
+    b := psib^[1];
+--    assert(source psi == B1 and source b == B1);
+--    assert(target psi == M' and target b == B0);
+    M'S := pushForward(q,M');
+    bS := substitute(b,S);
+    B0S := target bS;
+    B1S := source bS;    
+    KK := koszul(ff');
+    B := chainComplex{bS};
+    
+    (L',aug') := layeredResolution(ff', M'S);
+    assert(target aug' == M'S);
+    psiS0 := map(M'S, B1S, sub(matrix psi,S));
+    psiS := psiS0//aug';
+    Psi1 := extend(L',B[1],matrix psiS);
+    Psi2 := Psi1**KK;
+    Psi := extend(L',L'**KK, id_(L'_0))*Psi2;
+    L = cone Psi; -- L', the target of Psi, is the first summand, so this is L_0==L'_0++B_0
+    assert(L_0 == L'_0 ++ B_0);
+    m := (sub((matrix alpha),S)*matrix aug') |sub(matrix beta,S);
+    aug := map(M,L'_0++B_0,m);
+--Check exactness
+--    scan(length L -1, s->assert( HH_(s+1) L == 0));
+    (L,aug)
+    )
+
+
+
+layeredResolution(Matrix, Module, ZZ) := (ff, M, len) ->(
+    --ff is a 1 x c matrix over a Gorenstein ring S and ff' = ff_{0..(c-2)}, ff'' = ff_{c-1}.
+    --R = S/ideal ff
+    --R' = S/ideal ff'
+    --NOTE R =!= R'/ideal ff''; we need to use a map to go between them.
+    --M is an MCM R-module.
+    --The script returns a pair (L,aug), where L is the first len steps of an R-free resolution of M 
+    --and aug: L_0 \to M is the augmentation.
+    -- Let
+    --        B_1 --> B_0 ++ M' --> M
+    -- be the MCM approximation of M over R'.
+    -- If L' is the layered R'-free resolution of M', then
+    --     L_0 = R\otimes (L'_0 ++ B_0),
+    --     L_1 = R\otimes (L'_1 ++ B_1).
+    -- and L is the Shamash construction applied to the box complex.
+    -- The resolution is returned over the ring R.
+    cod := numcols ff;
+    R := ring M;
+    S := if cod >0 then ring ff else R;
+    StoR := map(R,S);
+    MS := pushForward(StoR, M);
+    
+    if cod == 0 then (
+    	L := res(M,LengthLimit => len);
+    	return (L, map(M, L_0, id_(L_0))));
+    ff' := ff_{0..cod-2};
+    R' := S/ideal ff';
+    ff'' := R'** ff_{cod-1};
+--    R1 := R'/ideal ff'';
+    
+    R'toR := map(R,R');
+--    MR := R**M;
+    MR':= pushForward(R'toR,M);
+    (alpha, beta) := approximation MR';
+    B0 := source beta;
+    M' := source alpha;
+    gamma := map(MR', M'++B0, (alpha|beta));
+    BB1 := ker gamma;
+    B1 := minimalPresentation BB1;
+    psib :=  inducedMap(M' ++ B0, BB1)*(B1.cache.pruningMap);
+    psi := psib^[0];
+    b := psib^[1];
+--error();
+(L',aug') := layeredResolution(ff',M',len);
+--L' := res(M', LengthLimit=> len);
+--    aug' = map(M', L'_0, id_(L'_0));
+assert(ring L' === R');
+assert(ring aug' === R');
+assert(ring b === R');
+    B := chainComplex {b};
+    Psi := extend(L', B[1], matrix(psi//aug'));
+    box := cone Psi;
+    L =  Shamash(R, box, len);    
+    aug := map(M, L_0, 
+          R'toR matrix( 
+	      map(MR',M'++B0, (alpha|beta))*map(M'++ B0, box_0, aug'++id_(B0))));
+    (L, aug)
+    )
+
 
 dualWithComponents = method()
 dualWithComponents Module := M -> (
@@ -1452,6 +1599,23 @@ TEo:= cohomologyTable(presentation (Eo), ring E,-5,5);
     (E,T))
 
 
+onePoly = method()
+onePoly Module := M ->(
+    --the hilbert polynomial of the even ext module of a high syzygy, made into a poly that
+    --whose values, in the case of a ci of quadrics, are all the bett numbers
+    Ee := evenExtModule M;
+    Eo := oddExtModule M;
+    re := regularity Ee;
+    ro := regularity Eo;
+    pe := hilbertPolynomial(Ee, Projective => false);
+    i := local i;
+    U := QQ[i];
+    V := ring pe;
+    double := map(U,V, matrix map(U^1, U^1, {{(1/2)*U_0}}));
+    ppe := double pe;
+    (ppe, max (2*re+2, 2*ro+3))
+)
+
 -----------------------------
 --------Documentation-----------
 --------------------------------
@@ -1464,6 +1628,40 @@ uninstallPackage "CompleteIntersectionResolutions2"
 installPackage "CompleteIntersectionResolutions2"
 check "CompleteIntersectionResolutions2"
 *}
+doc///
+   Key
+    regularitySequence
+    (regularitySequence, List,Module)
+   Headline
+    regularity of Ext modules for a sequence of MCM approximations
+   Usage
+    L = regularitySequence (R,M)
+
+   Inputs
+    R:List
+     list of rings R_i = S/(f_0..f_(i-1), complete intersections
+    M:Module
+     module over R_c where c = length R - 1.
+   Outputs
+    L:List
+     List of pairs {regularity evenExtModule M_i, regularity oddExtModule M_i)
+   Description
+    Text
+     Computes the non-free parts M_i of the MCM approximation to M over R_i, 
+     stopping when M_i becomes free, and
+     returns the list whose elements are the pairs of regularities, starting
+     with M_(c-1)
+     Note that the first pair is for the 
+    Example
+     c = 3;d=2
+     R = setupRings(c,d);
+     Rc = R_c
+     M = coker matrix{{Rc_0,Rc_1,Rc_2},{Rc_1,Rc_2,Rc_0}}
+     regularitySequence(R,M)
+   SeeAlso
+    approximation
+    auslanderInvariant
+///
 
 
 doc ///
@@ -3594,7 +3792,7 @@ doc ///
      FF_(2*i+1) = F_1 ++ F_3 ++..++F_(2*i+1)
      
      and maps made from the higher homotopies
-     In the form Shamash(Rbar,F) the complex F is moved over to the ring Rbar.
+     In the form Shamash(Rbar,F,len) the complex F is moved over to the ring Rbar.
     Example
      S = ZZ/101[x,y,z]
      R = S/ideal"x3,y3"
@@ -3603,8 +3801,8 @@ doc ///
      R1 = R/ideal ff
      F = res M
      betti F
-     FF = Shamash(ff,F)
-     GG = Shamash(R1,F)
+     FF = Shamash(ff,F,4)
+     GG = Shamash(R1,F,4)
      betti FF
      betti GG
      ring GG
@@ -3616,8 +3814,97 @@ doc ///
     makeHomotopies
 ///
 
+doc ///
+   Key
+    layeredResolution
+    (layeredResolution, Matrix, Module)
+    (layeredResolution, Matrix, Module, ZZ)    
+   Headline
+    layered finite and infinite layered resolutions of CM modules
+   Usage
+    (FF, aug) = layeredResolution(ff,M)
+    (FF, aug) = layeredResolution(ff,M,len)    
+   Inputs
+    ff:Matrix
+     1 x c matrix whose entries are a regular sequence in the Gorenstein ring S
+    M:Module
+     MCM module over R, represented as an S-module in the first case and as an R-module in the second
+    len:ZZ
+     length of the segment of the resolution to be computed over R, in the second form.
+   Outputs
+    FF:ChainComplex
+     resolution of M over S in the first case; length len segment of the resolution over R in the second.
+   Description
+    Text
+     The resolutions computed are those described in the paper "Layered Resolutions of Cohen-Macaulay modules"
+     by Eisenbud and Peeva. They are both minimal when M is a suffiently high syzygy of a module N.
+     Here is an example computing 5 terms of an infinite resolution:
+    Example
+     S = ZZ/101[a,b,c]
+     ff = matrix"a3, b3, c3" 
+     R = S/ideal ff
+     M = syzygy(2,coker vars R)
+     (FF, aug) = layeredResolution(ff,M,5)
+     betti FF
+     betti res(M, LengthLimit=>5)
+     C = chainComplex flatten {{aug} |apply(4, i-> FF.dd_(i+1))}
+     apply(5, j-> prune HH_j C == 0)
+    Text
+     And one computing the whole finite resolution:
+    Example
+     MS = pushForward(map(R,S), M);
+     (GG, aug) = layeredResolution(ff,MS)
+     betti GG
+     betti res MS
+     C = chainComplex flatten {{aug} |apply(length GG -1, i-> GG.dd_(i+1))}    
+     apply(length GG +1 , j-> prune HH_j C == 0)     
+///
+
 
 ------TESTs------
+TEST///
+setRandomSeed 100
+c = 2
+d = 2
+R = setupRings(c,d)
+(M,k,p) = setupModules(R,coker vars R_c);
+regularitySequence(R,coker vars R_c)
+///
+
+///TEST
+S1 = ZZ/101[a,b,c]
+len = 4
+--codim 0
+ff = matrix{{}}
+M = S1^1
+(FF, aug) = layeredResolution(ff,M,len)
+betti FF == betti res(M, LengthLimit=>len)
+--codim 1
+use S1
+ff = matrix"a3" 
+R1 = S1/ideal ff
+M = syzygy(3,coker vars R1)
+(FF, aug) = layeredResolution(ff,M,len)
+betti FF == betti res(M, LengthLimit=>len)
+--codim 2
+use S1
+ff = matrix"a3, b3" 
+R1 = S1/ideal ff
+M = syzygy(2,coker vars R1)
+(FF, aug) = layeredResolution(ff,M,len)
+assert(betti FF == betti res(M, LengthLimit=>len))
+--codim 3
+use S1
+len = 5
+ff = matrix"a3, b3, c3" 
+R1 = S1/ideal ff
+M = syzygy(2,coker vars R1)
+(FF, aug) = layeredResolution(ff,M,len)
+assert(betti FF == betti res(M, LengthLimit=>len))
+C = chainComplex flatten {{aug} |apply(len-1, i-> FF.dd_(i+1))}
+scan(len, j-> assert(prune HH_j C == 0))
+///
+
 TEST///
 S = ZZ/101[a,b,c]
 ff1 = matrix"a3,b3,c3"
@@ -3643,10 +3930,10 @@ R = S/ideal"x3,y3"
 M = R^1/ideal(x,y,z)
 F = res M
 ff = matrix{{z^3}}
-FF = Shamash(ff,F)
+FF = Shamash(ff,F,4)
 scan(length FF -1, i->assert(0==(HH_(i+1)FF)))
 Rbar = R/ideal(z^3)
-assert (Shamash(Rbar,F) == (map(Rbar,ring FF))FF)
+assert (Shamash(Rbar,F,4) == (map(Rbar,ring FF))FF)
 ///
 
 TEST///
@@ -3966,15 +4253,12 @@ assert(rank E==1);
 
 end--
 restart
-notify=true
+--notify=true
 uninstallPackage "CompleteIntersectionResolutions2"
 installPackage "CompleteIntersectionResolutions2"
 loadPackage("CompleteIntersectionResolutions2", Reload=>true)
 check "CompleteIntersectionResolutions2"
 
-restart
-uninstallPackage "CompleteIntersectionResolutions2"
-installPackage "CompleteIntersectionResolutions2"
 
 
 
