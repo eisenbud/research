@@ -1,16 +1,12 @@
---to do: doc for setupRings, setupModules, Total;
---improve package documentation for MCMApproximations
-
 newPackage(
 "MCMApproximations",
-Version => "0.9",
-Date => "February 27, 2016",
+Version => "1.0",
+Date => "April 3, 2016",
 Authors => {{Name => "David Eisenbud",
 Email => "de@msri.org",
 HomePage => "http://www.msri.org/~de"}},
 Headline => "MCM Approximations and Complete Intersections",
---PackageExports => {"CompleteIntersectionResolutions2"},
-DebuggingMode => true
+DebuggingMode => false
 )
 
 export {
@@ -21,14 +17,12 @@ export {
     "approx", --synonym for approximation
     "auslanderInvariant",
     "profondeur", -- should be depth, but that's taken
---    "regularitySequence", --regularities [add socle dimensions] of exts of successive CM approximation
-    "syzygy",
+    "syzygyModule",
     "socleDegrees",
     "setupRings",
     "Characteristic", -- option for setupRings
+    "Randomize", -- option for setupRings
     "setupModules"
---    "test", -- gives info on an example
---    "onePoly"
     }
 
 {* test: The following code crashes M2 v 8.2
@@ -45,8 +39,8 @@ socleDegrees Module := M ->(
      flatten degrees target basis Hom(coker vars R,M)    
     )
 
-syzygy = method(Options=>{CoDepth => -1})
-syzygy(ZZ,Module) := opts -> (k,M) -> (
+syzygyModule = method(Options=>{CoDepth => -1})
+syzygyModule(ZZ,Module) := opts -> (k,M) -> (
     if k === 0 then return M;
     F := null;
 
@@ -173,16 +167,16 @@ auslanderInvariant Module := opts->M-> (
     phi := approximation(M, CoDepth => opts.CoDepth, Total=>false);
     numgens prune coker phi)
 
-setupRings = method(Options =>{Characteristic => 101})
+setupRings = method(Options =>{Characteristic => 101, Randomize =>true})
 setupRings(ZZ,ZZ) := opts -> (c,d)->(
     x := local x;
     p := opts.Characteristic;
-    S := ZZ/101[x_0..x_(c-1)];
+    S := ZZ/p[x_0..x_(c-1)];
     ff := matrix{apply(c, i->S_i^d)};
-    ff = ff*random(source ff, source ff);
-    {S}|apply(c, j->(S/ideal(ff_{0..j}))
-	)
+    if opts.Randomize===true then ff = ff*random(source ff, source ff);
+    {S}|apply(c, j->(S/ideal(ff_{0..j})))
     )
+
 
 setupModules = method()
 setupModules(List,Module) := (R,M)->(
@@ -190,6 +184,7 @@ setupModules(List,Module) := (R,M)->(
     --returns (MM,kk,p) where
     --MM,kk are lists whose i-compoents are the module M and residue field k, but over R_i
     --p_i_j is the projection from R_j to R_i (c >= i >= j >= 0)
+    --M is a a module over R_c.
     c := length R-1;
     kk :=apply(c+1, i-> coker vars R_i);
     p := apply(c+1, i->apply(i+1, j->map(R_i,R_j)));
@@ -197,7 +192,7 @@ setupModules(List,Module) := (R,M)->(
     (MM,kk,p))
 
 
------DOCUMENTATION
+-----DOCUMENTATION---Documentation---documentation
 doc ///
 Key
   MCMApproximations
@@ -205,11 +200,77 @@ Headline
   Maximal Cohen-Macaulay Approximations and Complete Intersections
 Description
   Text
+   Maximal Cohen-Macaulay approximations were introduced by Auslander and Buchweitz
+   [The homological theory of maximal Cohen-Macaulay (MCM) approximations, 
+   Colloque en l'honneur de Pierre Samuel (Orsay, 1987)
+   Soc. Math. France (N.S.)} No. {\bf 38}, (1989), 5 - 37.] 
+   In the context of a local Gorenstein ring R, the theory simplifies a little
+   and can be expressed as follows. Let M be an R-module. 
+   
+   1) There is a unique
+   maximal Cohen-Macaulay R-module M' and a short exact sequence  
+   0\to N' \to M' \to  M \to 0
+   such that N has finite projective dimension; 
+   the module M, together with the surjection,
+   is the MCM approximation of M.
+   
+   2) Dually, there is a unique short exact sequence
+   0\to M \to N'' \to M'' \to 0
+   such that N'' has finite projective dimension and M'' is a
+   monomormphism M -> N to a module N of finite projective dimension, with
+   cokernel a maximal Cohen-Macaulay module, the MCM co-approximation.
+   
+   These sequences are easy to compute.Let
+   d = 1+ depth R - depth M. Write M'_0 for the d-th cosyzygy of the 
+   d-th syzygy module of M, and \alpha: M'\to M. The module M' is called the 
+   essential MCM approximation of M. Note that M' has no free summand 
+   Let B_0 be a minimal free module mapping
+   onto M/(image M'_0), and lift the surjection ac to a map
+   \beta: B_0 \to M. The map
+   (\alpha, \beta): M'_0 \oplus B_0 --> M
+   is the MCM approximation, and N is its kernel. 
+   
+   The routine
+   approximation M 
+   returns the pair (\alpha, \beta).
+   
+   Further, if M'' is the (d+1)st cosyzygy of the d-th syzygy of M
+   then there is a short exact sequence
+   0\to M' \to F \to M'' \to 0
+   with F free. Pushing this sequence forward along the map \alpha: M' \to M
+   gives the coapproximation sequence
+   0\to M \to N''\to M'' \to 0.
+   
+   The routine coapproximation M resurns the map M --> N''.
   Example
-Caveat
+   setRandomSeed 0
+   T = setupRings(3,3)
+   R = T_3
+   M = coker random(R^2, R^{3: -2});
+   (MM,kk,p) = setupModules(T, M);
+   MM_1
+   (a,b) = approximation MM_1 -- MM_1 is M as a module over the ring of codim 1
+   M' = source a;
+   betti res pushForward(p_1_0,M') -- an MCM module
+   F = source b -- free module, thus also MCM
+   N = betti res ker map(MM_1,M'++F,matrix{{a,b}}) --module with pd G <\infty
 SeeAlso
+ approximation
+ coApproximation
+ auslanderInvariant
+ setupRings
+ setupModules
 ///
 
+///
+   restart
+   loadPackage("MCMApproximations", Reload=>true)
+///
+
+///
+restart
+loadPackage("MCMApproximations", Reload=>true)
+///
 
 doc ///
    Key
@@ -238,7 +299,7 @@ doc ///
    Key
     CoDepth
    Headline
-    Option for syzygy(-k,M,CoDepth => m)
+    Option for syzygyModule(-k,M,CoDepth => m)
    Description
     Text
      Allows the user to specify a number m (which must be at least CoDepth M),
@@ -246,18 +307,18 @@ doc ///
    Caveat
     Does not check that the CoDepth value is correct.
    SeeAlso
-    syzygy
+    syzygyModule
 ///
 
 doc ///
    Key
-    syzygy
-    (syzygy, ZZ, Module)
-    [syzygy, CoDepth]
+    syzygyModule
+    (syzygyModule, ZZ, Module)
+    [syzygyModule, CoDepth]
    Headline
     Produces the k-th syzygy module (k \in ZZ)
    Usage
-    N = syzygy(k,M)
+    N = syzygyModule(k,M)
    Inputs
     k:ZZ
      which syzygy
@@ -271,16 +332,16 @@ doc ///
      of the dual of the k-th syzygy, where n is one more than Codepth if that
      opition is specified, and else n is the number of variables of ring M. 
      Of course the resulting N is 0 if ring M is regular, and otherwise correct
-     only if ring M is Gorenstein. In the Gorenstein case, syzygy(-k, syzygy(k, M))
+     only if ring M is Gorenstein. In the Gorenstein case, syzygyModule(-k, syzygyModule(k, M))
      -is the non-free part of the source of the MCM approximation of M.
     Example
      R = setupRings(4,3);
      M = coker vars R_2;
      betti res M
-     betti syzygy(2,M)
-     betti (N2 = syzygy(-2,M))
+     betti syzygyModule(2,M)
+     betti (N2 = syzygyModule(-2,M))
      betti res N2
-     betti syzygy(-2,M,CoDepth=>2)
+     betti syzygyModule(-2,M,CoDepth=>2)
    Caveat
     ring M must be Gorenstein, and the program does not check
    SeeAlso
@@ -364,7 +425,7 @@ doc ///
     setupModules
     profondeur
     approximation
-    syzygy
+    syzygyModule
 ///
 doc ///
    Key
@@ -441,7 +502,7 @@ doc ///
       Here phi is the "essential MCM approximation" from the biggest summand M'0 of 
       M' that has no free summands, and psi is the map from the free summand M'1.
      
-     The module M'0 is computed as syzygy(-k, syzygy(k,M)) for any k >= CoDepth M,
+     The module M'0 is computed as syzygyModule(-k, syzygyModule(k,M)) for any k >= CoDepth M,
      and the map $M'0 \to M$ is induced by the comparison map of resolutions. 
      
      The rank t of the free summand M'1 is called the Auslander Invariant of M,
@@ -459,7 +520,7 @@ doc ///
      approximation(M, Total=>false)
      approximation(M, CoDepth => 0)
    SeeAlso
-    syzygy
+    syzygyModule
     auslanderInvariant
 ///
 doc ///
@@ -519,6 +580,21 @@ doc ///
      Allows the user to specify the characteristic of the rings to be defined.
    SeeAlso
     setupRings
+    Randomize
+    setupModules
+///
+doc ///
+   Key
+    Randomize
+   Headline
+    Option for setupRings(c,d,Characteristic=>q, Randomize=>false)
+   Description
+    Text
+     Defaults to true. When = true, replaces the regular sequence of
+     d-th powers with a regular sequence of random linear combinations.
+   SeeAlso
+    setupRings
+    Characteristic
     setupModules
 ///
 
@@ -527,6 +603,7 @@ doc ///
     setupRings
     (setupRings, ZZ, ZZ)
     [setupRings, Characteristic]
+    [setupRings, Randomize]
    Headline
     Sets up a complete intersection for experiments
    Usage
@@ -541,26 +618,90 @@ doc ///
      List of rings R_0..R_c with R_i = S/(f_0..f_(i-1))
    Description
     Text
-     Uses the complete intersection f_0..f_(c-1) to be random combinations of x_0^d..x_(c-1)^d
-     in the polynomial ring ZZ/p[x_0..x_c], where p can be set by the optional 
-     argument Characteristic=>p.
+     Makes a complete intersection f_0..f_(c-1) = x_0^d..x_(c-1)^d
+     or, when Random=>true (the default), random linear combinations of these,
+     in the polynomial ring ZZ/p[x_0..x_(c-1)], where p can be set by the optional 
+     argument Characteristic=>p. By default, p = 101.
     Example
      netList setupRings(2,2)
      netList setupRings(2,2,Characteristic=>5)
    SeeAlso
     setupModules
 ///
+    --R_i is a ci of codim i in a ring S
+    --returns (MM,kk,p) where
+    --MM,kk are lists whose i-compoents are the module M and residue field k, but over R_i
+    --p_i_j is the projection from R_j to R_i (c >= i >= j >= 0)
 
-
+doc ///
+   Key
+    setupModules
+    (setupModules, List, Module)
+   Headline
+    Creates a list of modules and maps over complete intersection for experiments
+   Usage
+    (MM, kk, p) = setupModules(R,M)
+   Inputs
+    R:List
+     of complete intersections R_i = S/(f_0..f_(i-1))
+    M:Module
+     over the ring R_(c-1) where c = length R.
+   Outputs
+    MM:List
+     of c+1 modules M_i over R_i
+    kk:List
+     of residue class modules k_i of R_i
+    p:List
+     of maps, p_i_j: R_j to R_i the projection
+   Description
+    Text
+     This is useful for setting up an experiment. For example, we conjecture
+     that the regularity of Ext_{R_i}(M_i,k_i) is a non-decreasing function of i.
+     Here ring M = R_(c-1) and  M_i = pushForward(p_(c-1)_i, M).
+    Example
+     needsPackage "CompleteIntersectionResolutions" -- for "evenExtModule"
+     R =setupRings(3,2);--codims 0..3, degrees = 2
+     MM0 = coker random(R_3^2, R_3^{3: -1});
+     (M,kkk,p) = setupModules(R,MM0);
+     apply(3, j->regularity evenExtModule M_(j+1))
+   SeeAlso
+    setupRings
+///
 
 -----TESTS
+--the following crashes apparently because n is taken unnecessarily large. I reported the bug to mike and dan on April 3
+--make into a TEST when fixed.
+///
+   restart
+   loadPackage("MCMApproximations", Reload=>true)
+   setRandomSeed 0
+   T = setupRings(3,3)
+   R = T_3
+   M = coker matrix{{R_0,R_1,R_2},{R_1,R_2,R_0}}
+   M = coker random(R^2, R^{3: -2});
+   (MM,kk,p) = setupModules(T, M)
+   MM_1
+   (a,b) = approximation MM_1 -- MM_1 is M as a module over the ring of codim 1
+   M' = source a
+   res pushForward(p_1_0,M') -- an MCM module
+   F = source b -- free module
+///
+
+
 TEST///
      setRandomSeed 100;
      R = setupRings(2,2);
-     M = syzygy_2 coker vars R_2;
-     N = syzygy_2 syzygy(-2,M);
+     M = syzygyModule_2 coker vars R_2;
+     N = syzygyModule_2 syzygyModule(-2,M);
      assert(betti M == betti N)
-     N = prune syzygy(-2,syzygy(2,M),CoDepth =>0);
+     N = prune syzygyModule(-2,syzygyModule(2,M),CoDepth =>0);
+     assert(betti M == betti N)
+
+     R = setupRings(2,2, Characteristic=>5, Randomize=>false);
+     M = syzygyModule_2 coker vars R_2;
+     N = syzygyModule_2 syzygyModule(-2,M);
+     assert(betti M == betti N)
+     N = prune syzygyModule(-2,syzygyModule(2,M),CoDepth =>0);
      assert(betti M == betti N)
 ///
 TEST///
@@ -625,10 +766,10 @@ TEST///
 setRandomSeed()
 c = 3
 R = setupRings(c,3)
-M = syzygy(1,coker vars R_c)
+M = syzygyModule(1,coker vars R_c)
 (MM,kk,p) = setupModules(R,M);
-auslanderInvariant syzygy_2 MM_1
-assert (1 ==auslanderInvariant syzygy_2 MM_1)
+auslanderInvariant syzygyModule_2 MM_1
+assert (1 ==auslanderInvariant syzygyModule_2 MM_1)
 (0 ==auslanderInvariant kk_2)
 assert(p_1_0 === map(R_1,R_0))
 ///
@@ -660,10 +801,10 @@ q = map(R,S)
 M = coker vars R
 M0 = coker vars R
 M0= coker random(R^2, R^{4:-1})
-M = pushForward(q,syzygy(3,M0))
+M = pushForward(q,syzygyModule(3,M0))
 layeredResolution(ff,pushForward(q,M0))
 scan(2, s->(
-M= pushForward(q,syzygy(s+3,M0));
+M= pushForward(q,syzygyModule(s+3,M0));
 L = (layeredResolution(ff, M))_0;
 assert (betti L == betti res M);
 ))
@@ -723,7 +864,7 @@ Mc = coker random(R^2, R^{-2,-3})
 time test(S,Mc,low,high)
 
 --installPackage "MCMApproximations"
---installPackage "CompleteIntersectionResolutions2"
+--installPackage "CompleteIntersectionResolutions"
 
 
 
@@ -738,7 +879,7 @@ M0 = coker vars Rc
 range  = toList(-2..3)
 
 scan(range, i-> (
-	MM0 = syzygy(i,M0);
+	MM0 = syzygyModule(i,M0);
 	Ee := null; Eo:= null;
 	(M,kkk,p) = setupModules(R,MM0);
 	apply(c-1, j->(
@@ -759,7 +900,7 @@ scan(range, i-> (
 ------image of essential approximation, compared with ker t.
 restart
 loadPackage("MCMApproximations", Reload=>true)
-loadPackage("CompleteIntersectionResolutions2", Reload=>true)
+loadPackage("CompleteIntersectionResolutions", Reload=>true)
 
 tensor (Ring,Matrix) := (R,phi) -> (
     RR' := map(R, ring phi);
