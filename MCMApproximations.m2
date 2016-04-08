@@ -31,6 +31,8 @@ R = S/ideal(a^2)
 res (coker vars R, LengthLimit => 0)
 *}
 
+depth Module := M-> profondeur M
+
 socleDegrees = method()
 socleDegrees Module := M ->(
     R := ring M;
