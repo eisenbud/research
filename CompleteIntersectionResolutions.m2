@@ -107,6 +107,7 @@ regularitySequence(List, Module) := (R,M) ->(
     --M = module over R_c
     --returns the list of pairs {reg evenExtModule M_i, reg oddExtModule M_i}
     --where M_i is the MCM approximation of M over R_i
+    if M == 0 then return{- infinity, {}, - infinity, {}};
     em := null;
     om := null;
     c := length R-1;
@@ -4016,6 +4017,31 @@ doc ///
 ///
 
 ------TESTs------
+TEST/// -- tests of the "with components" functions
+S = ZZ/101[a,b]
+M = S^{1,2}
+N = S^{3,5}
+M' = (S^{1}++S^{2})
+N' = S^{3}++S^{5}
+
+H = Hom(M,N) 
+T = M**N
+D = dual M
+H' = HomWithComponents (M',N')
+T' = tensorWithComponents(M',N')
+D' = dualWithComponents M'
+assert( H == H' and T == T' and D == D')
+assert(HomWithComponents(M',N') == tensorWithComponents(dualWithComponents M', N'))
+assert(components HomWithComponents(M',N') == components tensorWithComponents(dualWithComponents M', N'))
+M = S^{1,2}/ideal(a^2)
+M' = S^{1}/ideal(a^2)++S^{2}/ideal(a^2)
+M == M'
+(T = M**N) == M'**N'
+assert(T == tensorWithComponents(M',N'))
+M= S^0
+M'=S^0++S^0
+assert(M**M == tensorWithComponents (M',M'))
+///
 TEST///
 setRandomSeed 0
 R1=ZZ/101[a,b,c]/ideal(a^2,b^2,c^5)
@@ -4430,3 +4456,82 @@ check "CompleteIntersectionResolutions"
 
 viewHelp CompleteIntersectionResolutions
 loadPackage("CompleteIntersectionResolutions", Reload=>true)
+loadPackage("MCMApproximations", Reload => true)
+loadPackage("RandomIdeal", Reload => true)
+
+Rlist = setupRings(4,2, Randomize => false)
+S = Rlist_0
+R= Rlist_4
+rsfs = randomSquareFreeStep
+J = monomialIdeal 0_S
+time L= apply(100, j-> (J = rsfs(J,AlexanderProbability => .1))_0);
+I = L_5
+apply (L, I -> regularitySequence (Rlist, module sub(I, R)))
+
+
+
+
+viewHelp setupRings
+viewHelp regularitySequence
+
+
+isNondecreasing = L ->(
+  --if L is a List of integers, checks that they are nondecreasing
+  t := true;
+  scan(length L - 1, i-> if L_(i+1)<L_i then t = false);
+  t)
+
+
+restart
+loadPackage("CompleteIntersectionResolutions", Reload=>true)
+loadPackage("MCMApproximations", Reload => true)
+loadPackage("RandomIdeal", Reload => true)
+
+isNonincreasing = L ->(
+  --if L is a List of integers, checks that they are nondecreasing
+  t := true;
+  scan(length L - 1, i-> if L_(i+1)>L_i then t = false);
+  t)
+testRegSeqConj = (R,M) ->(
+    --R = complete intersection list R_(i+1) = R_i/f_(i+1), i= 0..c.
+    --M = module over R_c
+    --{reg evenExtModule M_i} and  {reg oddExtModule M_i}}
+    --are increasing sequences,
+    --where M_i is the MCM approximation of M over R_i
+    em := null;
+    om := null;
+    c := length R-1;
+    (MList,kkk,p) := setupModules(R,M);
+    MM := apply(c+1, j->source approximation(pushForward(p_c_j, M),Total =>false));
+    MM = select(MM, m-> not isFreeModule m);
+    EMList = apply(reverse MM, m-> regularity evenExtModule m);
+    OMList = apply(reverse MM, m-> regularity oddExtModule m);    
+    if not isNonincreasing EMList then <<"evenExt fails on: "<<M<<endl<<EMList<<endl;
+    if not isNonincreasing OMList then <<"oddExt fails on: "<<M<<endl;
+    )
+
+Rlist = setupRings(5,2, Randomize => true)
+S = Rlist_0
+R= last Rlist
+rsfs = randomSquareFreeStep
+J = monomialIdeal 0_S
+time scan(10000, j-> (J = rsfs(J,AlexanderProbability => .1))_0);
+time L= apply(100, j-> (J = rsfs(J,AlexanderProbability => .1))_0);
+time scan(L, I -> (
+	    << "."<< flush;
+	    testRegSeqConj(Rlist, R^1/sub(I, R))))
+--313 sec for the 5 var case.
+tally apply(L, I-> degrees gens  I)
+
+{2, 2, 2, 0}
+{1, 2, 1, 0}
+cokernel | x_1 x_0x_2 |
+
+{1, 2, 2, 0}
+{1, 2, 1, 0}
+cokernel | x_0x_1 x_1x_2 x_0x_3 |
+
+{2, 1, 0}
+{1, 1, 0}
+cokernel | x_1 x_2x_3 |
+
