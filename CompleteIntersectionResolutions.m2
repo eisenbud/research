@@ -13,6 +13,7 @@ newPackage(
 	--things related to Ext over a complete intersection
 	   "ExtModule", 
 	   "evenExtModule", 
+	   "OutRing",
 	   "oddExtModule",
 	   "ExtModuleData",
 	--tools used to construct the "higher matrix factorization"
@@ -370,28 +371,33 @@ ExtModule Module := M -> (
      prune coker v presentation E)
 
   
-evenExtModule = method()
-evenExtModule Module := M -> (
+evenExtModule = method(Options =>{OutRing => 0})
+evenExtModule Module := opts -> M -> (
      --If M is a module over a complete intersection R
      --of codim c, the script returns 
      --Ext^(even)(M,(ring M)^1/(ideal vars ring M))
      --as a module generated in degree 0
      --over the polynomial ring kk[X_1..X_(codim R)],
      --where the vars have degree 1
+     --unless the option Outring => outring is given, with outring being
+     --a polynomial ring with numGens ring E, in chich case this ring is used.
      E := ExtModule M;
      P := positions(flatten degrees E, even);
      Ee:=prune image (E_P);
      T := ring E;
+     if class opts#OutRing === PolynomialRing then T1 := opts#OutRing else
+     (
      kk:= coefficientRing T;
      X := symbol X;
-     T1 := kk[X_0..X_(numgens T -1)];
+     T1 = kk[X_0..X_(numgens T -1)]
+     );
      v1 := map(T1, T, vars T1, DegreeMap => i->{(first i)//2});
      coker v1 presentation Ee
      )
 
 
-oddExtModule = method()
-oddExtModule Module := M -> (
+oddExtModule = method(Options =>{OutRing => 0})
+oddExtModule Module := opts -> M -> (
      --If M is a module over a complete intersection R
      --of codim c, the script returns 
      --Ext^(odd)(M,(ring M)^1/(ideal vars ring M))
@@ -402,9 +408,12 @@ oddExtModule Module := M -> (
      P := positions(flatten degrees E, odd);
      Eo:=prune image (E_P);
      T := ring E;
+     if class opts#OutRing === PolynomialRing then T1 := opts#OutRing else
+     (
      kk:= coefficientRing T;
      X := symbol X;
-     T1 := kk[X_0..X_(numgens T -1)];
+     T1 = kk[X_0..X_(numgens T -1)]
+     );
      v1 := map(T1, T,vars T1, DegreeMap => i->{(first i)//2});
      coker v1 presentation Eo
      )
@@ -1189,7 +1198,7 @@ freeExteriorSummand(Module) := M -> (
 
 S2 = method()
 S2(ZZ,Module) := Matrix => (b,M)-> (
-     --returns a map M --> M', where M' = \oplus_d>=b H^0(\tilde M).
+     --returns a map M --> M', where M' = \oplus_{d>=b} H^0(\tilde M).
      --the map is equal to the S2-ification AT LEAST in degrees >=b.
      S := ring M;
      r:= regularity M;
@@ -2829,9 +2838,20 @@ doc ///
 	  oddExtModule
 ///
 doc ///
+   Key
+    OutRing
+   Headline
+    Option allowing specification of the ring over which the output is defined
+   SeeAlso
+    evenExtModule
+    oddExtModule
+///
+
+doc ///
         Key 
 	 evenExtModule
 	 (evenExtModule, Module)
+	 [evenExtModule, OutRing]
         Headline 
 	 even part of Ext^*(M,k) over a complete intersection as module over CI operator ring
         Usage
@@ -2845,6 +2865,8 @@ doc ///
         Description
          Text
 	  Extracts the even degree part from ExtModule M
+	  If the optional argument OutRing => T is given, and class T === PolynomialRing,
+	  then the output will be a module over T.
          Example
 	  kk= ZZ/101
 	  S = kk[x,y,z]
@@ -2859,12 +2881,14 @@ doc ///
         SeeAlso 
 	  ExtModule 
 	  oddExtModule
+	  OutRing
 
      ///
 doc ///
         Key 
 	 oddExtModule
 	 (oddExtModule, Module)
+	 [oddExtModule,OutRing]
         Headline 
 	 odd part of Ext^*(M,k) over a complete intersection as module over CI operator ring
         Usage
@@ -2877,7 +2901,9 @@ doc ///
 	   over a polynomial ring with gens in degree 1
         Description
          Text
-	  Extracts the odd degree part from ExtModule M
+	  Extracts the odd degree part from ExtModule M.
+	  If the optional argument OutRing => T is given, and class T === PolynomialRing,
+	  then the output will be a module over T.
          Example
 	  kk= ZZ/101
 	  S = kk[x,y,z]
@@ -2892,6 +2918,7 @@ doc ///
         SeeAlso 
 	  ExtModule 
 	  evenExtModule
+          OutRing
      ///
 
 
@@ -4446,6 +4473,15 @@ assert(isFreeModule E);
 assert(rank E==1);
 ///
 
+///TEST
+R = ZZ/101[a,b,c]/ideal"a3,b3,c3"
+M = R^1/ideal"ab,ac,bc"
+U = ZZ/101[A,B,C]
+Ee = evenExtModule(M, OutRing => U)
+Eo = oddExtModule(M, OutRing => U)
+assert(ring Ee === U)
+assert(ring Eo === U)
+///
 
 end--
 restart
@@ -4534,4 +4570,89 @@ cokernel | x_0x_1 x_1x_2 x_0x_3 |
 {2, 1, 0}
 {1, 1, 0}
 cokernel | x_1 x_2x_3 |
+
+---------
+--define maps extModule M -> completeExtModule M -> S2 extModule syzygy_n M in degrees >=b.
+
+restart
+
+viewHelp RandomIdeal
+viewHelp AnalyzeSheafOnP1
+loadPackage("CompleteIntersectionResolutions", Reload => true)
+loadPackage("RandomIdeal", Reload => true)
+loadPackage("AnalyzeSheafOnP1", Reload => true)
+c = 3
+RList = setupRings(c,5, Randomize =>false)
+S = RList_0
+R = RList_c
+I = trim randomIdeal({2,3,3},vars R)
+M = R^1/ideal(R_0^2, R_0*R_1^2)
+M = R^1/I
+M = coker random(R^4, R^{-1,-2,-3,-4})
+(MM,kk,p) = setupModules(RList, M)
+regularity (E = ExtModule MM_c)
+E0 = evenExtModule (syzygyModule(0,MM_c))
+ell = random(1, ring E0)
+t = false
+n = 0
+while t == false do (
+        t = isNZD(ell, truncate(n,dual E0));
+	n=n+1)
+n
+isNZD(ell, truncate(0,dual evenExtModule MM_c))
+
+
+betti res dual E0
+
+dual syzygyModule(0,MM_c)
+E1 = oddExtModule (dual syzygyModule(0,MM_c))
+TateResolution(MM_c, -3,3)
+hf(0..5,E0)
+hf(0..5,E1)
+
+
+hf(-5..10, truncate(-10,target S2(-10,E0)))
+hf(-5..10, truncate(-10,target S2(-10,dual E0)))
+betti res prune E0
+betti res truncate(-10,target S2(-10,E0))
+betti res truncate(-10,target S2(-10,dual E0))
+prune truncate(0, coker S2(0,E0))
+prune truncate(0, ker S2(0,E0))
+prune truncate(0, coker S2(0,E1))
+prune truncate(0, ker S2(0,E1))
+
+hf(-5..5, ker S2(-5, E0))
+hf(-5..5, ker S2(-5, E1))
+hf (0..5, prune coker S2(0,E))
+prune target S2(0,E)
+prune truncate(0, target S2(0,E))
+
+b = 0
+SE = ring E
+vars SE
+r= regularity E
+tbasis = basis(r+1-b,SE^1) --(vars S)^[r-b];
+t = map(SE^1, module ideal tbasis, tbasis)
+s =Hom(t,E)
+
+--If M is MCM, then
+-- evenExtModule M and the dual of oddExtModule dual M are part of one larger
+-- module, the total Ext. They share the periodic part, but otherwise are disjoint.
+--in addition, there's a part that is artinian on both sides.
+
+--Conjecture 1: Ext(M,k) surjects to target S2 Ext (M,k) in degrees >=0.
+
+nzdeg = M ->(
+    --returns smallest degree such that 
+    --a general linear form of ring M is a nonzerodivisor on M.
+    socM := ker (M**(transpose vars ring M));
+    1+max flatten (degrees gens prune socM)_0
+)
+    
+testS2Conjecture = M -> (
+    Ee = evenExtModule M;
+    Eo' = oddExtModule dual M;    
+
+
+
 
