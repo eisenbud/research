@@ -1218,7 +1218,6 @@ TateResolution(Module,ZZ,ZZ) := (M,low,high) ->(
 	 F := res (coker d, LengthLimit =>(high-low+2));
 	 complete F;
          T := (chainComplex reverse apply(high-low+1, j->transpose (F.dd_j)))[-low];
-         print betti T;
 	 T
          )
 TateResolution(Module,ZZ) := (M,b) -> TateResolution(M,b,b)
@@ -4484,31 +4483,49 @@ assert(ring Eo === U)
 ///
 
 end--
+
 restart
 --notify=true
 uninstallPackage "CompleteIntersectionResolutions"
 installPackage "CompleteIntersectionResolutions"
 check "CompleteIntersectionResolutions"
 
-viewHelp CompleteIntersectionResolutions
+--viewHelp CompleteIntersectionResolutions
+
+
+---------
+--Conjecture 1: Ext(M,k) surjects to target S2 Ext (M,k) in degrees >=0.
+
+--THIS is FALSE! from the following example, where the "apparently periodic part"
+--of the resolution is continued in the S2-target, but NOT in the Ext's of coszygies.
+--In this case the apparently periodic part comes from a map of a periodic module
+--onto M.
+restart
 loadPackage("CompleteIntersectionResolutions", Reload=>true)
-loadPackage("MCMApproximations", Reload => true)
-loadPackage("RandomIdeal", Reload => true)
 
-Rlist = setupRings(4,2, Randomize => false)
-S = Rlist_0
-R= Rlist_4
-rsfs = randomSquareFreeStep
-J = monomialIdeal 0_S
-time L= apply(100, j-> (J = rsfs(J,AlexanderProbability => .1))_0);
-I = L_5
-apply (L, I -> regularitySequence (Rlist, module sub(I, R)))
+c = 3
+S = ZZ/101[x_0..x_(c-1)]
+ff = matrix{ apply(c, i->x_i^2)}
+R = S/ideal ff
 
+M = cokernel matrix {{x_0, x_1*x_2}}
+betti res M
+b=1
+prune truncate(0, coker S2(0,evenExtModule syzygyModule(-b,M)))
+betti res syzygyModule(-b, M) 
 
+------------
+--Conjecture 2: If R = S/(ideal ff), a complete intersection, M is an
+--R-module, and the regular sequence ff is "sufficiently general for M,
+--then regularity extModule M_i is a nondcreasing fundtion of i, where,
+--M_i is the "codime i MCM approximation" over S/(ideal ff_{0..i-1}).
+--Note that this is *false* if ff is not sufficiently general (as
+--one would expect.
 
-
-viewHelp setupRings
-viewHelp regularitySequence
+--This is of course true for the associated sheaves;
+--in fact the regularity of the associated sheaves is constant until 
+--the sheaf becomes 0. And it's also true for the ext modules 
+--and their successive quotients by the t maps.
 
 
 isNondecreasing = L ->(
@@ -4517,18 +4534,7 @@ isNondecreasing = L ->(
   scan(length L - 1, i-> if L_(i+1)<L_i then t = false);
   t)
 
-
-restart
-loadPackage("CompleteIntersectionResolutions", Reload=>true)
-loadPackage("MCMApproximations", Reload => true)
-loadPackage("RandomIdeal", Reload => true)
-
-isNonincreasing = L ->(
-  --if L is a List of integers, checks that they are nondecreasing
-  t := true;
-  scan(length L - 1, i-> if L_(i+1)>L_i then t = false);
-  t)
-testRegSeqConj = (R,M) ->(
+testRegularitySeqConj = (R,M) ->(
     --R = complete intersection list R_(i+1) = R_i/f_(i+1), i= 0..c.
     --M = module over R_c
     --{reg evenExtModule M_i} and  {reg oddExtModule M_i}}
@@ -4546,6 +4552,35 @@ testRegSeqConj = (R,M) ->(
     if not isNonincreasing OMList then <<"oddExt fails on: "<<M<<endl;
     )
 
+time scan(L, I -> (
+	    << "."<< flush;
+	    testRegularitySeqConj(Rlist, R^1/sub(I, R))))
+--313 sec for the 5 var case.
+tally apply(L, I-> degrees gens  I)
+
+------------------------------
+--Some code that helped find the counterexample to conjecture 1 reported above in
+--simplified form.
+restart
+loadPackage("CompleteIntersectionResolutions", Reload=>true)
+loadPackage("MCMApproximations", Reload=>true)
+loadPackage("RandomIdeal", Reload=>true)
+
+nzdeg = M ->(
+    --returns smallest degree n such that 
+    --a general linear form of ring M is a nonzerodivisor on truncation(n,M).
+    socM := ker (M**(transpose vars ring M));
+    n' := max flatten (degrees prune socM);
+    if n' =!= -infinity then n'+1 else min flatten degrees M
+)
+
+totalTateBetti = method()
+totalTateBetti (Module,ZZ,ZZ) := (M,min, max) ->(
+    T := TateResolution(M,min,max);
+    for i from min to max list rank T_i)
+
+
+
 Rlist = setupRings(5,2, Randomize => true)
 S = Rlist_0
 R= last Rlist
@@ -4553,106 +4588,51 @@ rsfs = randomSquareFreeStep
 J = monomialIdeal 0_S
 time scan(10000, j-> (J = rsfs(J,AlexanderProbability => .1))_0);
 time L= apply(100, j-> (J = rsfs(J,AlexanderProbability => .1))_0);
-time scan(L, I -> (
-	    << "."<< flush;
-	    testRegSeqConj(Rlist, R^1/sub(I, R))))
---313 sec for the 5 var case.
-tally apply(L, I-> degrees gens  I)
-
-{2, 2, 2, 0}
-{1, 2, 1, 0}
-cokernel | x_1 x_0x_2 |
-
-{1, 2, 2, 0}
-{1, 2, 1, 0}
-cokernel | x_0x_1 x_1x_2 x_0x_3 |
-
-{2, 1, 0}
-{1, 1, 0}
-cokernel | x_1 x_2x_3 |
-
----------
---define maps extModule M -> completeExtModule M -> S2 extModule syzygy_n M in degrees >=b.
-
-restart
-
-viewHelp RandomIdeal
-viewHelp AnalyzeSheafOnP1
-loadPackage("CompleteIntersectionResolutions", Reload => true)
-loadPackage("RandomIdeal", Reload => true)
-loadPackage("AnalyzeSheafOnP1", Reload => true)
-c = 3
-RList = setupRings(c,5, Randomize =>false)
-S = RList_0
-R = RList_c
-I = trim randomIdeal({2,3,3},vars R)
-M = R^1/ideal(R_0^2, R_0*R_1^2)
-M = R^1/I
-M = coker random(R^4, R^{-1,-2,-3,-4})
-(MM,kk,p) = setupModules(RList, M)
-regularity (E = ExtModule MM_c)
-E0 = evenExtModule (syzygyModule(0,MM_c))
-ell = random(1, ring E0)
-t = false
-n = 0
-while t == false do (
-        t = isNZD(ell, truncate(n,dual E0));
-	n=n+1)
-n
-isNZD(ell, truncate(0,dual evenExtModule MM_c))
 
 
-betti res dual E0
+I =ideal (S_1*S_3,S_0*S_1*S_4)
+M = R^1/(sub(I,R))
 
-dual syzygyModule(0,MM_c)
-E1 = oddExtModule (dual syzygyModule(0,MM_c))
-TateResolution(MM_c, -3,3)
-hf(0..5,E0)
-hf(0..5,E1)
+--testS2Conjecture = M -> (
+    b = 2
+    Ee = evenExtModule M--
+    Eo = oddExtModule M--    
+    Ee' = evenExtModule dual M--    
+    Eo' = oddExtModule dual M--
+    nplus = nzdeg Ee--
+    nminus = nzdeg Eo'--
+    se = S2(-b,Ee);--
+    se' = S2(-b,Ee');--    
+    so = S2(-b,Eo);
+    so' = S2(-b,Eo');
+    Pe = prune truncate (-nminus-b, target se);
+    Po' = prune truncate (-nplus-b, target so');--
+    Pe' = prune truncate (-nminus-b, target se');--
+    Po = prune truncate (-nplus-b, target so);--
+    per = #select (flatten degrees Pe, i-> i===-nminus-b)--
+    per' =#select (flatten degrees Po', i-> i===-nplus-b)--
+    --per == rank of the free modules in the period strand. 
+    --Should be the same when tested with the dual:
+    Po'
 
+he = apply(6, i -> if i%2==0 then (hf({i//2},Ee))_0 else 0);
+ho = apply(6, i -> if i%2==1 then (hf({(i-1)//2},Eo))_0 else 0);
+he' = apply(6, i -> if i%2==0 then (hf({i//2},Ee'))_0 else 0);
+ho' = apply(6, i -> if i%2==1 then (hf({(i-1)//2},Eo'))_0 else 0);
 
-hf(-5..10, truncate(-10,target S2(-10,E0)))
-hf(-5..10, truncate(-10,target S2(-10,dual E0)))
-betti res prune E0
-betti res truncate(-10,target S2(-10,E0))
-betti res truncate(-10,target S2(-10,dual E0))
-prune truncate(0, coker S2(0,E0))
-prune truncate(0, ker S2(0,E0))
-prune truncate(0, coker S2(0,E1))
-prune truncate(0, ker S2(0,E1))
+reverse(he'+ho')|he+ho
+totalTateBetti(M, -6,6)
 
-hf(-5..5, ker S2(-5, E0))
-hf(-5..5, ker S2(-5, E1))
-hf (0..5, prune coker S2(0,E))
-prune target S2(0,E)
-prune truncate(0, target S2(0,E))
+hpe = apply(6, i -> if i%2==0 then (hf({i//2},Pe))_0 else 0);
+hpo = apply(6, i -> if i%2==1 then (hf({(i-1)//2},Po))_0 else 0);
+hpe' = apply(6, i -> if i%2==0 then (hf({i//2},Pe'))_0 else 0);
+hpo' = apply(6, i -> if i%2==1 then (hf({(i-1)//2},Po'))_0 else 0);
 
-b = 0
-SE = ring E
-vars SE
-r= regularity E
-tbasis = basis(r+1-b,SE^1) --(vars S)^[r-b];
-t = map(SE^1, module ideal tbasis, tbasis)
-s =Hom(t,E)
-
---If M is MCM, then
--- evenExtModule M and the dual of oddExtModule dual M are part of one larger
--- module, the total Ext. They share the periodic part, but otherwise are disjoint.
---in addition, there's a part that is artinian on both sides.
-
---Conjecture 1: Ext(M,k) surjects to target S2 Ext (M,k) in degrees >=0.
-
-nzdeg = M ->(
-    --returns smallest degree such that 
-    --a general linear form of ring M is a nonzerodivisor on M.
-    socM := ker (M**(transpose vars ring M));
-    1+max flatten (degrees gens prune socM)_0
-)
-    
-testS2Conjecture = M -> (
-    Ee = evenExtModule M;
-    Eo' = oddExtModule dual M;    
+reverse(hpe'+hpo')|hpe+hpo
+totalTateBetti(M, -6,6)
 
 
-
-
+hf(-3..3, target se)
+hf (-3..3, target so)
+hf(-3..3, target se')
+hf(-3..3, target so')
