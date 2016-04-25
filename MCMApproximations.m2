@@ -538,11 +538,11 @@ doc ///
      degree of homogoneous generators
    Outputs
     R:List
-     List of rings R_0..R_c with R_i = S/(f_0..f_(i-1))
+     List of rings R_0..R_c with R_i = S/(f_0..f_{i-1}). 
    Description
     Text
-     Uses the complete intersection f_0..f_(c-1) to be random combinations of x_0^d..x_(c-1)^d
-     in the polynomial ring ZZ/p[x_0..x_c], where p can be set by the optional 
+     Uses the complete intersection f_0..f_{c-1} consisting of random combinations of x_0^d..x_{c-1}^d
+     in the polynomial ring ZZ/p[x_0..x_{c-1}], where p can be set by the optional 
      argument Characteristic=>p.
     Example
      netList setupRings(2,2)
