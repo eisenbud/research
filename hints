@@ -1,0 +1,5 @@
+To start M2 without the init file:
+
+Add "-q" to the M2 command line. To do that in emacs, use C-u f12 instead
+of f12 to start M2.
+It will then give you an opportunity to edit the command line for M2.
