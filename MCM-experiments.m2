@@ -55,8 +55,10 @@ time test(S,Mc,low,high)
 
 --Conjecture 1: the "regularity of the successive MCM approximations is decreasing
 restart
+uninstallPackage "MCMApproximations"
 installPackage "MCMApproximations"
 loadPackage("MCMApproximations", Reload=>true)
+loadPackage("CompleteIntersectionResolutions", Reload=>true)
 c = 3
 R =setupRings(c,3)
 Rc=R_c
