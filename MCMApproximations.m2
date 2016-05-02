@@ -617,7 +617,7 @@ doc ///
      degree of homogoneous generators
    Outputs
     R:List
-     List of rings R_0..R_c with R_i = S/(f_0..f_(i-1))
+     List of rings R_0..R_c with R_i = S/(f_0..f_{i-1}). 
    Description
     Text
      Makes a complete intersection f_0..f_(c-1) = x_0^d..x_(c-1)^d
