@@ -411,12 +411,25 @@ g = (x^2-z)
 h = (x*z-y^2)
 f = g*h
 isHomogeneous f
-J = ideal diff(vars R,f)
-I = saturate J 
-assert(I == ideal (g,h))
+J = diff(vars R,f)
+I = saturate ideal J 
+J' = J*(id_(source J) + matrix"0,0,0;0,0,0;7x,0,0")
 hessf = det jacobian J
+hessf'= det jacobian J'
 hessf % gens(I^2)
+hessf'% gens(I^2)
+
 assert (I == (I*J): hessf)
+
+assert( 0 != hessf % gens (ideal(J)*minors(2, jacobian J)+I^2))
+isHomogeneous(ideal(J)*minors(2, jacobian J)+I^2)
+
+assert(I == ideal (g,h))
+
+J2 = intersect(I^2+ideal J_{0,1},I^2+ideal J_{0,2},I^2+ideal J_{1,2})
+trim J2
+hessf % gens(I^2+ ideal(gens J2 % (I^2)))
+toList(0..2)-set{1}
 
 J' = map(R^1, source gens J, gens J)*random(source gens J, R^{3:-12})
 isHomogeneous J'
@@ -425,6 +438,7 @@ s = det jacobian J'
 s% gens(I^2)
 s% gens(I*ideal J')
 I*(ideal J') : ideal s
+
  ----- Same computation with random g,h
 restart
 R = QQ[x,y,z, Degrees =>{2,3,4}]
@@ -464,3 +478,36 @@ s = det jacobian J'
 s% gens(I^2)
 s% gens(I*ideal J')
 I*(ideal J') : ideal s
+
+
+---Which elements do give Jacobian in I^t+1
+--g=t=1 again
+restart
+S = kk[a,b]
+G = a
+I = ideal G
+F1 = a^2+b^2
+F2 = a+b
+J = matrix{{G*F1, G*F2}}
+det jacobian J % ideal(G^2)
+J' = matrix{{G*F1+(5*a+13*b)*G*F2, G*F2}}
+J' = matrix{{G*F1+(6*a-b)*G*F2, G*F2}}
+det jacobian J' % ideal(G^2)
+
+a1 = J_{0}
+a2 = J_{1}
+gens (intersect(ideal a1 + I^2, ideal a2+I^2))%(I^2)
+
+
+restart
+R = QQ[x,y,z, Degrees => {2,3,4}]
+f = (x^2-z)*(x*z-y^2)
+assert isHomogeneous f
+J = ideal diff (vars R, f)
+I = top J
+assert(codim J == 2)
+Hess = diff(transpose vars R, diff (vars R, f));
+sing = J+minors(2, Hess);
+assert(codim sing == 3)
+hess = det Hess
+assert(0 != hess % gens (J*minors(2, Hess)+I^2))
