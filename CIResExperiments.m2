@@ -6,8 +6,12 @@
 --of the resolution is continued in the S2-target, but NOT in the Ext's of coszygies.
 --In this case the apparently periodic part comes from a map of a periodic module
 --onto M.
+uninstallPackage "CompleteIntersectionResolutions"
 restart
-loadPackage("CompleteIntersectionResolutions", Reload=>true)
+installPackage "CompleteIntersectionResolutions"
+viewHelp S2
+--loadPackage("CompleteIntersectionResolutions", Reload=>true)
+
 
 c = 3
 S = ZZ/101[x_0..x_(c-1)]
@@ -17,6 +21,11 @@ R = S/ideal ff
 M = cokernel matrix {{x_0, x_1*x_2}}
 betti res M
 b=1
+Mb = syzygyModule(-b,M)
+E = evenExtModule Mb
+SE = S2(0,E)
+
+betti res target SE
 prune truncate(0, coker S2(0,evenExtModule syzygyModule(-b,M)))
 betti res syzygyModule(-b, M) 
 
