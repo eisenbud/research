@@ -208,3 +208,27 @@ doc ///
     regularitySequence
     socleDegrees
 ///
+
+
+viewHelp MCMApproximations
+S = ZZ/101[a,b,c,d]
+D = matrix"a,b;
+c,c"
+R = S/det D
+d = sub(D, R)
+M = coker d
+mm = ideal vars R
+N = M/(mm*M)
+(f,g) = approximation N
+source f
+betti res N
+
+S = ZZ/101[a,b]
+R = S/(a*b)
+M = coker matrix"a"
+mm = ideal vars R
+N = prune( M/((mm^3)*M))
+(f,g) = approximation N
+source f
+
+betti res N

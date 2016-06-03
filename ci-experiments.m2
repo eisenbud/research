@@ -22,21 +22,6 @@ strand(ZZ, ChainComplex) := (d, F)->(
 --first local cohomology module is 0.
 
 
-
-cosyzygy = (e,M) -> (
-F := cosyzygyRes(e,M);
-coker F.dd_1)
-
-depth Module := M ->(
-    --M is a module over R = S/I,
-    --with S regular
-    R := ring M;
-    S := ring presentation R;
-    MS := pushForward(map(R,S), M);
-    numgens S - length complete res MS)
-
-testCM = M -> 0 == dim M - depth M
-
 testS2 = (e,M)->(
     --M is a module over R = S/(ff), a CI, then
     --testS2(e,M) tests whether the Ext(N,k) surjects
@@ -67,83 +52,6 @@ h_1_[0]^[1]
 ///
 
 
---MCM approximation 
-cmApproxe = method()
-cmApproxe(ZZ,Module) := (n,M) ->(
-    --returns the map to M from the
-    --dual of the n-th syz of the n-th syzy of M
-    F := res(M, LengthLimit =>n);
-    G := res(coker transpose F.dd_n, LengthLimit =>n);
-    F' := chainComplex reverse apply(n, j-> transpose F.dd_(j+1));
-    phi := extend(G, F', id_(G_0));
-    map(M, coker transpose G.dd_n, transpose phi_n)
-)
-
-cmApproxe Module := M ->(
-    --returns the map from the essential MCM approximation
-    R := ring M;
-    cmApproxe(1+dim R, M)
-    )
-TEST///
-S = ZZ/101[a,b,c]
-R = S/ideal"a3,b3,c3"
-use S
-R' = S/ideal"a3,b3"
-M = coker vars R
-assert( (pushForward(map(R,R'),M)) === cokernel map((R')^1,(R')^{{-1},{-1},{-1}},{{c, b, a}}) );
-use S
-assert( (pushForward(map(R,S), M)) === cokernel map((S)^1,(S)^{{-1},{-1},{-1}},{{c, b, a}}) );
-///
-
-TEST///
-restart
-
-S = ZZ/101[a,b,c]
-R = S/ideal"a3,b3,c3"
-use S
-R' = S/ideal"a3,b3"
-M = coker vars R
-M' = pushForward(map(R,R'),M)
-source cmApproxe M'
-
-///
-cmApprox = method()
-cmApprox Module := M->(
-    --returns the list {phi, psi} where:
-    --phi is the map from the essential MCM approximation
-    --psi is the minimal map from a free module necessary to make
-    -- alpha = (phi | psi) an epimorphism
-    phi := cmApproxe M;
-    psi := null;
-    N := coker phi;
-    N1 := prune N;
-    
-    if N1 == 0 then (
-	psi = map(M,(ring M)^0, 0);
-        return (phi, psi));
-    MtoN := map(N,M, id_(cover M));
-    a := N1.cache.pruningMap;
-    psi = (matrix a)//matrix(MtoN);
-    (phi, psi)
-    )
-
-TEST///
-restart
-load"ci-experiments.m2"
-S = ZZ/101[a,b,c]
-R = S/ideal"a3,b3,c3"
-use S
-R' = S/ideal"a3,b3"
-M = coker vars R
-(phi,psi) = cmApprox(pushForward(map(R,R'),ker syz presentation M))
-assert( (prune source phi) === cokernel map((R')^{{-4},{-4},{-4},{-4},{-4},{-4},{-3}},(R')^{{-5},{-5},{-5},{-5},{-5},{-5},{-6},{-6},{-6}},
-	      {{c,-b, 0, 0, 0, 0, a^2, 0, 0}, {0, 0, b, 0, -c, 0, 0, a^2, 0}, {a, 0, 0, 0, 0, -b, 0, 0, 0}, 
-		  {0, a, 0, 0,0, -c, 0, -b^2, 0}, {0, 0, a, c, 0, 0, 0, 0, b^2}, {0, 0, 0, b, a, 0, 0, 0, 0}, {0, 0, 0, 0, b^2, a^2, 0, 0, 0}}) )
-assert( (prune source psi) === (R')^{{-4},{-4},{-4}} )
-assert(isSurjective(phi|psi)===true)
-assert( (prune ker (phi|psi)) === (R')^{{-5},{-5},{-5},{-6},{-6},{-6}} );
-///
-
 
 ///
 
@@ -172,8 +80,6 @@ M1 = prune source(phi|psi);
 M1e = prune source phi; --should be a CM module without free summands of codim 1
 betti res M1
 betti res M1e
-
-
 
 m= 2
 d = 2

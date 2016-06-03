@@ -93,4 +93,130 @@ betti res (I2' = ideal((gens I2)_{1..5}))
 degree I2'
 
 ///
+uninstallPackage "ResidualIntersections"
+restart
+notify=true
+installPackage ("ResidualIntersections")
 
+S = ZZ/101[x_(1,1)..x_(2,5)]
+m = minors(2,genericMatrix(S,x_(1,1), 2,3))
+n = minors(2, genericMatrix(S,x_(1,1), 2,4))
+p = minors(2, genericMatrix(S,x_(1,1), 2,5))
+
+koszulDepth m
+koszulDepth n
+koszulDepth p
+
+L = minors(2,genericMatrix(S,x_(1,1), 3,3))
+koszulDepth L
+
+
+
+-----------------
+needsPackage"SimplicialComplexes"
+needsPackage"Nauty"
+needsPackage"RandomIdeal"
+needsPackage"ResidualIntersections"
+needsPackage"Depth"
+
+v = 5;
+S = ZZ/32003[x_1..x_v];
+licciGraphs = {};
+listGraphs = generateGraphs(S, OnlyConnected => true);
+time for G in listGraphs do (
+    I = monomialIdeal simplicialComplex apply(edges G, E-> product E);
+    if hilbertFunction(1,I)==v and isLicci I then (print edges G; licciGraphs = append(licciGraphs,G));
+)    
+
+-- Routine 2: fixed the number of vertices v, it proceeds by the number of edges e and prints intermediate results.
+-- It discards ideals I containing variables.
+
+--Stanley-Reisner:
+v = 5;
+S = ZZ/32003[x_1..x_v];
+UGraphs = {};
+for e in v-1..binomial(v,2) do (
+    print e;
+    listGraphs = generateGraphs(S,e, OnlyConnected => true);
+    time for G in listGraphs do (
+    	I = monomialIdeal simplicialComplex apply(edges G, E-> product E);
+    	--if hilbertFunction(1,I)==v and isLicci I then 
+	--(print edges G; licciGraphs = append(licciGraphs,G));
+	if depth (S/I^2)>0 then 
+	(print edges G; UGraphs = append(UGraphs,G));
+	))
+    	
+v = 5;
+S = ZZ/32003[x_1..x_v];
+goodGraphs = {};
+for e in v-1..binomial(v,2) do (
+    print e;
+    listGraphs = generateGraphs(S,e, OnlyConnected => true);
+    time for G in listGraphs do (
+    	I = monomialIdeal simplicialComplex apply(edges G, E-> product E);
+    --	if hilbertFunction(1,I)==v and isLicci I then 
+--	(print edges G; goodGraphs = append(goodGraphs,G));
+	if isStronglyCM I then 
+	(print edges G; goodGraphs = append(goodGraphs,G));
+	))
+
+T = ZZ/32003[a..e]
+I = ideal"ab,ac,bc,bd,cd,ade" --3cycle, 2 whiskers
+betti res I
+
+I = ideal"ab,de,ac,bc,cd"--4cycle, 1 whisker
+betti res I
+
+I = ideal"ab,ae,bc,cd,de"--5cycle
+betti res I
+
+-------------------
+restart
+S = ZZ/101[a..d]
+s = 3
+n = 3
+
+m = matrix"a,b,c;
+b,c,d"
+I = minors(n-1,m)
+I = saturate(I^2)
+betti res I
+gens3 = (vars S)*random(source vars S, S^{3:-1})
+
+ff = gens I*random(source gens I, S^{s: -n})
+D = det diff(gens3,transpose ff)
+D%(((ideal ff)*I):ideal gens3)
+
+ff' = gens I*random(source gens I, S^{s+1: -5})
+codim(ideal ff' : I)
+D' = det(diff(vars S, transpose ff'))
+D'%((((ideal ff'))*(I^2)):ideal(a,b,c,d))
+D'%((((ideal ff'))*(I^2)))
+
+--------------
+
+restart
+S = ZZ/32003[a..c]
+s = 3
+n = 3
+
+
+
+I = intersect(ideal"a2,b2", 
+    ideal"a2,c2", 
+    ideal"b2,c2",
+    ideal(a*(a-b)*(a-2*b),b^4)) 
+I2 = intersect(ideal"a2,b2", 
+    ideal(a*(a-b)*(a-2*b),b^4)) 
+
+degree I
+--I = intersect(ideal"a2,b2", ideal"a2,c2", ideal"b2,c2")
+codim minors(2, presentation module I)
+betti res I
+
+ff = gens I*random(source gens I, S^{s: -6})
+D = det diff(vars S,transpose ff)
+res coker ff
+D%(((ideal ff)*I):ideal vars S)
+D%(I^2)
+D%((ideal ff)*I)
