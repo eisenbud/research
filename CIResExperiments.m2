@@ -12,35 +12,82 @@ installPackage "CompleteIntersectionResolutions"
 viewHelp S2
 --loadPackage("CompleteIntersectionResolutions", Reload=>true)
 
-
-c = 3
-S = ZZ/101[x_0..x_(c-1)]
-ff = matrix{ apply(c, i->x_i^2)}
+restart
 R = S/ideal ff
 
 M = cokernel matrix {{x_0, x_1*x_2}}
 betti res M
-b=1
-Mb = syzygyModule(-b,M)
-E = evenExtModule Mb
-SE = S2(0,E)
+b=5
+Mb = prune syzygyModule(-b,M);
+E = prune evenExtModule Mb;
+S2map = S2(0,E);
+SE = prune target S2map;
+extra = prune coker S2map;
+KE = prune ker S2map;
+betti res(Mb, LengthLimit => 10)
+apply (5, i-> hilbertFunction(i, KE))
+apply (5, i-> hilbertFunction(i, E))
+apply (5, i-> hilbertFunction(i, SE))
+apply (5, i-> hilbertFunction(i, extra))
 
-betti res target SE
-prune truncate(0, coker S2(0,evenExtModule syzygyModule(-b,M)))
-betti res syzygyModule(-b, M) 
 
+E1 = prune oddExtModule Mb;
+S2map = S2(0,E1);
+SE1 = prune target S2map;
+extra1 = prune coker S2map;
+KE1 = prune ker S2map;
+betti res(Mb, LengthLimit => 10)
+apply (5, i-> hilbertFunction(i, KE1))
+apply (5, i-> hilbertFunction(i, E1))
+apply (5, i-> hilbertFunction(i, SE1))
+apply (5, i-> hilbertFunction(i, extra1))
+
+--Does this example satisfy the regularity conjecture below:
+restart
+loadPackage("CompleteIntersectionResolutions", Reload=>true)
+needsPackage "MCMApproximations"
+c = 3
+S = ZZ/101[x_0..x_(c-1)]
+ff = matrix{ apply(c, i->x_i^2)}
+ff = ff*random(source ff, S^{3:-2})
+ff_(toList(0..0))
+R = join({S}, apply(3, i->S/ideal(ff_(toList(0..i)))))
+use R_3
+M = cokernel matrix {{x_0, x_1*x_2}}
+betti res M
+b=5
+Mb = prune syzygyModule(-b,M);
+betti res (Mb, LengthLimit =>10)
+M = apply(4,i -> source (approximation pushForward(map(R_3,R_i), Mb))_0);
+apply(4, i-> regularity evenExtModule(M_i))
+apply(4, i-> regularity oddExtModule(M_i))
+N = highSyzygy (M_3)
+betti res N
+betti res M_3
+mfBound Mb
+regularity evenExtModule Mb
+
+betti res (M6 = syzygyModule(6, M_3))
+regularity oddExtModule M6
+truncate(0, target S2(0, evenExtModule M6))
 ------------
 --Conjecture 2: If R = S/(ideal ff), a complete intersection, M is an
 --R-module, and the regular sequence ff is "sufficiently general for M,
---then regularity extModule M_i is a nondcreasing fundtion of i, where,
---M_i is the "codime i MCM approximation" over S/(ideal ff_{0..i-1}).
+--then regularity extModule M_i is a nondcreasing function of i, where,
+--M_i is the "codim i MCM approximation" over R_i := S/(ideal ff_{0..i-1}).
 --Note that this is *false* if ff is not sufficiently general (as
---one would expect.
+--one would expect.)
 
---This is of course true for the associated sheaves;
---in fact the regularity of the associated sheaves is constant until 
---the sheaf becomes 0. And it's also true for the ext modules 
---and their successive quotients by the t maps.
+--This is of course true for the associated sheaves, since the
+--sheaf associated to 
+--Ext_{R_i}(M,k)
+--is the restriction to a general hyperplane of the sheaf associated
+--to 
+--Ext_{R_{i+1}}(M,k).
+--Thus the regularity of the associated sheaves is constant until 
+--the sheaf becomes 0. Note that in general, for a graded module E
+--and a quasi-regular linear parameter t, reg(E/t)\leq reg E.
+
 
 
 isNondecreasing = L ->(
