@@ -1599,3 +1599,64 @@ s := sum(toList(b..a), i->
      ((-1)^i*2^(2*(a-p)))*binomial(2*p,p)*binomial(p,i)*binomial(2*i+1, a)));
 if s =!=0 then print {a,s}))
 
+---------------------------------------
+installPackage"CompleteIntersectionResolutions"
+loadPackage("CompleteIntersectionResolutions", Reload=>true)
+--Conjecture on regularity of ext
+
+restart
+needsPackage "MCMApproximations"
+needsPackage"CompleteIntersectionResolutions"
+viewHelp setupRings
+code methods setupRings
+
+
+n= 3
+S := ZZ/101[x_0..x_(n-1)]
+d = 4
+m := n*(d-1);
+
+(apply(100, u -> rank source fromDual matrix{{
+	    b0+sum apply(2,i->B_(random binomial(n+m-1,n-1)))
+	    }})
+)
+
+
+randomRegularSequences = (S,d,num) ->(
+n := numgens S;
+m := n*(d-1);
+B := ideal basis(m,S);
+b0 := product(n, i-> (S_i)^(d-1));
+L = select(apply(num, u -> fromDual matrix{{
+	    b0+sum apply(2,i->B_(random binomial(n+m-1,n-1)))
+	    }}) ,u -> rank source u == n);
+select(L, j-> max flatten (degrees j)_1 ==d))
+
+
+     setupRings(Matrix) := opts -> (ff)->(
+         S := ring ff;
+         if opts.Randomize===true then ff = ff*random(source ff, source ff);
+         {S}|apply(c, j->(S/ideal(ff_{0..j})))
+         )
+
+methods setupRings
+
+     setupModules(List,Module) := (R,M)->(
+         --R_i is a ci of codim i in a ring S
+         --returns (MM,kk,p) where
+         --MM,kk are lists whose i-compoents are the module M and residue field k, but over R_i
+         --p_i_j is the projection from R_j to R_i (c >= i >= j >= 0)
+         --M is a a module over R_c.
+         c := length R-1;
+         kk :=apply(c+1, i-> coker vars R_i);
+         p := apply(c+1, i->apply(i+1, j->map(R_i,R_j)));
+         MM := apply(c+1, j->prune pushForward(p_c_j, M));
+         (MM,kk,p))
+
+S := ZZ/101[x_0..x_2]
+L = randomRegularSequences(S,3,100);
+#L
+matrix(L_7)
+
+
+
