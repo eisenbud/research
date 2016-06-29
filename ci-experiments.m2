@@ -1600,8 +1600,14 @@ s := sum(toList(b..a), i->
 if s =!=0 then print {a,s}))
 
 ---------------------------------------
+restart
+notify=true
+uninstallPackage"CompleteIntersectionResolutions"
 installPackage"CompleteIntersectionResolutions"
 loadPackage("CompleteIntersectionResolutions", Reload=>true)
+
+restart
+installPackage "MCMApproximations"
 --Conjecture on regularity of ext
 
 restart
@@ -1615,6 +1621,9 @@ n= 3
 S := ZZ/101[x_0..x_(n-1)]
 d = 4
 m := n*(d-1);
+g = fromDual random(S^1, S^{-m})
+g = fromDual matrix{{product(n, i->S_i^(d-1))}}
+betti res coker g
 
 (apply(100, u -> rank source fromDual matrix{{
 	    b0+sum apply(2,i->B_(random binomial(n+m-1,n-1)))
@@ -1628,35 +1637,53 @@ m := n*(d-1);
 B := ideal basis(m,S);
 b0 := product(n, i-> (S_i)^(d-1));
 L = select(apply(num, u -> fromDual matrix{{
-	    b0+sum apply(2,i->B_(random binomial(n+m-1,n-1)))
+	    b0+sum apply(3,i->B_(random binomial(n+m-1,n-1)))
 	    }}) ,u -> rank source u == n);
 select(L, j-> max flatten (degrees j)_1 ==d))
 
-
-     setupRings(Matrix) := opts -> (ff)->(
-         S := ring ff;
-         if opts.Randomize===true then ff = ff*random(source ff, source ff);
-         {S}|apply(c, j->(S/ideal(ff_{0..j})))
-         )
-
-methods setupRings
-
-     setupModules(List,Module) := (R,M)->(
-         --R_i is a ci of codim i in a ring S
-         --returns (MM,kk,p) where
-         --MM,kk are lists whose i-compoents are the module M and residue field k, but over R_i
-         --p_i_j is the projection from R_j to R_i (c >= i >= j >= 0)
-         --M is a a module over R_c.
-         c := length R-1;
-         kk :=apply(c+1, i-> coker vars R_i);
-         p := apply(c+1, i->apply(i+1, j->map(R_i,R_j)));
-         MM := apply(c+1, j->prune pushForward(p_c_j, M));
-         (MM,kk,p))
-
-S := ZZ/101[x_0..x_2]
-L = randomRegularSequences(S,3,100);
+n= 3;d=3;
+S := ZZ/101[x_0..x_(n-1)]
+L = randomRegularSequences(S,3,1000);
 #L
-matrix(L_7)
+L1 = select(L, m-> all((ideal m)_*, p -> #terms p !=1))
+ff = L1_2
+ff = matrix{apply(n, i->(S_i)^d)}
+betti res coker ff
 
+R = setupRings  ff
+use R_3
+M = module ideal(x_0^2+x_1^2)
 
+M = syzygyModule(3,coker matrix{{x_0,x_1,x_2},{x_1,x_2,x_0}})
+
+M =coker random(R_n^2, R_n^{4:-3})
+M = syzygyModule(2, coker vars R_n)
+
+(MM,kk,p) = setupModules(R,M);
+regularity evenExtModule (MM_(4))
+approx = M -> source ((approximation M)_0)
+
+apply(n, i->
+    {regularity evenExtModule ( approx(MM_(i+1))), 
+	regularity oddExtModule( approx(MM_(i+1)))}
+    )
+
+viewHelp MCMApproximations
+apply(n, i->
+    {regularity evenExtModule (MM_(i+1)), 
+	regularity oddExtModule(MM_(i+1))}
+    )
+betti res (MM_2, LengthLimit => 10)
+depth MM_2
+depth (sM = syzygyModule(4, MM_2))
+ring sM
+dim MM_2
+dim (Ee = evenExtModule(MM_2))
+Eo = oddExtModule MM_2
+betti res Eo
+degree Ee == degree Eo
+betti res Ee
+betti res MM_1
+betti res(MM_1, LengthLimit =>10)
+ring MM_1
 
