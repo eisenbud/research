@@ -13,8 +13,9 @@ viewHelp S2
 --loadPackage("CompleteIntersectionResolutions", Reload=>true)
 
 restart
+S = ZZ/101[x_0..x_2]
+ff = apply(3, i->x_i^2)
 R = S/ideal ff
-
 M = cokernel matrix {{x_0, x_1*x_2}}
 betti res M
 b=5

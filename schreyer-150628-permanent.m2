@@ -15,7 +15,7 @@ assert(vertex I2 == ideal"d")
 end--
 
 restart
-n=4
+n=3
 S2 = ZZ/2[x_(1,1)..x_(n,n)]
 m= transpose genericMatrix(S2, x_(1,1),n,n)
 K2 = apply(n, i-> koszul(i+1,m^{i}))
@@ -185,7 +185,7 @@ transpose div1
 
 -------
 restart
-n=4
+n=3
 S2 = ZZ/2[x_(1,1)..x_(n,n)]
 m= transpose genericMatrix(S2, x_(1,1),n,n)
 K2 = apply(n, i-> koszul(i+1,m^{i}))
