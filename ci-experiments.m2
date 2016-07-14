@@ -1687,3 +1687,79 @@ betti res MM_1
 betti res(MM_1, LengthLimit =>10)
 ring MM_1
 
+path
+
+
+----June 29
+installPackage "RandomIdeal"
+needsPackage "RandomIdeal"
+needsPackage "MCMApproximations"
+needsPackage "CompleteIntersectionResolutions"
+setupR = method()
+setupR(Matrix) := ff->(
+    	  c :=numcols ff;
+          S := ring ff;
+          {S}|apply(c, j->(S/ideal(ff_{0..j})))
+          )
+approx = M -> source ((approximation M)_0)
+
+n= 4;d=2;
+S := ZZ/101[x_0..x_(n-1)]
+ff = random(S^1, S^{n:-d})
+betti res coker ff
+R = setupR  ff
+use R_n
+
+M = module ideal(x_0^2+x_1^2)
+M = syzygyModule(0,coker matrix{{x_0,x_1,x_2},{x_1,x_2,x_0}});
+M =coker random(R_n^2, R_n^{4:-3})
+M = syzygyModule(2, coker vars R_n)
+
+(MM,kk,p) = setupModules(R,M);
+
+apply(n, i->
+    {regularity evenExtModule ( approx(MM_(i+1))), 
+	regularity oddExtModule( approx(MM_(i+1)))}
+    )
+L = apply(n, i->
+    {regularity evenExtModule (MM_(i+1)), 
+	regularity oddExtModule(MM_(i+1))}
+    )
+
+
+scan(20,i->(
+ran = 1+random 10;
+I = randomBinomialIdeal(toList (ran:2),R_n) + randomBinomialIdeal({3},R_n);
+M = (R_n)^1/I;
+(MM,kk,p) = setupModules(R,M);
+--L = apply(n, i->
+--    {regularity evenExtModule (MM_(i+1)), 
+--	regularity oddExtModule(MM_(i+1))}
+--    );
+L=apply(n, i->
+    {regularity evenExtModule ( approx(MM_(1))), 
+     regularity oddExtModule( approx(MM_(1)))}
+    );
+t = all(#L-1, i->(
+	L':= L_i-L_(i+1);
+	L'_0<=0 and L'_1<=0));
+<<L<<endl;
+flush;
+if t == false then print I)
+)
+
+
+I = ideal(x_2*x_3+35*x_3^2, x_0*x_3, x_1*x_2, x_0*x_3^2+x_1*x_3^2);
+M = (R_n)^1/I;
+M = syzygyModule(-1,M)
+(MM,kk,p) = setupModules(R,M);
+apply(n, i->
+    {regularity evenExtModule (MM_(i+1)), 
+	regularity oddExtModule(MM_(i+1))}
+    )
+
+
+apply(n, i->
+    {regularity evenExtModule ( approx(MM_(i+1))), 
+	regularity oddExtModule( approx(MM_(i+1)))}
+    )
