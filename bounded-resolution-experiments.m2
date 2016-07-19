@@ -66,6 +66,7 @@ F.dd_3
 restart
 kk = ZZ/101
 n = 3
+(p,q,r) = (2,2,3)
 S = kk[x_1,x_2,y_0..y_(n-1),s,t]
 mm = apply(n, i-> matrix{{x_1,y_(i%n)},{0,x_2}})
 use S
@@ -109,3 +110,64 @@ I1 = ideal extra
 R1 = R/I1
 betti (F =  res (coker sub(m1,R1), LengthLimit =>4))
 F.dd_2
+
+---
+--pos integral solutions of p^3+r^3+q^3-3pqr = 0
+restart
+S = QQ[p,q,r]
+f = p^3+q^3+r^3-3*p*q*r
+f(1,2,3)
+scan(30, i-> apply(30, j-> apply(300, k-> (
+		if sub(f, {p=>i,q=>j,r=>k})== 0 then
+  print(i,j,k)))))
+
+---
+restart
+kk = ZZ/101
+S = kk[x,y,z]
+needsPackage "LexIdeals"
+I = lexIdeal(S,{1,3,3,3,3,3,2})
+R=S/I
+m = matrix"x,y;
+0,z"
+betti res coker m
+
+use S
+J = minors(2,matrix"x,y,z;y,z,x")
+R = S/(J + ideal (x^6+y^6+z^6))
+m = matrix"x,y;
+0,z"
+betti res (coker m, LengthLimit =>10)
+betti res( coker matrix"x,y;
+y,x", LengthLimit =>10)
+
+betti res coker matrix"x,y,z;y,z,x"
+
+
+----
+restart
+needsPackage "LexIdeals"
+kk = ZZ/101
+(p,q,r) = (2,2,3)
+n = 6
+S =kk[x_(0,0)..x_(p-1,q-1),
+    y_(0,0)..y_(q-1,r-1),
+    z_(0,0)..z_(r-1,p-1),
+    a_0..a_(n-1)]
+m1 = genericMatrix(S,x_(0,0),p,q)
+m2 = genericMatrix(S,y_(0,0),q,r)
+m3 = genericMatrix(S,z_(0,0),r,p)
+eqn = ideal(m1*m2)+ideal(m2*m3)+ideal(m3*m1)
+R = S/eqn
+apply(8, i->hilbertFunction(i,R^1))
+betti (F = res(coker sub(m1,R), DegreeLimit =>3, LengthLimit =>3))
+q = (F.dd_2)_{3..17}
+l = (F.dd_2)_{0..2}
+l' = sum apply (n, i-> a_i*random(R^3,R^15))
+
+I1 = ideal(q -l*l');
+--I1 = ideal((F.dd_2)_{3..17})
+R2 = R/I1
+betti (F = res(coker sub(m1,R2), DegreeLimit =>3, LengthLimit =>2))
+
+---
