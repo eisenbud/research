@@ -1758,8 +1758,152 @@ apply(n, i->
 	regularity oddExtModule(MM_(i+1))}
     )
 
-
 apply(n, i->
     {regularity evenExtModule ( approx(MM_(i+1))), 
 	regularity oddExtModule( approx(MM_(i+1)))}
     )
+
+---- July 23
+restart
+needsPackage "RandomIdeal"
+needsPackage "MCMApproximations"
+needsPackage "CompleteIntersectionResolutions"
+--viewHelp setupRings
+approx = M -> source ((approximation M)_0)
+
+n=4;d=2;
+--kk = GF(32)
+kk = ZZ/2
+S = kk[x_0..x_(n-1)]
+ff = random(S^1, S^{n:-d})
+
+ff = matrix {apply (n, i->S_i^2)}
+ff = ff*random(source ff, source ff)
+betti res coker ff
+R = setupRings  ff
+R4 = S/(ideal ff)
+use R4
+--R = setupRings(n,d)
+use R_n
+M = module ideal(x_0^2+x_1^2)
+--BRanks {{0, 0}, {2, 2}, {1, 2}}
+M = syzygyModule(0,coker matrix{{x_0,x_1,x_2},{x_1,x_2,x_0}});
+--BRanks: {{4, 4}, {5, 7}, {3, 7}}
+M =coker random(R4^2, R4^{4:-3})
+
+M =coker random(R_n^2, R_n^{4:-3})
+--n = 4,d = 2:
+--resolutions in char 101, with 4 vars and the squares, have
+--different hilbert polys (different const terms)
+
+--with n=3, d=4 and M =coker random(R_n^2, R_n^{4:-3})
+--BRanks for high syz of M and its dual, NOT equal:
+--o89 = {{18, 18}, {6, 18}, {4, 18}}
+--o91 = {{18, 18}, {12, 18}, {10, 18}}
+M =coker random(R_n^{, R_n^{3:-2})
+M =coker random(R_n^3, R_n^{4:-3})
+
+--(MM,kk,p) = setupModules(R,M);
+debugLevel = 5
+MF = matrixFactorization(ff,syzygyModule(1,highSyzygy M));
+BRanks MF
+MFd = matrixFactorization(ff,highSyzygy Hom(M,R_n));
+BRanks MFd
+
+betti res(highSyzygy M, LengthLimit => 6)
+betti res (highSyzygy Hom(M,R_n), LengthLimit =>6)
+
+restart
+n=4;d=2;
+kk = ZZ/2
+S = kk[x_0..x_(n-1)]
+R4 = S/ideal apply(n,i->S_i^2)
+M = cokernel matrix {{x_0*x_1*x_2+x_0*x_1*x_3, x_0*x_1*x_2+x_0*x_1*x_3+x_0*x_2*x_3+x_1*x_2*x_3,
+      x_0*x_1*x_2+x_0*x_1*x_3, x_0*x_1*x_3+x_0*x_2*x_3}, {x_0*x_1*x_2+x_0*x_1*x_3+x_0*x_2*x_3+x_1*x_2*x_3,
+      x_1*x_2*x_3, x_0*x_1*x_3+x_1*x_2*x_3, x_0*x_1*x_3}}
+
+betti res(M, LengthLimit => 12)
+betti res (Hom(N,R4), LengthLimit =>12)
+
+
+---
+restart
+needsPackage "RandomIdeal"
+needsPackage "MCMApproximations"
+needsPackage "CompleteIntersectionResolutions"
+approx = M -> source ((approximation M)_0)
+n= 3
+S = ZZ/101[x_0..x_(n-1)]
+ff = random(S^1,S^{-2,-3})
+R' = S/ideal(ff_{0}, ff_{1})
+R = R'/ideal (x_0^2)
+p = map(R,R')
+
+T = QQ[t,s]
+HilbertPolynomial = (M,T) ->(
+    h = hilbertPolynomial M;
+    pa = pairs h;
+    if (length pa) == 0 then return (0*T_0);
+    sum apply(pa,p->p_1*binomial(T_0+p_0, p_0))
+	)
+
+M = syzygyModule(0,coker matrix{{x_0,x_1,x_2},{x_1,x_2,x_0}});
+HilbertPolynomial(M,T)
+
+E = HilbertPolynomial(evenExtModule(M),T)
+E' = HilbertPolynomial(evenExtModule(dual M),T)
+O = sub(HilbertPolynomial(oddExtModule(M),T), {t=>-t+s})
+O' = sub(HilbertPolynomial(oddExtModule(dual M),T),{t=>-t+s})
+decompose(ideal(E-O))
+assert(E-sub(O,s =>0) == 0)
+assert(E'-sub(O',{s=>-4}) == 0)
+
+betti res (highSyzygy M, LengthLimit =>10)
+betti res (highSyzygy dual M, LengthLimit =>10)
+E = evenExtModule highSyzygy M;
+E' = evenExtModule highSyzygy dual M;
+eh = hilbertToRing(hilbertPolynomial E,T)
+eh' = sub(hilbertToRing(hilbertPolynomial E',T),{t=>-t+s})
+oh = hilbertToRing(hilbertPolynomial oddExtModule M
+oh' = sub(hilbertPolynomial oddExtModule dual M,{t=>-t+s}))
+
+
+ph = hibertToRing(h,T)
+ph' = hibertToRing(h',T)
+sub(ph',{t=>-t+s})
+decompose ideal (ph-sub(ph',{t=>-t+s}))
+isDualPolynomial = (f,g) ->(
+    if 
+
+
+
+M =coker random(R4^2, R4^{4:-3})
+M =coker random(R_n^2, R_n^{4:-3})
+M =coker random(R_n^{, R_n^{3:-2})
+M =coker random(R_n^3, R_n^{4:-3})
+
+M = syzygyModule(2,module ideal(b^2+c^2, a*b*c))
+(phi,psi) = approximation(pushForward(p,M))
+pushForward(p,M) == target phi
+M1 == target phi
+target psi == cover M1
+
+LtoF0 = (phi*(inducedMap(source phi, cover source phi)))//inducedMap(M1,cover M1)
+F1toF0 = presentation M1
+alpha = map(cover M1,
+    (cover source phi++
+    cover source psi)++
+    source presentation M1, 
+    LtoF0|psi|F1toF0)
+LtoF0|psi|F1toF0
+beta = map(source alpha,,syz alpha)
+beta^[0]
+(source alpha)_[0]
+source presentation M1
+target beta == source alpha
+prune ker(phi**coker vars ring phi)
+alpha = map(target phi, source phi++source psi,phi|psi)
+(ker alpha)
+code methods approximation
+source alpha
+viewHelp approximation
