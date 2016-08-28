@@ -1868,15 +1868,6 @@ oh = hilbertToRing(hilbertPolynomial oddExtModule M
 oh' = sub(hilbertPolynomial oddExtModule dual M,{t=>-t+s}))
 
 
-ph = hibertToRing(h,T)
-ph' = hibertToRing(h',T)
-sub(ph',{t=>-t+s})
-decompose ideal (ph-sub(ph',{t=>-t+s}))
-isDualPolynomial = (f,g) ->(
-    if 
-
-
-
 M =coker random(R4^2, R4^{4:-3})
 M =coker random(R_n^2, R_n^{4:-3})
 M =coker random(R_n^{, R_n^{3:-2})
@@ -1907,3 +1898,36 @@ alpha = map(target phi, source phi++source psi,phi|psi)
 code methods approximation
 source alpha
 viewHelp approximation
+
+
+---
+restart
+needsPackage "RandomIdeal"
+needsPackage "MCMApproximations"
+needsPackage "CompleteIntersectionResolutions"
+
+HilbertPolynomial = (M,T) ->(
+    h = hilbertPolynomial M;
+    pa = pairs h;
+    if (length pa) == 0 then return (0*T_0);
+    sum apply(pa,p->p_1*binomial(T_0+p_0, p_0))
+	)
+n= 3
+S = ZZ/101[x_0..x_(n-1)]
+ff = random(S^1,S^{-2,-2,-2})
+R = S/ideal ff
+T = QQ[t,s]
+
+M = syzygyModule(0,coker matrix{{x_0,x_1,x_2},{x_1,x_2,x_0}});
+
+E = HilbertPolynomial(evenExtModule(M),T)
+E' = HilbertPolynomial(evenExtModule(dual M),T)
+O = sub(HilbertPolynomial(oddExtModule(M),T), {t=>-t+s})
+O' = sub(HilbertPolynomial(oddExtModule(dual M),T),{t=>-t+s})
+
+--when ff has a cubic and 2 quadrics,
+--none of the following are solvable with s = constant
+decompose(ideal(sub(E,t=>2*t)-sub(O', t=>-2*t+s)))
+decompose(ideal(sub(E,t=>2*t)-sub(E', t=>-2*t+s)))
+decompose(ideal(sub(O,t=>2*t)-sub(O', t=>-2*t+s)))
+decompose(ideal(sub(O,t=>2*t)-sub(E', t=>-2*t+s)))
