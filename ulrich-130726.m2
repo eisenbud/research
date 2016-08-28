@@ -511,3 +511,15 @@ sing = J+minors(2, Hess);
 assert(codim sing == 3)
 hess = det Hess
 assert(0 != hess % gens (J*minors(2, Hess)+I^2))
+
+----
+Nonreduced examples:
+
+R = kk[a,b,c]
+II = apply(2, i -> ideal random(R^1, R^{-3}))
+II = {ideal"a3", ideal"b3"}
+II = {ideal"a2", ideal"ac-b2"}
+I = II_0^2 + II_1^2
+J = (gens I) *random(source gens I, R^{3:-7});
+D = det jacobian J;
+D % gens(I^2)

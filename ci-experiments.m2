@@ -1763,6 +1763,34 @@ apply(n, i->
 	regularity oddExtModule( approx(MM_(i+1)))}
     )
 
+
+----dual of the approximations? 
+restart
+load "ci-experiments.m2"
+needsPackage"CompleteIntersectionResolutions"
+needsPackage"MCMApproximations"
+needsPackage"RandomIdeals"
+viewHelp MCMApproximations
+
+
+R = setupRings(3,3)
+ff = presentation R_3
+M3 = coker matrix{{R_3_0,R_3_1,R_3_2},{R_3_1,R_3_2,R_3_0}}
+M3 = coker random(R_3^1, R_3^{2:-2})
+use R_3
+M3 =  R_3^1/randomMonomialIdeal({2,2,3,3},R_3)
+--M3 = R_3^1/(ideal(R_3_0^2+R_3_2^2, R_3_0*R_3_1^2+R_3_1^2*R_3_2))
+(M,k,p) = setupModules(R, M3);
+MM = highSyzygy M3;
+L = matrixFactorization(ff,syzygyModule(4,highSyzygy MM));
+BRanks L
+(phi,psi) = approximation pushForward(p_3_0,syzygyModule(6,highSyzygy MM));
+
+betti (F = res(source((approximation pushForward(p_3_2,syzygyModule(1,M3)))_0)))
+betti (G' = res(dual source((approximation pushForward(p_3_2,syzygyModule(0,Hom(M3,R_3))))_0)))
+
+
+
 ---- July 23
 restart
 needsPackage "RandomIdeal"
@@ -1899,7 +1927,6 @@ code methods approximation
 source alpha
 viewHelp approximation
 
-
 ---
 restart
 needsPackage "RandomIdeal"
@@ -1931,3 +1958,4 @@ decompose(ideal(sub(E,t=>2*t)-sub(O', t=>-2*t+s)))
 decompose(ideal(sub(E,t=>2*t)-sub(E', t=>-2*t+s)))
 decompose(ideal(sub(O,t=>2*t)-sub(O', t=>-2*t+s)))
 decompose(ideal(sub(O,t=>2*t)-sub(E', t=>-2*t+s)))
+

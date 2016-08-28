@@ -146,7 +146,7 @@ betti res coker matrix"x,y,z;y,z,x"
 
 ----
 restart
-needsPackage "LexIdeals"
+
 kk = ZZ/101
 (p,q,r) = (2,2,3)
 n = 6
@@ -171,3 +171,5 @@ R2 = R/I1
 betti (F = res(coker sub(m1,R2), DegreeLimit =>3, LengthLimit =>2))
 
 ---
+
+needsPackage "LexIdeals"
