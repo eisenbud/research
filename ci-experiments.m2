@@ -1793,7 +1793,7 @@ betti (G' = res(dual source((approximation pushForward(p_3_2,syzygyModule(0,Hom(
 
 ---- July 23
 restart
-needsPackage "RandomIdeal"
+needsPackage "RandomIdeals"
 needsPackage "MCMApproximations"
 needsPackage "CompleteIntersectionResolutions"
 --viewHelp setupRings
@@ -1803,19 +1803,26 @@ n=4;d=2;
 --kk = GF(32)
 kk = ZZ/2
 S = kk[x_0..x_(n-1)]
-ff = random(S^1, S^{n:-d})
-
 ff = matrix {apply (n, i->S_i^2)}
 ff = ff*random(source ff, source ff)
+--ff = random(S^1, S^{n:-d})
 betti res coker ff
+
+
 R = setupRings  ff
-R4 = S/(ideal ff)
-use R4
 --R = setupRings(n,d)
 use R_n
 M = module ideal(x_0^2+x_1^2)
+BRanks matrixFactorization(ff,highSyzygy M)
 --BRanks {{0, 0}, {2, 2}, {1, 2}}
 M = syzygyModule(0,coker matrix{{x_0,x_1,x_2},{x_1,x_2,x_0}});
+code methods ExtModuleData
+E = Ext(M,(ring M)^1/(ideal vars ring M))
+R4 = ring M
+numgens source presentation R4
+
+
+
 --BRanks: {{4, 4}, {5, 7}, {3, 7}}
 M =coker random(R4^2, R4^{4:-3})
 
