@@ -1958,4 +1958,103 @@ decompose(ideal(sub(E,t=>2*t)-sub(O', t=>-2*t+s)))
 decompose(ideal(sub(E,t=>2*t)-sub(E', t=>-2*t+s)))
 decompose(ideal(sub(O,t=>2*t)-sub(O', t=>-2*t+s)))
 decompose(ideal(sub(O,t=>2*t)-sub(E', t=>-2*t+s)))
+---------------------------------
+viewHelp
+restart
+needsPackage"CompleteIntersectionResolutions"
+needsPackage"BGG"
+viewHelp "CompleteIntersectionResolutions"
+viewHelp "BGG"
+R= setupRings(3,3)
+k = coker vars R_3
+(M,kk,p) =  setupModules(R,k)
+betti res syzygyModule(4,k)
+(N,kk,q) = setupModules(R,syzygyModule(3,k))
+betti res N_0
+evenExtModule(syzygyModule(4,k))
+betti res syzygyModule(4,k)
+
+------------------Simplest example for intro of Tor paper, corrected
+restart
+needsPackage"CompleteIntersectionResolutions"
+needsPackage"BGG"
+needsPackage"MCMApproximations"
+--viewHelp "CompleteIntersectionResolutions"
+--viewHelp "BGG"
+S = ZZ/101[x_0..x_2]
+ff = matrix{{x_0^3,x_1^3, x_2^3}}
+ff = ff*random(source ff,source ff)
+R = S/ideal ff
+N = apply(4,i-> syzygyModule(i, coker vars R));
+p = map(R,S);
+netList apply(4,i-> (
+	T = prune exteriorTorModule(ff,prune pushForward(p,N_i));
+	(betti res(T,LengthLimit => 5),betti res prune pushForward(p,N_i))
+	))
+
+m = 3
+T = prune exteriorTorModule(ff,prune pushForward(p,N_m));
+E = ring T
+ops = ring evenExtModule(N_m)
+
+T'gens = submatrixByDegrees(gens T, (0,1),(0,0)); -- the deg 0 generators
+T' = image (map(T,,T'gens));
+T'' = T/T';
+
+--the next two blocks demonstrate that the resolutions of
+--the even and odd ext modules are the BGG duals F',F'' of the dual
+--modules to T' and T''
+
+psi2 = bgg(1,dual T', ops)
+psi1 = bgg(2,dual T', ops)
+F' = chainComplex{psi1,psi2}
+assert (0==prune HH_2 F' and 0 == HH_1 F')
+betti res evenExtModule N_m
+
+phi1 = bgg(1,dual T'', ops)
+phi2 = bgg(0,dual T'', ops)
+F'' = chainComplex{phi1, phi2}
+assert (0==prune HH_2 F'' and 0 == HH_1 F'')
+betti res oddExtModule N_m
+
+
+--to compare these with the Branks
+
+--BUG in approximation: when it gets a non-pruned module, it may return something inHomoogeneous
+
+BRanks1 = (ff,M) ->(
+    --computes the last B-ranks that occur in the Layered resolution. Assumes M is an
+    --S-module that is  MCM over R = S/(ideal ff)
+    S := ring M;
+    R := S/ideal ff;
+    f := numcols ff;
+    R' := S/ideal(ff_{0..f-2});
+    p1 := map(R, R');
+    M1' := prune pushForward(p1, prune(R**M));
+   (phi,psi) := approximation M1';
+   M1 := prune pushForward(map(R',S),source phi);
+   (M1, rank source psi, rank ker (phi|psi)}
+    )
+BRanks(Matrix,Module) := (ff,N) ->(
+    --computes all the B-ranks that occur in the Layered resolution. 
+    --as in MF, M is an MCM module over S/(ideal ff)
+    S := ring ff;
+    p := map(ring N, ring ff);
+    M = prune pushForward(p,N);
+    c := numcols ff;
+    N := BRanks1(ff,M);
+    Llast := {N_1,N_2};
+    L := reverse apply(c-1, j->(
+    N = BRanks1(ff_{0..c-2-j},N_0);
+    {N_1,N_2}));
+    L|{Llast}
+    )
+BRanks(ff, N_3)
+betti ((layeredResolution(ff,M))_0) == betti res M
+--for N_2, the layered resolution over S is actually minimal, though it doesn't satisfy the
+--bound in the Layered paper. There is no matrix factorization in that case.
+--for N_3 there is a matrix factorization.
+BRanks matrixFactorization(ff,N_3)
+
+
 
