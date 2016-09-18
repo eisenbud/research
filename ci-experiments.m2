@@ -1999,7 +1999,7 @@ netList apply(4,i-> (
 	(betti res(T,LengthLimit => 5),betti res prune pushForward(p,N_i))
 	))
 
-m = 3
+m = 2
 T = prune exteriorTorModule(ff,prune pushForward(p,N_m));
 E = ring T
 ops = ring evenExtModule(N_m)
@@ -2040,7 +2040,7 @@ BRanks1 = (ff,M) ->(
     M1' := prune pushForward(p1, prune(R**M));
    (phi,psi) := approximation M1';
    M1 := prune pushForward(map(R',S),source phi);
-   (M1, rank source psi, rank ker (phi|psi)}
+   {M1, rank source psi, rank ker (phi|psi)}
     )
 BRanks(Matrix,Module) := (ff,N) ->(
     --computes all the B-ranks that occur in the Layered resolution. 
