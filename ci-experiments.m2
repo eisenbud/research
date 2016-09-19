@@ -1983,14 +1983,12 @@ betti res syzygyModule(4,k)
 
 ------------------Simplest example for intro of Tor paper, corrected
 restart
-needsPackage"CompleteIntersectionResolutions"
-needsPackage"BGG"
-needsPackage"MCMApproximations"
+uninstallPackage"CompleteIntersectionResolutions"
+installPackage"CompleteIntersectionResolutions"
 --viewHelp "CompleteIntersectionResolutions"
---viewHelp "BGG"
+needsPackage"BGG"
 S = ZZ/101[x_0..x_2]
-ff = matrix{{x_0^3,x_1^3, x_2^3}}
---ff = ff*random(source ff,source ff)
+ff = matrix{{x_0^3,x_1^3,x_2^3}}
 R = S/ideal ff
 N = apply(6,i-> syzygyModule(i, coker vars R));
 p = map(R,S);
@@ -1998,7 +1996,6 @@ netList apply(4,i-> (
 	T = prune exteriorTorModule(ff,prune pushForward(p,N_i));
 	(betti res(T,LengthLimit => 5),betti res prune pushForward(p,N_i))
 	))
-
 m = 2
 T = prune exteriorTorModule(ff,prune pushForward(p,N_m));
 E = ring T
@@ -2012,43 +2009,27 @@ T'' = T/T';
 --the even and odd ext modules are the BGG duals F',F'' of the dual
 --modules to T' and T''
 
-psi2 = bgg(1,dual T', ops)
-psi1 = bgg(2,dual T', ops)
-F' = chainComplex{psi1,psi2}
+phi2 = bgg(1,dual T', ops)
+phi1 = bgg(2,dual T', ops)
+F' = chainComplex{phi1,phi2}**ops^{-3}
+betti F'
 assert (0==prune HH_2 F' and 0 == HH_1 F')
-betti res evenExtModule N_m
+betti (G = res  evenExtModule N_m)
+G.dd_2
+F'.dd_2
+eq = map(ring F', ring G, {ops_2,-ops_1,ops_0})
+eq G == F'
+
+--so E1 and E2 are both free modules of rank 3 plus a copy of the maximal ideal
 
 phi1 = bgg(1,dual T'', ops)
 phi2 = bgg(0,dual T'', ops)
-F'' = chainComplex{phi1, phi2}
+F'' = chainComplex{phi1, phi2}**ops^{-2}
 assert (0==prune HH_2 F'' and 0 == HH_1 F'')
+
+oddExtModule N_m
+betti F''
 betti res oddExtModule N_m
-
-
---timing
---viewHelp "CompleteIntersectionResolutions"
---viewHelp "BGG"
-S = ZZ/101[x_0..x_3]
-ff = matrix{{x_0^3,x_1^3, x_2^3,x_3^3}}
---ff = ff*random(source ff,source ff)
-R = S/ideal ff
-N = apply(6,i-> syzygyModule(i, coker vars R));
-
-apply(toList(4..5), m->(
-BRanks(ff, N_m) == BRanks matrixFactorization(ff,N_m))
-)
-
-time betti ((layeredResolution(ff,M))_0) == betti res M
---for N_2, the layered resolution over S is actually minimal, though it doesn't satisfy the
---bound in the Layered paper. There is no matrix factorization in that case.
---for N_3 there is a matrix factorization.
-
-
-restart
-uninstallPackage"CompleteIntersectionResolutions"
-installPackage"CompleteIntersectionResolutions"
-needsPackage"CompleteIntersectionResolutions"
-needsPackage"BGG"
-needsPackage"MCMApproximations"
-viewHelp BRanks
-
+degree oddExtModule N_m
+--3 copies of the maximal ideal plus a free module of rank 1.
+F''.dd_2
