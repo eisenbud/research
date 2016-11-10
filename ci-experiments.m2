@@ -753,7 +753,7 @@ path
   infiniteBettiNumbers (MF,7)
   betti res pushForward(map(R,S),M)
   finiteBettiNumbers MF
- F = makeFiniteResolution(MF,ff)
+ F = makeFiteResolution(MF,ff)
 components F_0 
 components F_1
 F.dd_1
@@ -1344,11 +1344,14 @@ hf(-10..2, prune target S2(-10,evenExtModule(Me)))
 g = ff*random(source ff, source ff)
 matrixFactorization(g, M0)
 ------------
-
+restart
+uninstallPackage "CompleteIntersectionResolutions"
+installPackage "CompleteIntersectionResolutions"
 --examples of the finite res in codim 2
 viewHelp matrixFactorization
 viewHelp highSyzygy
 viewHelp makeFiniteResolution2
+viewHelp makeFiniteResolution
 code methods makeFiniteResolution2
 methods matrixFactorization
 
@@ -1983,12 +1986,14 @@ betti res syzygyModule(4,k)
 
 ------------------Simplest example for intro of Tor paper, corrected
 restart
-uninstallPackage"CompleteIntersectionResolutions"
-installPackage"CompleteIntersectionResolutions"
---viewHelp "CompleteIntersectionResolutions"
+--uninstallPackage"CompleteIntersectionResolutions"
+--installPackage"CompleteIntersectionResolutions"
+viewHelp "CompleteIntersectionResolutions"
 needsPackage"BGG"
+needsPackage "CompleteIntersectionResolutions"
 S = ZZ/101[x_0..x_2]
 ff = matrix{{x_0^3,x_1^3,x_2^3}}
+
 R = S/ideal ff
 N = apply(6,i-> syzygyModule(i, coker vars R));
 p = map(R,S);
@@ -1996,7 +2001,13 @@ netList apply(4,i-> (
 	T = prune exteriorTorModule(ff,prune pushForward(p,N_i));
 	(betti res(T,LengthLimit => 5),betti res prune pushForward(p,N_i))
 	))
+
 m = 2
+layeredResolution(ff, N_m, 5) -- minimal for m>= 2, even though there's no HMF for m=2
+betti res(N_m, LengthLimit=>5)
+matrixFactorization(ff*random(source ff, source ff), N_m)
+
+
 T = prune exteriorTorModule(ff,prune pushForward(p,N_m));
 E = ring T
 ops = ring evenExtModule(N_m)
@@ -2033,3 +2044,64 @@ betti res oddExtModule N_m
 degree oddExtModule N_m
 --3 copies of the maximal ideal plus a free module of rank 1.
 F''.dd_2
+
+-----
+restart
+installPackage "RandomCanonicalCurves"
+installPackage "CompleteIntersectionResolutions"
+viewHelp CompleteIntersectionResolutions
+viewHelp RandomCanonicalCurves
+viewHelp
+g = 7
+S = ZZ/101[x_0..x_(g-1)]
+I =(random canonicalCurve)(g,S)
+betti res I
+codim ideal (ff = (gens I)_{0,2,4,6,8})
+F = res I;
+M = S^1/I
+N = S^1/(ideal vars S)
+betti(
+    G = res(exteriorTorModule(ff, M,N),LengthLimit => 2)
+     Weights=>{0,1})
+
+code methods exteriorTorModule
+
+--
+--almost Spinor variety
+kk= ZZ/101
+S = kk[x_0..x_5,y_0..y_3]
+M = genericSkewMatrix(S, x_0, 4)
+Y = transpose matrix{{y_0..y_3}}
+I = ideal (M*Y)
+betti res I
+---
+--Spinor Variety
+restart
+kk= ZZ/101
+S = kk[x_(0,0)..x_(4,4),y_0..y_4,z]
+M = genericSkewMatrix(S, x_(0,0), 5)
+Y =  matrix{{y_0..y_4}}
+J = ideal (z*Y - (transpose syz M) )
+I = ideal (M*transpose Y)
+betti (F = res (I+J))
+K = ideal (F.dd_3)
+F.dd_3
+mingens K
+
+
+---
+needsPackage "CompleteIntersectionResolutions"
+--example with homotopies
+    kk=ZZ/101
+     S = kk[a,b]
+     ff = matrix"a4,b4"
+     R = S/ideal ff
+     N = R^1/ideal"a2, ab, b3"
+     N = coker vars R
+     M = highSyzygy N
+betti res N
+     MS = pushForward(map(R,S),M)
+betti res MS
+     mf = matrixFactorization(ff, M)
+     G = makeFiniteResolutionCodim2(mf, ff)
+     F = G#"resolution"
