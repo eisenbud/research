@@ -753,7 +753,7 @@ path
   infiniteBettiNumbers (MF,7)
   betti res pushForward(map(R,S),M)
   finiteBettiNumbers MF
- F = makeFiniteResolution(MF,ff)
+ F = makeFiteResolution(MF,ff)
 components F_0 
 components F_1
 F.dd_1
@@ -1344,11 +1344,14 @@ hf(-10..2, prune target S2(-10,evenExtModule(Me)))
 g = ff*random(source ff, source ff)
 matrixFactorization(g, M0)
 ------------
-
+restart
+uninstallPackage "CompleteIntersectionResolutions"
+installPackage "CompleteIntersectionResolutions"
 --examples of the finite res in codim 2
 viewHelp matrixFactorization
 viewHelp highSyzygy
 viewHelp makeFiniteResolution2
+viewHelp makeFiniteResolution
 code methods makeFiniteResolution2
 methods matrixFactorization
 
@@ -1983,16 +1986,18 @@ betti res syzygyModule(4,k)
 
 ------------------Simplest example for intro of Tor paper, corrected
 restart
-needsPackage"CompleteIntersectionResolutions"
+--uninstallPackage"CompleteIntersectionResolutions"
+--installPackage"CompleteIntersectionResolutions"
+viewHelp "CompleteIntersectionResolutions"
 needsPackage"BGG"
-needsPackage"MCMApproximations"
---viewHelp "CompleteIntersectionResolutions"
---viewHelp "BGG"
+needsPackage "CompleteIntersectionResolutions"
 S = ZZ/101[x_0..x_2]
 ff = matrix{{x_0^3,x_1^3, x_2^3}}
 --ff = ff*random(source ff,source ff)
+ff = matrix{{x_0^3,x_1^3,x_2^3}}
+
 R = S/ideal ff
-N = apply(4,i-> syzygyModule(i, coker vars R));
+N = apply(6,i-> syzygyModule(i, coker vars R));
 p = map(R,S);
 netList apply(4,i-> (
 	T = prune exteriorTorModule(ff,prune pushForward(p,N_i));
@@ -2001,6 +2006,11 @@ netList apply(4,i-> (
 
 betti res( N_2, LengthLimit =>11)
 m = 2
+layeredResolution(ff, N_m, 5) -- minimal for m>= 2, even though there's no HMF for m=2
+betti res(N_m, LengthLimit=>5)
+matrixFactorization(ff*random(source ff, source ff), N_m)
+
+
 T = prune exteriorTorModule(ff,prune pushForward(p,N_m));
 E = ring T
 ops = ring evenExtModule(N_m)
@@ -2013,56 +2023,73 @@ T'' = T/T';
 --the even and odd ext modules are the BGG duals F',F'' of the dual
 --modules to T' and T''
 
-psi2 = bgg(1,dual T', ops);
-psi1 = bgg(2,dual T', ops);
-F' = chainComplex{psi1,psi2}
+phi2 = bgg(1,dual T', ops)
+phi1 = bgg(2,dual T', ops)
+F' = chainComplex{phi1,phi2}**ops^{-3}
+betti F'
 assert (0==prune HH_2 F' and 0 == HH_1 F')
-betti res evenExtModule N_m
+betti (G = res  evenExtModule N_m)
+G.dd_2
+F'.dd_2
+eq = map(ring F', ring G, {ops_2,-ops_1,ops_0})
+eq G == F'
 
-phi1 = bgg(1,dual T'', ops);
-phi2 = bgg(0,dual T'', ops);
-F'' = chainComplex{phi1, phi2}
+--so E1 and E2 are both free modules of rank 3 plus a copy of the maximal ideal
+
+phi1 = bgg(1,dual T'', ops)
+phi2 = bgg(0,dual T'', ops)
+F'' = chainComplex{phi1, phi2}**ops^{-2}
 assert (0==prune HH_2 F'' and 0 == HH_1 F'')
+
+oddExtModule N_m
+betti F''
 betti res oddExtModule N_m
+degree oddExtModule N_m
+--3 copies of the maximal ideal plus a free module of rank 1.
+F''.dd_2
 
+-----
+restart
+installPackage "RandomCanonicalCurves"
+installPackage "CompleteIntersectionResolutions"
+viewHelp CompleteIntersectionResolutions
+viewHelp RandomCanonicalCurves
+viewHelp
+g = 7
+S = ZZ/101[x_0..x_(g-1)]
+I =(random canonicalCurve)(g,S)
+betti res I
+codim ideal (ff = (gens I)_{0,2,4,6,8})
+F = res I;
+M = S^1/I
+N = S^1/(ideal vars S)
+betti(
+    G = res(exteriorTorModule(ff, M,N),LengthLimit => 2)
+     Weights=>{0,1})
 
---to compare these with the Branks
+code methods exteriorTorModule
 
---BUG in approximation: when it gets a non-pruned module, it may return something inHomoogeneous
-
-BRanks1 = (ff,M) ->(
-    --computes the last B-ranks that occur in the Layered resolution. Assumes M is an
-    --S-module that is  MCM over R = S/(ideal ff)
-    S := ring M;
-    R := S/ideal ff;
-    f := numcols ff;
-    R' := S/ideal(ff_{0..f-2});
-    p1 := map(R, R');
-    M1' := prune pushForward(p1, prune(R**M));
-   (phi,psi) := approximation M1';
-   M1 := prune pushForward(map(R',S),source phi);
-   {M1, rank source psi, rank ker (phi|psi)}
-    )
-BRanks(Matrix,Module) := (ff,N) ->(
-    --computes all the B-ranks that occur in the Layered resolution. 
-    --as in MF, M is an MCM module over S/(ideal ff)
-    S := ring ff;
-    p := map(ring N, ring ff);
-    M = prune pushForward(p,N);
-    c := numcols ff;
-    N := BRanks1(ff,M);
-    Llast := {N_1,N_2};
-    L := reverse apply(c-1, j->(
-    N = BRanks1(ff_{0..c-2-j},N_0);
-    {N_1,N_2}));
-    L|{Llast}
-    )
-BRanks(ff, N_3)
-betti ((layeredResolution(ff,M))_0) == betti res M
---for N_2, the layered resolution over S is actually minimal, though it doesn't satisfy the
---bound in the Layered paper. There is no matrix factorization in that case.
---for N_3 there is a matrix factorization.
-BRanks matrixFactorization(ff,N_3)
+--
+--almost Spinor variety
+kk= ZZ/101
+S = kk[x_0..x_5,y_0..y_3]
+M = genericSkewMatrix(S, x_0, 4)
+Y = transpose matrix{{y_0..y_3}}
+I = ideal (M*Y)
+betti res I
+---
+--Spinor Variety
+restart
+kk= ZZ/101
+S = kk[x_(0,0)..x_(4,4),y_0..y_4,z]
+M = genericSkewMatrix(S, x_(0,0), 5)
+Y =  matrix{{y_0..y_4}}
+J = ideal (z*Y - (transpose syz M) )
+I = ideal (M*transpose Y)
+betti (F = res (I+J))
+K = ideal (F.dd_3)
+F.dd_3
+mingens K
 
 
 loadPackage "CompleteIntersectionResolutions"
@@ -2125,4 +2152,30 @@ H = makeFiniteResolutionCodim2(mf,ff);
 mf = matrixFactorization(ff2,M)
 makeFiniteResolutionCodim2(mf,ff2)
 BRanks mf
+---
+restart
+needsPackage "K3Carpets"
+needsPackage "CompleteIntersectionResolutions"
+--codimension 2 example with homotopies
+    kk=ZZ/101
+     S = kk[a,b]
+     ff = matrix"a4,b4"
+     R = S/ideal ff
+     N = R^1/ideal"a2, ab, b3"
+     N = coker vars R
+     M = highSyzygy N
+betti res N
+     MS = pushForward(map(R,S),M)
+betti res MS
+     mf = matrixFactorization(ff, M)
+     G = makeFiniteResolutionCodim2(mf, ff)
+     F = G#"resolution"
+--
 
+viewHelp makeHomotopies1
+F = res carpet(5,3)
+ff = F.dd_1
+H = makeHomotopies1(ff,F);
+betti F
+betti H#{1,2}
+rank submatrixByDegrees(H#{1,2}, (5,5),(5,5))
