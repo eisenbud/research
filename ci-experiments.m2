@@ -1990,7 +1990,7 @@ needsPackage"MCMApproximations"
 --viewHelp "BGG"
 S = ZZ/101[x_0..x_2]
 ff = matrix{{x_0^3,x_1^3, x_2^3}}
-ff = ff*random(source ff,source ff)
+--ff = ff*random(source ff,source ff)
 R = S/ideal ff
 N = apply(4,i-> syzygyModule(i, coker vars R));
 p = map(R,S);
@@ -1999,6 +1999,7 @@ netList apply(4,i-> (
 	(betti res(T,LengthLimit => 5),betti res prune pushForward(p,N_i))
 	))
 
+betti res( N_2, LengthLimit =>11)
 m = 2
 T = prune exteriorTorModule(ff,prune pushForward(p,N_m));
 E = ring T
@@ -2012,14 +2013,14 @@ T'' = T/T';
 --the even and odd ext modules are the BGG duals F',F'' of the dual
 --modules to T' and T''
 
-psi2 = bgg(1,dual T', ops)
-psi1 = bgg(2,dual T', ops)
+psi2 = bgg(1,dual T', ops);
+psi1 = bgg(2,dual T', ops);
 F' = chainComplex{psi1,psi2}
 assert (0==prune HH_2 F' and 0 == HH_1 F')
 betti res evenExtModule N_m
 
-phi1 = bgg(1,dual T'', ops)
-phi2 = bgg(0,dual T'', ops)
+phi1 = bgg(1,dual T'', ops);
+phi2 = bgg(0,dual T'', ops);
 F'' = chainComplex{phi1, phi2}
 assert (0==prune HH_2 F'' and 0 == HH_1 F'')
 betti res oddExtModule N_m
@@ -2064,4 +2065,64 @@ betti ((layeredResolution(ff,M))_0) == betti res M
 BRanks matrixFactorization(ff,N_3)
 
 
+loadPackage "CompleteIntersectionResolutions"
+viewHelp CompleteIntersectionResolutions
+code methods makeFiniteResolutionCodim2
+
+    out := hashTable{"resolution" => F,
+             "b1" => bb_0,
+             "b2" => bb_1,
+             "mu" => hh0,
+             "h1" => hh1,
+             "h1'" =>hh1',
+             "alpha" => hh1_[0]^[0],
+             "tau" => hh1_[1]^[0],
+             "sigma" => hh1_[1]^[1],
+             "u" => -hf1_[0]^[2],
+             "v" => vv,
+             "psi" => ps_0,
+             "X" => -hf1_[1]^[2],
+             "Y" => hf2_[1]
+             };
+     
+restart     
+notify=true
+loadPackage "CompleteIntersectionResolutions"
+ kk=ZZ/101
+  kk=QQ
+ S= kk[a,b]
+ ff1 = matrix"a4,b4"
+  ff2 = matrix"a4+b4,a4-b4"
+ ff = ff1*random(source ff1, source ff1)
+ R = S/ideal ff
+ kkk = R^1/ideal vars R
+M = highSyzygy kkk
+--with ff2 we have X, Y, nonzero; but tau = 0 (also with ff)
+mf = matrixFactorization(ff2,M)
+H = makeFiniteResolutionCodim2(mf,ff2)
+H
+(keys H)
+H#"mu"
+--with ff1 we have X=Y=0
+mf = matrixFactorization(ff1,M)
+makeFiniteResolutionCodim2(mf,ff1)
+
+
+M = highSyzygy(coker matrix"a,b,0;
+0,b,a", Optimism => 0)
+mf = matrixFactorization(ff,M);
+H = makeFiniteResolutionCodim2(mf,ff)
+
+M = highSyzygy coker random(R^2, R^{3:-1})
+mf = matrixFactorization(ff,M);
+H = makeFiniteResolutionCodim2(mf,ff)
+peek H
+
+M = highSyzygy coker random(R^2, R^{3:-2})
+mf = matrixFactorization(ff,M);
+H = makeFiniteResolutionCodim2(mf,ff);
+
+mf = matrixFactorization(ff2,M)
+makeFiniteResolutionCodim2(mf,ff2)
+BRanks mf
 

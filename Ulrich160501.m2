@@ -236,3 +236,20 @@ n = random(S^5, S^{4:-1})
 p = m|n
 K = minors(5, p)
 codim K
+--------
+N = (n,d) -> ceiling(binomial(n+d,n)/(n*d+1))
+uc = (n,d) -> N(n,d)-1
+N(3,3)
+
+matrix apply(6, n-> apply (15, d-> uc(n,d)))
+
+-----
+--7 points on a cubic surface give rank 2 Ulrich;
+--how about a cubic 3-fold?
+installPackage"Points"
+viewHelp Points
+expectedBetti(3,7)
+netList for n from 8 to 20 list expectedBetti(4,n)
+S = ZZ/101[a..d]
+I = points (S**matrix apply (4, i -> apply(7, j->((j+1)^i))))
+betti res I

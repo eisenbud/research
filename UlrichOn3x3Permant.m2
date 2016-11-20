@@ -207,3 +207,33 @@ needsPackage "BoijSoederberg"
 viewHelp BoijSoederberg
 pureBetti{0,1,4,5,8}
 S = ZZ/101[a,b,c,d]
+
+---
+S = ZZ/101[a_{0,0}..a_{3,3}]
+
+T = ZZ/2[a_{0,0}..a_{3,3}]
+X2 = genericMatrix(T,a_{0,0},4,2)
+I = sub(minors(2,X2), S)
+betti res oo
+codim I
+S1 = ZZ/101[x_0..x_5]
+ker map(S,S1,gens I)
+
+use S
+D = map(T^4, T^4, (i,j) -> (if i>1 or j>1 then a_{i,j} else if i==j then 1 else 0))
+q = sub (det D,S)
+codim singularLocus (S/q)
+
+
+n = 5
+S = ZZ/101[a_{0,0}..a_{n-1,n-1}]
+T = ZZ/2[a_{0,0}..a_{n-1,n-1}]
+
+D1 = map(T^n, T^n, (i,j) -> (if j>n-3  then a_{i,j} else if i==j then 1 else
+	if j+2 == i or j+1==i then 1 else 0))
+
+use S
+D = random(S^n,S^3) | genericMatrix(S,a_{0,0},n,2)
+DT = sub(D,T)
+q = sub (det DT,S)
+codim singularLocus (S/q)
