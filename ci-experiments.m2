@@ -2093,7 +2093,7 @@ mingens K
 restart
 needsPackage "K3Carpets"
 needsPackage "CompleteIntersectionResolutions"
---example with homotopies
+--codimension 2 example with homotopies
     kk=ZZ/101
      S = kk[a,b]
      ff = matrix"a4,b4"
@@ -2109,4 +2109,10 @@ betti res MS
      F = G#"resolution"
 --
 
-n
+viewHelp makeHomotopies1
+F = res carpet(5,3)
+ff = F.dd_1
+H = makeHomotopies1(ff,F);
+betti F
+betti H#{1,2}
+rank submatrixByDegrees(H#{1,2}, (5,5),(5,5))
