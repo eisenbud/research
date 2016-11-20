@@ -2090,6 +2090,8 @@ mingens K
 
 
 ---
+restart
+needsPackage "K3Carpets"
 needsPackage "CompleteIntersectionResolutions"
 --example with homotopies
     kk=ZZ/101
@@ -2106,19 +2108,5 @@ betti res MS
      G = makeFiniteResolutionCodim2(mf, ff)
      F = G#"resolution"
 --
---make a gorenstein structure on a scroll to get a K3 carpet:
-carpet = (a1,a2) ->(
-    kk = ZZ/32003;
-    S = kk[x_0..x_a1, y_0..y_a2];
-    xmat = map(S^2, S^{a1:-1}, (i,j) -> x_(i+j));
-    ymat = map(S^2, S^{a1:-1}, (i,j) -> y_(i+j));
-    mat = xmat|ymat;
-    I = minors(2, mat);
-    F = res(I, LengthLimit => a1+a2-2, DegreeLimit => 2);
-    omega = coker transpose F.dd_(a1+a2-2);
-    J = ideal kernel homomorphism (Hom(module I, omega))_{0};
-    betti res J    
-    )
-J
-carpet(3,5)
 
+n
