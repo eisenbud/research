@@ -257,13 +257,28 @@ uninstallPackage "K3Carpets"
 installPackage "K3Carpets"
 check "K3Carpets"
 viewHelp K3Carpets
+---
 
-for a1 from 1 to 5 do for a2 from a1 to 5 do 
-     print (time carpet(a1,a2);, time carpet1(a1,a2);)
-
-for g from 4 to 10 do for cliff from 2 to (g-1)//2 do time print betti res canonicalCarpet(g,cliff)
-
-
-
-betti res canonicalCarpet(7,3,Characteristic =>2)
-betti res canonicalCarpet(9,4,Characteristic =>2)
+---FRANK: START HERE
+restart
+needsPackage "K3Carpets"
+needsPackage "CompleteIntersectionResolutions"
+--viewHelp makeHomotopies1--
+h0 = (i,j)-> submatrixByDegrees(H#{i,j}, j+3,j+3)
+homotopyRanks = (g,cliff) ->(
+print betti (F = res canonicalCarpet(g,cliff));
+ff = F.dd_1;
+H = makeHomotopies1(ff,F);
+netList apply(numcols ff, i->{ff_i, apply(g-2, m->(rank h0(i,m+1)))})
+)
+--all Cliff=2 examples have a clear pattern 
+homotopyRanks(6,2)
+homotopyRanks(7,2)
+--Cliff = 3,4 g\geq : more mysterious
+homotopyRanks(7,3)
+homotopyRanks(8,3)
+homotopyRanks(9,3)
+--
+homotopyRanks(8,4)
+homotopyRanks(9,4)
+--homotopyRanks(10,4) -- slow.

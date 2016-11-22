@@ -2171,11 +2171,3 @@ betti res MS
      G = makeFiniteResolutionCodim2(mf, ff)
      F = G#"resolution"
 --
-
-viewHelp makeHomotopies1
-F = res carpet(5,3)
-ff = F.dd_1
-H = makeHomotopies1(ff,F);
-betti F
-betti H#{1,2}
-rank submatrixByDegrees(H#{1,2}, (5,5),(5,5))
