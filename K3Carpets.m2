@@ -6,7 +6,8 @@ newPackage(
 		  Email => "de@msri.org", 
 		  HomePage => "http://www.msri.org/~de"}},
     	Headline => "K3 double structure on scrolls",
-    	DebuggingMode => false
+    	DebuggingMode => true,
+	PackageExports => {"CompleteIntersectionResolutions"}
     	)
 
 export {
@@ -14,23 +15,40 @@ export {
     "carpet1",
     "canonicalCarpet",
     "gorensteinDouble",
-    "Characteristic"}
+    "homotopyRanks",
+    "fixedSyzygyScheme",
+    "canonicalHomotopies",
+--    "nonMinRes",
+--    "Characteristic",
+    "FineGrading"}
 
--- Code here
-carpet = method(Options =>{Characteristic => 32003})
+carpet = method(Options =>{Characteristic => 32003,FineGrading=>false})
 carpet(ZZ,ZZ) := opts -> (a1,a2) ->(
-    if opts.Characteristic == 0 then kk := QQ else
-    kk = ZZ/opts.Characteristic;
+    if opts.Characteristic == 0 then kk := QQ else kk = ZZ/opts.Characteristic;
     x := symbol x; y:=symbol y;
     a := min(a1,a2);
     b := max(a1,a2);
-    S := kk[x_0..x_a, y_0..y_b];
-    xmat := map(S^2, S^{a:-1}, (i,j) -> x_(i+j));
-    ymat := map(S^2, S^{b:-1}, (i,j) -> y_(i+j));
+    if opts.FineGrading == false then
+    S := kk[x_0..x_a, y_0..y_b] else (
+    degreeString := apply(a+1, i->{1,0,i,a-i})|apply(b+1, i->{0,1,i,b-i});
+    S = kk[x_0..x_a, y_0..y_b, Degrees=>degreeString]);
+    if opts.FineGrading == false then (
+	xmat := map(S^2, S^{a:-1}, (i,j) -> x_(i+j));
+        ymat := map(S^2, S^{b:-1}, (i,j) -> y_(i+j))
+	)
+    else(	
+        xmat = map(S^{{0,0,0,0},{0,0,1,-1}}, S^(apply(a,j->{ -1,0,-j,-a+j})), (i,j) -> x_(i+j));
+        ymat = map(S^{{0,0,0,0},{0,0,1,-1}}, S^(apply(b,j->{ 0,-1,-j,-b+j})), (i,j) -> y_(i+j))
+	);
     mat := xmat|ymat;
-    if b==1 then return ideal ((det mat)^2)
+    if b==1 then return ideal ((det mat)^2) -- in this case a == 1 as well
     else if a ==1 then (
-    	xmat = map(S^2,S^{2:-2},(i,j)->x_i*x_j);
+	if opts.FineGrading == false then
+    	xmat = map(S^2,S^{2:-2},(i,j)->x_i*x_j)
+        else
+        xmat = map(S^{{0,0,0,0},{0,0,1,-1}}, 
+	           S^{{ -1,0,0,-2},{ -1,0,-1,-1}}, 
+		   matrix{{x_0^2,x_0*x_1},{x_0*x_1,x_1^2}});
 	Iy := minors(2,ymat);
 	Imixed := ideal apply(b-1,j->(det (xmat_{0}|ymat_{j+1})-det(xmat_{1}|ymat_{j})));
 	return Iy+Imixed)
@@ -44,10 +62,24 @@ carpet(ZZ,ZZ) := opts -> (a1,a2) ->(
 	    );
 	);
     Ix+Iy+Imixed)
+///
+restart
+loadPackage "K3Carpets"
+I = carpet(1,3,FineGrading=>true)
+I = carpet(1,3,FineGrading=>false)
+betti (res I, Weights =>{1,1,0,0})
+isHomogeneous I
+degrees  S
+isHomogeneous mat
+degrees target mat
+degrees source mat
+mat
+///
 
 --A different indexing, by genus and Clifford index (Cliff <= (g-1)//2))
-canonicalCarpet = method(Options=>{Characteristic=>32003})
-canonicalCarpet(ZZ,ZZ) := opts -> (gen,cliff) -> carpet(gen-cliff-1, cliff)
+canonicalCarpet = method(Options=>{Characteristic=>32003,FineGrading => false})
+canonicalCarpet(ZZ,ZZ) := opts -> (gen,cliff) -> 
+     carpet(gen-cliff-1, cliff,Characteristic => opts.Characteristic, FineGrading => opts.FineGrading)
 
 --Here's a structural approach that instead takes the kernel of the unique map of mainimal degree
 --from the ideal of the scroll to the canonical module of the scroll. This code produces
@@ -74,6 +106,61 @@ carpet1(ZZ,ZZ) := opts -> (a1,a2) ->(
     I := minors(2, mat);
     gorensteinDouble I
     )
+
+nonMinRes = method()
+nonMinRes Matrix := m->(
+F' := res image m;
+complete F';
+chainComplex apply(1+length F', j-> if j==0 then m else F'.dd_j)
+)
+
+fixedSyzygyScheme = method()
+fixedSyzygyScheme(ChainComplex,ZZ,Matrix) := (C,i,v) -> (
+           -- this is a fix for syzygyScheme, replacing 'resolution', (which replaces 
+	   --the presentation of a cokernel
+           -- by a minimal one) with nonMinRes, which resolves the image and then tacks on the 
+	   --given matrix.  A better way to fix syzygyScheme would be to add an option to resolution.
+	   --
+	   --Note that the code in the system has "dual C[i]" in place of "dual C[-i]" in the first line,
+	   --which seems to be wrong in a different way!
+           g := extend(nonMinRes transpose (C.dd_i * v), dual C[-i], transpose v);
+           minimalPresentation cokernel (C.dd_1  * transpose g_(i-1)))
+
+
+canonicalHomotopies = method(Options=>{Characteristic=>32003,FineGrading=>false})
+--note: returns the pair: the resolution F of the canonical Carpet
+--and the function that used to be called h0 such that h0(i,j) is the j-th homotopy 
+--with source F_j that corresponds
+--to the i-th quadric.
+canonicalHomotopies(ZZ,ZZ):= opts -> (g,cliff) -> (
+    F := res canonicalCarpet(g,cliff, Characteristic => opts.Characteristic, FineGrading => opts.FineGrading);
+    ff := F.dd_1;
+    H := makeHomotopies1(ff,F);
+    if opts.FineGrading == false then
+    h0:= (i,j) -> submatrixByDegrees(H#{i,j},j+3,j+3)
+    else
+    h0 = (i,j) ->(
+	
+	dlist := select(flatten degrees H#{i,j}, de->de_0+de_1 == j+3);
+	hashTable apply(dlist, de -> (de,submatrixByDegrees(H#{i,j},de, de)))
+	);
+    (F,h0)
+    )
+///
+restart
+loadPackage "K3Carpets"
+(F,h0) = canonicalHomotopies(7,3, FineGrading=>true);
+degrees F_1
+h0(0,2)
+degrees F_2
+///
+homotopyRanks = (g,cliff) ->(
+(F,h0) := canonicalHomotopies(g,cliff);
+print betti F;
+ff := F.dd_1;
+netList apply(numcols ff , i->{ff_i, apply(g-2, m->(rank h0(i,m+1)))})
+)
+
 
 beginDocumentation()
 
@@ -102,6 +189,7 @@ doc ///
     carpet
     (carpet, ZZ, ZZ)
     [carpet, Characteristic]
+    [carpet, FineGrading]    
    Headline
     Ideal of the unique Gorenstein double structure on a 2-dimensional scroll
    Usage
@@ -114,6 +202,8 @@ doc ///
    Consequences
     Item
      Creates the carpet over a new ring. The characteristic is given by the option, defaulting to 32003.
+     If the option FineGrading is set to true, then the ideal is returned with the natural ZZ^4 grading
+     (the default is FineGrading => false).
    Description
     Text
      Let X be a 2 x a1 matrix of indeterminates x_{(i,j)}, 
@@ -158,6 +248,7 @@ doc ///
     canonicalCarpet
     (canonicalCarpet, ZZ, ZZ)
     [canonicalCarpet, Characteristic]
+    [canonicalCarpet, FineGrading]    
    Headline
     Carpet of given genus and Clifford index
    Usage
@@ -172,20 +263,23 @@ doc ///
      ideal of the K3 Carpet of (sectional) genus g, Clifford index cliff
    Description
     Text
-     this is just a re-indexing of the carpet script:
+     This is just a re-indexing of the carpet script:
      canonicalCarpet(g,cliff) = carpet(g-cliff-1, cliff).
-     Here the natural choices for cliff are 1 \leq cliff \leq (g-1)//2
+     Here the natural choices for cliff are 1 \leq cliff \leq (g-1)//2.
    SeeAlso
     carpet
 ///
 doc ///
    Key
-    Characteristic
+    FineGrading
    Headline
-    Option for carpet, canonicalCarpet, carpet1
+    Option for carpet, canonicalCarpet
    Description
     Text
-     prime integer or 0
+     The default is FineGrading => false. If the option FineGrading=>true is given, then the 
+     ideal returned has the natural ZZ^4 grading, where x_i has degree \{1,0,i,a-i\}\ and 
+     y_i has degree \{0,1,i,b-i\}. 
+     (Note that after the call carpet(a1,a2) we have a = min(a1,a2), b = max(a1,a2).)
 ///
 doc ///
    Key
@@ -239,16 +333,12 @@ doc ///
 
 
 TEST///
-B11 = betti res carpet1(1,1)
-B12 = betti res carpet1(1,2)
-B21 = betti res carpet1(2,1)
-B25 = betti res carpet1(2,5)
-assert (B11 == betti res carpet(1,1))
-assert (B12 == betti res carpet(1,2))
-assert (B21 == betti res carpet(2,1))
-assert (B25 == betti res carpet(2,5))
-assert(true == (betti res canonicalCarpet(7,3,Characteristic =>0) == 
+assert( betti res carpet1(2,5) == (new BettiTally from {(0,{0},0) => 1, (1,{2},2) => 15, (2,{3},3) => 35, (2,{4},4) => 14, (3,{4},4) => 35,
+     (3,{5},5) => 35, (4,{5},5) => 14, (4,{6},6) => 35, (5,{7},7) => 15, (6,{9},9) => 1}) )
+assert(false == (betti res canonicalCarpet(7,3,Characteristic =>0) == 
 	        betti res canonicalCarpet(7,3,Characteristic =>2)))
+assert(isHomogeneous carpet(2,4,FineGrading=>true))
+assert(isHomogeneous canonicalCarpet(7,3,FineGrading=>true))
 ///
 
 end--
@@ -262,23 +352,32 @@ viewHelp K3Carpets
 ---FRANK: START HERE
 restart
 needsPackage "K3Carpets"
-needsPackage "CompleteIntersectionResolutions"
---viewHelp makeHomotopies1--
-h0 = (i,j)-> submatrixByDegrees(H#{i,j}, j+3,j+3)
-homotopyRanks = (g,cliff) ->(
-print betti (F = res canonicalCarpet(g,cliff));
-ff = F.dd_1;
-H = makeHomotopies1(ff,F);
-netList apply(numcols ff, i->{ff_i, apply(g-2, m->(rank h0(i,m+1)))})
-)
+
 --all Cliff=2 examples have a clear pattern 
 homotopyRanks(6,2)
 homotopyRanks(7,2)
+
 --Cliff = 3,4 g\geq : more mysterious
 homotopyRanks(7,3)
+(F,h0) = canonicalHomotopies(7,3);
+betti res fixedSyzygyScheme (F,2,map(F_2,,syz h0(0,2)))
+
+--here are the homotopies separated by fine grading:
+(F,h0) = canonicalHomotopies(7,3, FineGrading=>true);
+h0(0,2)
+--
 homotopyRanks(8,3)
 homotopyRanks(9,3)
 --
 homotopyRanks(8,4)
 homotopyRanks(9,4)
 --homotopyRanks(10,4) -- slow.
+
+--the following is too slow to use!
+loadPackage"kGonalNodalCurves"
+g = 6; cliff = 3
+I = idealOfNodalCurve(cliff,g,1000)
+betti (F =res I)
+ff = F.dd_1;
+H = makeHomotopies1(ff,F,1);
+netList apply(numcols ff, i->{ff_i, apply(g-2, m->(rank h0(i,m+1)))})
