@@ -1,0 +1,41 @@
+
+pdecomp=method()
+pdecomp(MonomialIdeal):= i ->(
+     primes = ass i;
+     irreds=primaryDecomposition(i, Strategy=>MonomialIdeal);
+for c from 0 to (# primes)-1 list {intersect select(irreds, j-> primes_c==radical j)}
+     )
+
+pdecomp(Ideal) := i ->(
+     primes = ass i;
+     irreds=primaryDecomposition(i);
+for c from 0 to (# primes)-1 list {intersect select(irreds, j-> primes_c==radical j)}
+     )
+
+show=method()
+show(List):=L-> (apply(L, print);)
+
+end 
+restart
+load "primaryDecomposition.m2"
+--load "randomIdeal.m2"
+
+kk=ZZ/101
+S=kk[a,b,c,d]
+
+i1= monomialIdeal (a^2, a*b, b^3, c*b^2)
+i1=monomialIdeal truncate(4,ideal (a^2, a*b, b^3, c*b^2))
+i1=monomialIdeal truncate(4,ideal (a^2, a*b^2, b^3))
+
+i=randomMonomialIdeal({5,5,5,5,5}, S)
+
+i=intersect(ideal(a^6,b^6,c^6,(a*b*c)^3), (ideal(a,b))^7)
+show  pdecomp i
+goods=irreds
+
+i=intersect(goods_{3,7..9})
+show pdecomp i
+irreds
+
+m=module(ideal(a^4,b^4))/(module i)
+betti res m

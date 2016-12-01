@@ -1,0 +1,314 @@
+restart
+
+jets=(n,j)->(
+--given an ideal j and a positive integer n, return the ideal
+--defining the nth jet bundle of the scheme defined by j.
+--The ideal is returned over a new ring, built for the purpose,
+--with n+1 times the number of variable of the original ring.
+--this new ring is the nth truncation of the ring built from
+-- ring j with a universal derivation d, sending each set of 
+--variables into the next. The ideal returned consists of 
+--j,dj,d^2j,...,d^nj.
+     R := ring j;
+     numvars := numgens R;
+     x :=quote x;
+     RRR := ZZ/(char R)[x_{0,1}..x_{n,numvars}];
+     f := map(RRR,R,(vars RRR)_{0..numvars-1});
+     --Form the map from the universal differentials to the
+     --polynomial ring that expresses the derivation.
+     tt1 := (vars RRR)_{numvars..((n+1)*numvars-1)};
+     tt0 := map(RRR^1,RRR^(numvars),0);
+     tt := (tt1 | tt0);
+     --loop
+     j0 := gens f(j);
+     j1 := tt*(jacobian j0);
+     scan(n, i->(
+	       j0 = (j0 | j1);
+	       j1 = tt*(jacobian j1)));
+     ideal j0)
+
+irred=(n,j)->(
+--given a complete intersection ideal j with isolated 
+--singularity at 0,
+--and a positive integer n, return true iff the
+--nth jet bundle of the scheme defined by j is irreducible.
+--The criterion used: J_n(j) is irreducible iff the fiber
+--over 0 has dimension < (n+1)*(dim j), the dimension of 
+--the smooth part of the jet bundle. For an isolated 
+--singularity that is NOT necessarily a complete intersection,
+--the condition is necessary for irreducibility, but may
+--not be sufficient; thus if irred(n,j) is false, the
+--jet space really is reducible, with a component contained
+--in the fiber over 0
+     J:=jets(n,j);
+     R := ring j;
+     numvars := numgens R;
+     y :=quote y;
+     RRR := ZZ/(char R)[y_{1,1}..y_{n,numvars}];
+     f := map(RRR,ring J,map(RRR^1,RRR^numvars,0)|(vars RRR));
+     --the fiber over 0:
+     J1 := f J;
+     --check that dim J1 < (n+1)*(dim j)
+     (n+1)*(codim j) < (numvars+(codim J1))
+     )
+
+fibre=(n,j)->(
+--given a complete intersection ideal j with isolated 
+--singularity at 0,
+--and a positive integer n, return the ideal of the fiber
+--  of the
+--nth jet bundle of the scheme defined by j over 0
+     J:=jets(n,j);
+     R := ring j;
+     numvars := numgens R;
+     y :=quote y;
+     RRR := ZZ/(char R)[y_{1,1}..y_{n,numvars}];
+     f := map(RRR,ring J,map(RRR^1,RRR^numvars,0)|(vars RRR));
+     --the fiber over 0:
+     ideal mingens f J
+     )
+
+--nodal curve in A^2
+kk=ZZ/32003
+R = kk[x,y]
+use R
+f = ideal (x^2+x^3-y^2)
+j1 = jets(1,f)
+j2 = jets(2,f)
+j3 = jets(3,f)
+irred(1,f)
+ 
+S = ZZ/32003[x,y,s,t]
+
+A = (ring j2)/j2
+use A
+phi = map(A,S,(vars A)_{0..3})
+psi = map(ring j2,S,(vars ring j2)_{0..3})
+j21=ker phi
+transpose gens j21
+betti gens j21
+
+p=4*t^2*(1+x)-(2*s+3*x*s)^2
+psi(p^3)%j2
+psi(p^2)%j2
+--p is nilpotent of order 3
+
+
+--(gens(radical j2))%j2
+irred(3,f)
+--------------------
+restart
+--------------------
+--cuspidal curve in A2
+
+kk=ZZ/32003
+R = kk[x,y]
+f = ideal (x^3-y^2)
+j1 = jets(1,f)
+j2 = jets(2,f)
+j3 = jets(3,f)
+
+P1 = ideal(vars ring j1)_{0,1}
+j1==radical j1 -- false
+j1==j1:P1 -- false
+
+P1 = ideal(vars ring j2)_{0,1}
+j2==radical j2 --false
+j2==j2:P1 --false
+
+P1 = ideal(vars ring j3)_{0,1}
+j3==j3:P1 --false
+j3 == radical j3 -- false
+--------------------
+quadric cone in A^3
+
+R = kk[x,y,z]
+f = ideal(x^2+y^2+z^2)
+
+j1 = jets(1,f)
+j2 = jets(2,f)
+j3 = jets(3,f)
+
+irred(1,f)
+irred(2,f)
+irred(3,f)
+
+--j1==radical j1
+P1 = ideal(vars ring j1)_{0..2}
+j1==j1:P1 -- true!
+
+--j2==radical j2
+P1 = ideal(vars ring j2)_{0..2}
+j2==j2:P1 -- true
+
+--j3 == radical j3
+P1 = ideal(vars ring j3)_{0..2}
+j3==j3:P1 -- true
+
+
+------------------------------
+--cone over elliptic plane curve
+
+R = kk[x,y,z]
+f = ideal(x^3+y^3+z^3)
+irred(1,f)
+irred(2,f)
+irred(3,f)
+irred(4,f)
+
+j1 = jets(1,f)
+j2 = jets(2,f)
+j3 = jets(3,f)
+
+--j1==radical j1
+P1 = ideal(vars ring j1)_{0..2}
+j1==j1:P1 -- true! -- it's a prime
+
+--j2==radical j2 -- Too hard!
+P1 = ideal(vars ring j2)_{0..2}
+j2==j2:P1 -- false, has components along P1
+
+
+P1=ideal(x_0,y_0, z_0)
+j2==j2:P1 -- false, has components along P1
+
+codim j2 -- is 3
+--thus j2 is a regular sequence, no embedded components.
+
+P=j2:(P1^5) -- this is the first saturated quotient, 
+-- P is a prime.
+betti P
+Q1=j2:P -- this is saturated, j2:P^2 yields the same result
+
+j2 == intersect(P,Q1)
+--true, so this is the primary decomposition!
+
+6==degree Q1 -- the multiplicity.
+
+P1 = ideal(vars ring j3)_{0..2}
+j3 == j3:P1 -- yields false
+-- There are components supported over the singular
+-- locus!
+
+j4 = jets(4,f)
+P1 = ideal(vars ring j4)_{0..2}
+--j4 == j4:P1 
+h4=saturate(j4,(ring j4)_0)
+-----------------------------------------------
+--A rational singularity E8
+
+kk=ZZ/32003
+R = kk[x,y,z]
+f = ideal (x^2+y^3+z^5)
+irred(1,f)
+irred(2,f)
+irred(3,f)
+
+j1 = jets(1,f)
+j2 = jets(2,f)
+j3 = jets(3,f)
+
+P1 = ideal(vars ring j1)_{0}
+j1==radical j1 
+j1==j1:P1
+
+P1 = ideal(vars ring j2)_{0}
+--j2==radical j2 
+j2==j2:P1 
+
+P1 = ideal(vars ring j3)_{0}
+j3==j3:P1 
+--j3 == radical j3 
+
+
+--------------------
+--A rational singularity D4
+
+kk=ZZ/32003
+R = kk[x,y,z]
+f = ideal (x^2+y^2*z+z^3)
+irred(1,f)
+irred(2,f)
+irred(3,f)
+irred(4,f)
+
+j1 = jets(1,f)
+j2 = jets(2,f)
+j3 = jets(3,f)
+j4 = jets(4,f)
+
+codim f
+codim j1
+codim j2
+codim j4
+
+
+P1 = ideal(vars ring j1)_{0}
+j1==radical j1 
+j1==j1:P1
+irred(
+P1 = ideal(vars ring j2)_{0}
+--j2==radical j2 
+j2==j2:P1 
+
+P1 = ideal(vars ring j3)_{0}
+j3==j3:P1 
+--j3 == radical j3 
+
+P1 = ideal(vars ring j4)_{0}
+j4==j4:P1 
+
+-------------
+kk=ZZ/32003
+R = kk[a..h]
+I=ideal(a*c-b^2, a*d-b*c, b*d-c^2)
+J=ideal(e*c+a*g-2*b*f, e*d+a*h-c*f-b*g, b*h+f*d-2*c*g)
+H=I+J
+codim H
+
+-------------
+--cone over twisted cubic
+kk=ZZ/32003
+R = kk[a..d]
+j=monomialCurve(R,{1,2,3})
+irred(1,j)
+irred(2,j)
+irred(3,j)
+irred(4,j)
+irred(5,j)
+--all false!! 
+
+---------------------------------
+--nilpotent 3x3 matrices
+kk=ZZ/32003
+R=kk[x_{1,1}..x_{3,3}]
+M=transpose genericMatrix(R,x_{1,1},3,3)
+f1=trace M
+f2=trace M^2
+f3=trace M^3
+j=ideal(f1,f2,f3)
+codim j
+fibre(0,j)
+fibre(1,j)
+codim fibre(2,j)
+codim fibre(3,j)
+codim fibre(4,j)
+codim fibre(5,j)
+
+----------------------
+---------------------------------
+--2x2 minors of generic 2x3 matrix
+kk=ZZ/32003
+R=kk[x_{1,1}..x_{2,3}]
+M=transpose genericMatrix(R,x_{1,1},3,2)
+j=minors(2,M)
+codim j
+fibre(0,j)
+fibre(1,j)
+codim fibre(2,j)
+betti res jets(2,j)
+betti res jets(3,j)
+
+codim fibre(3,j)
+codim fibre(4,j)
+codim fibre(5,j)

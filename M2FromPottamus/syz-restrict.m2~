@@ -1,0 +1,8 @@
+
+S=kk[x,z,y_1..y_5]
+i1=intersect(
+     ideal(y_2,z),ideal(x,y_1),ideal(x,y_2))
+i2=intersect(
+     ideal(y_3,z),ideal(x,y_1),ideal(x,y_))
+betti res i2
+betti res i1

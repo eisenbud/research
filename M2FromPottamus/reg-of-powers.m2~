@@ -1,0 +1,23 @@
+n=4
+S=kk[vars(0..n-1)]
+t= (I,j)-> (
+     F:= res (S^1/I);
+     (max degrees F_j)#0)
+bound = (I,j,k)->(
+     k*t(I,j)+t(I,1)*(n-1-k*(j-1))-n)
+test =(I,j,k)-> bound(I,j,k)-regularity(S^1/(I^k))
+--Conj: this is positive for k\leq (n-1)/(j-1)
+
+m=2
+i= (ideal(a^m, b^m, c^m,d^m)): ideal(a^(m-1)+b^(m-1)+c^(m-1)+d^(m-1))
+test(i,2,2)
+--- gets 2
+
+m=3
+i= (ideal(a^m, b^m, c^m,d^m)): ideal(a^(m-1)+b^(m-1),c^(m-1)+d^(m-1))
+test(i,2,2)
+
+betti res i
+betti res i^2
+     
+

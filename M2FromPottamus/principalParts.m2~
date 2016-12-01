@@ -1,0 +1,72 @@
+--What is the sheaf of principal parts of order m of O(d) on P^n?
+restart
+kk= ZZ/101
+n=1 
+m=4
+d=7 -- must be >=m if n=1 or there's an H1 term.
+
+S = kk[x_0..x_n]
+
+f1=x_0-x_1
+g = f1^(m+1)
+G0=(coefficients g)_0
+G1=(coefficients g)_1
+
+H=map(S^(d+1), S^{max(0,d+1-m-1):-m-1}, 
+     (i,j)->(if i<j then 0 
+	     else if i>j+m+1 then 0
+	     else (G1_(i-j,0))* G0_(0,i-j))
+	)
+betti dual dual coker H --it's O(d-m)^(m+1) 
+betti res  coker dual  H
+
+restart
+
+--Note: on P^1, this gives the wrong answer for d<m, since there's an R^1pi_* term.
+--on P^n, in general, we need R^1pi_2*(I_\Delta^{m+1}) = 0. To estimate that we'd need to know
+--the x-regularity of that power of I_\Delta. Does it have a linear,linear  resolution??
+--if pp(n,m,d) as here defined is not locally free of rank binomial(n+m,m), then we certainly have
+--R^1 terms intruding. Is it ok otherwise?? Certainly ok for large enough d relative to m,n.
+
+pp=(n,m,d)->(
+     --compute the sheaf of principal parts of order m of  OO_{\P^n}(d) 
+     --For P^1 it gives  O(d-m)^(m+1) 
+kk= ZZ/101;
+T= kk[x_0..x_n,y_0..y_n];
+M=map(T^2, T^{n+1:-1}, (i,j) -> if i==0 then x_j else y_j);
+Im =(minors(2,M))^(m+1);
+X =ideal ((vars T)_{0..n});
+cols = if d<=m then matrix{{}} else  gens trim (X^(d-m-1)*Im);
+HT=(T^{d})**contract(transpose gens(X^d), cols);
+S = kk[y_0..y_n];
+H=sub(HT,S);
+PP=prune dual dual coker H;
+if rank PP!=binomial(n+m,m) then error("d too small");
+PP)
+
+pp(1,2,1)
+
+
+for n from 1 to 5 do(
+     for d from 1 to 7 do(
+     	  for m from 1 to d do(
+	       print(n,d,m);
+	       if (pp(n,m,d) != S^{(binomial(m+n,n)):d-m}) then print("false"))
+))
+
+pp(2,2,3)
+
+restart
+n=4
+m=5
+W = for i from 0 to 2*n+1 list (
+     if i<=n then {1,0} else {0,1})
+T= kk[x_0..x_n,y_0..y_n, Degrees=>W];
+M=map(T^2, T^{n+1:{-1,-1}}, (i,j) -> if i==0 then x_j else y_j);
+Im =(minors(2,M))^(m+1);
+betti (res Im ,Weights=>{1,0})
+regularity (res Im ,Weights=>{1,0}) -- =m
+omega = T^{{-n-1, -n-1}}
+Ext^(2*n-1)(module Im, omega)
+
+

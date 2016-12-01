@@ -1,0 +1,48 @@
+incr-set prlevel 1
+if #0=2 START
+incr-set prlevel -1
+;;; Usage:
+;;; 	<sect_genus I p_a
+;;;
+;;; computes the sectional genus of the scheme defined
+;;; by the ideal I and sets the result in the integer p_a
+;;;
+incr-set prlevel 1
+jump END
+;;; Parameters: I a standard basis
+;;;
+;;; Output values: p_a an integer
+;;;
+;;; (discussion)
+;;;
+;;; Caveats: assumes a standard basis already computed for I
+;;;
+; created 92/SP
+START:
+<getvars @reg
+nvars @reg @n
+copy #1 @work
+codim #1 @c
+int @n @n-@c-1
+if @n<=1 step
+<random_mat 1 (@n-1) @reg @reg
+concat @work @reg
+step:
+std @work @work
+in @work @in
+nres @in @in
+<regularity @in @bound
+k-basis @work @tmp
+@bound
+@bound
+ncols @tmp @hilb
+deg @work @c @n
+int #2 (@bound)*(@n)+1-@hilb
+;shout type #2
+
+kill @reg @work @n @c @in @bound @hilb @tmp
+
+END:
+incr-set prlevel -1
+
+$;;;;;;;; EXAMPLE SECTION ;;;;;;;;;;;;;;;;;;;;;;;;;

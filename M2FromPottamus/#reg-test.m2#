@@ -1,0 +1,54 @@
+kk=ZZ/32003
+S=kk[x,y]
+d=5
+e=3
+i1=ideal(x^d,y^d)
+regularity module i1^5
+regularity i1^5
+
+i=ideal(x^d,y^d,x^(d-e+1)*y^e)
+regularity module (i)
+regularity i
+
+regularity module (i^5)
+regularity (i^5)
+
+betti res prune module i^5
+betti mes i^5
+
+I=module i^5
+betti res I
+code methods regularity
+
+betti res module i
+betti res i
+
+for n from 1 to 10 do print regularity module trim(i^n)
+for n from 1 to 10 do print regularity module trim(i1^n)
+
+regTest=(d,e,f,g,n)->(
+     i:=ideal(x^d,y^e,x^(g)*y^(f-g));
+	  (regularity i^n)-n*d)
+)
+
+restart	  
+load "reesRegs.m2"
+kk=ZZ/101
+--S=kk[x,y]
+--i=ideal"x10,y11,x2y7"
+
+S=kk[a,b]
+i=ideal"a10,b11,a2b7"
+
+n:=stabilizationBound i
+RI = reesAlgebra i
+pairs betti res RI
+
+regTest=(d,e,f,g)->(
+     --0<f<d, 0<g<e
+     i=ideal(x^d,y^e,x^f*y^g);
+     n:=stabilizationBound i;
+     L:=apply(1..n,j->regularity i^j);
+     print apply(2..n, m->L_m-L_{m-1});
+     yRR i
+)

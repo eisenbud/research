@@ -1,0 +1,61 @@
+--compute some invariants from Hilbert-Burch matrices for a set
+--of singular points of a plane curve
+--s1
+--t1 s2
+--   t2 s3
+--      t3
+--s1>=t1>=s2.=t2...
+--so code them as one weakly decreasing sequence of 2n terms.
+BezoutVSNew = st ->(
+     --st a weakly decreasing sequence of 2n integers -- the degrees
+     --on the diagonals of a Hilbert-Burch matrix, interleaved. 
+     --should be >0.
+     assert (#st%2==0);
+     --assert st is weakly decreasing
+     n = #st//2;
+     s = for i from 0 to n-1 list st_(2*i); --the first diagonal
+     t = for i from 0 to n-1 list st_(2*i+1); --the second diagonal
+     reg = s_0+sum t - 1; -- the regularity of the ideal
+
+     a = apply(n+1, i-> (sum s_{0..i-1})+(sum t_{i..n-1}));
+     	  -- the degrees of the generators, from small to big
+     b = apply(n, j->s_j+a_j);
+     	  --the degrees of the relations, from big to small
+--	  print a;
+--	  print b;
+	  deg = ((1/2)*(sum (apply(b, x ->x^2))- sum(apply(a,x->x^2))));
+
+     assert (deg == sum apply(#s, i-> s_i*sum(t_{i..#t-1}))); -- the degree of the var
+     amin = min a;
+     lowest = amin;
+     aminMult = # select(a,i-> i==amin);
+     dMin = ceiling((aminMult-1+2*deg)/lowest); --lowest degree of an irred curve
+                                   --through the points allowed by Bezout
+     (dMin, reg, deg, lowest, s, t))
+
+BvN = BezoutVSNew
+end
+restart
+load "points-in-P2.m2"
+st = {5,5,5,4,1,1}
+st={5,5,1,1}
+BezoutVSNew st
+a
+BezoutVSNew splice{8:1}
+
+m=10
+for u3 from 1 to m do(
+     for u2 from u3 to m do(
+	  for u1 from u2 to m do(
+	       for u0 from u1 to m do(
+	  st = {u0,u1,u2,u3};
+	  L = BezoutVSNew st;
+	  if L_0<L_1+1 then print L))))
+
+
+
+     a = apply(n+1, i-> (product s_{0..i-1})*
+	  (product t_{0..n-1})
+product s_{0,-1}
+s_0
+product s_{0..-1}

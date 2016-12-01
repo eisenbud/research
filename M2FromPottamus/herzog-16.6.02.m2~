@@ -1,0 +1,55 @@
+restart
+linearity = method()
+
+linearity(ChainComplex):= F->(
+--describes how long the linear part of a resolution F is.
+-- "weak Np" means that the number of linear maps in the resolution
+-- F is p-1.
+L=0;
+f:=min flatten degrees F_0;
+ff:=max flatten degrees F_0;
+if f==ff then 
+(<< "All generators are in degree "<< f <<"." << endl) 
+     else (<< "Generators occur from degree " << f << 
+              " to degree " << ff.";break);
+for i from 1  to length F when 
+(1+f==max flatten degrees F_i) do (f=f+1; L=L+1);
+if L==length F then 
+(<< "The resolution is linear of length " << L <<".") else 
+(<< "The number of linear maps at the start of the complex is " 
+     << L <<endl <<
+"The length of the complex is " << length F);
+<<newline;
+)
+
+linearity(Module):=M->linearity res M
+linearity(Matrix):=m->linearity res coker m
+linearity(Ideal):=i->linearity res module i
+
+
+
+-------------------------
+
+--Theorem (Herzog):
+--If I is a primary, homog ideal gen in degree d-1 in n vars,
+--then (mI)^((d-2)(n-1)) is a power of the maximal ideal.
+
+n=3
+deg=5
+
+S=kk[x_1..x_n]
+m = ideal vars S
+I=ideal frobPower(gens m,deg-1)
+mI=m*I
+
+scan((deg-2)*(n-1) ,
+         i->(j=i+1;
+            j1=deg*j-deg;
+            print betti res ((mI^j):(m^j1))))
+
+scan((deg-2)*(n-1) ,
+         i->(j=i+1;
+            j1=deg*j-deg;
+            print linearity (mI^j)))
+
+betti res((mI^6):(m^25))

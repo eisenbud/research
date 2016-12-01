@@ -1,0 +1,37 @@
+incr-set prlevel 1
+if #0=3 START
+incr-set prlevel -1
+;;; Usage:
+;;; 	<self_intersect C S C^2
+;;;
+;;;  computes the self intersection of a Cartier
+;;;  divisor C on a smooth surface S. The result
+;;;  is the integer C^2
+;;;
+incr-set prlevel 1
+jump END
+;;; Parameters: C the ideal of the Cartier divisor
+;;;             S the ideal of the surface
+;;;
+;;; Output values:
+;;;
+;;; (discussion)
+;;;
+;;; Caveats: assumes C and S have standard bases 
+;;;          already computed
+;;;
+; created 92/SP
+START:
+<sect_genus #1 @p1
+power #1 2 @tmp
+concat @tmp #2
+std @tmp @tmp
+<sect_genus @tmp @p2
+int #3 @p2-2*(@p1)+1
+shout type #3
+
+kill @p1 @p2 @tmp
+END:
+incr-set prlevel -1
+
+$;;;;;;;; EXAMPLE SECTION ;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -1,0 +1,102 @@
+ring r
+;
+5
+x[0]-x[4]
+;
+;
+nres r kos
+betti kos
+
+dsum kos.5 kos.5 kos5m2
+transpose kos5m2 tkos5m2
+setdegs tkos5m2
+-3:2
+;
+dsum kos.4 kos.4 kos.4 kos4m3
+transpose kos4m3 tkos4m3
+random 2 15 ran
+mult ran tkos4m3 aaa
+setdegs aaa
+-2:3
+;
+lift-std tkos5m2 stkos5m2
+lift stkos5m2 aaa tphi_
+betti tphi_
+
+dsum kos.4 kos.4 kos4m2
+transpose kos4m2 tkos4m2
+setdegs tkos4m2
+-2:10
+;
+dsum kos.3 kos.3 kos.3 kos3m3
+transpose kos3m3 tkos3m3
+mult tphi_ tkos3m3 bbb
+setdegs bbb
+-2:10
+;
+lift-std tkos4m2 stkos4m2
+lift stkos4m2 bbb tphi21
+betti tphi21
+
+random 20 2 tphi22
+dsum kos.3 kos.3 kos3m2
+transpose kos3m2 tkos3m2
+mult tkos3m2 tphi22 tphi22
+setdegs tphi22
+-1:20
+;
+
+concat tphi21 tphi22
+betti tphi21
+
+random 1 30 tphi11
+<random_mat 1 2 r tphi12
+concat tphi11 tphi12
+setdegs tphi11
+-1:21
+-1:30 0:2
+betti tphi11
+
+<stack tphi tphi11 tphi21
+setdegs tphi
+-1:21
+-1:30 0:2
+betti tphi
+
+sparse null
+30
+2
+;
+copy tkos3m3 tpresg
+concat tpresg null
+setdegs tpresg
+-2:30
+-1:30 0:2
+betti tpresg
+
+<stack dir tphi tpresg
+setdegs dir
+-1:21 -2:30
+-1:30 0:2
+nres dir fdir
+betti fdir
+
+flatten fdir.2 i
+nres i fi 
+betti fi
+
+; total:      1    11    20    13     3 
+; --------------------------------------
+;     0:      1     -     -     -     - 
+;     1:      -     -     -     -     - 
+;     2:      -     -     -     -     - 
+;     3:      -     2     -     -     - 
+;     4:      -     9    20    13     3 
+
+
+hilb fi.1
+
+; codimension = 2
+; degree      = 9
+; genus       = 7
+

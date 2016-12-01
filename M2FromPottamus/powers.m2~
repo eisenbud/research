@@ -1,0 +1,6 @@
+S=kk[a..c]
+p=3
+deg=3
+i=ideal random (S^1, S^{2*deg:-deg})
+mingens ideal (gens ((ideal vars S)^(p*deg))%(gens (i^p)))
+betti res i^3

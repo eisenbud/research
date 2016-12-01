@@ -1,0 +1,22 @@
+S=kk[a..e]
+i=intersect(ideal(c*e-d^2,a,b), ideal(c,d,e))
+betti (F=res i)
+F.dd_2
+F.dd_3
+F.dd_4
+betti F
+submatrix(F.dd_2,{0..2},{0..10})
+
+betti res intersect (ideal(a,b,d^2-c*e),ideal(d,e,a^2-b*c))
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 

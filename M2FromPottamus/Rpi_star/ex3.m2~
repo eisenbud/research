@@ -1,0 +1,60 @@
+restart
+load "computingRpi_star.m2"
+kk=ZZ/101
+S=kk[a,b,x_0,x_1,Degrees=>{2:{2,0},2:{1,1}}]
+xx=matrix{{x_0,x_1}}
+A=kk[a,b,Degrees=>{2:{2,0}}]
+E=kk[a,b,e_0,e_1,Degrees=>{2:{2,0},2:{1,1}},SkewCommutative=>true]
+ee=matrix{{e_0,e_1}}
+use S
+M=cokernel matrix{{x_0*a-x_1*b}}
+d=3
+m=presentation ((ideal(x_0,x_1))^d*M)**S^{{0,d}}
+N=symmetricToExteriorOverA(m,ee,xx)
+fN=(res(coker N, LengthLimit=>2*d-1))[d-1]**E^{{0,d}}
+bettiT dual(fN)
+degreeZeroPart(fN,A)
+Rpis=apply(-3..3,i->degreeZeroPart(fN[i]**E^{{0,i}},A))
+apply(Rpis,c->bettiT dual(c))
+bettiT dual(fN)
+apply(Rpis,c->(c.dd_1,c.dd_0))
+
+
+restart
+load "computingRpi_star.m2"
+kk=ZZ/101
+S=kk[a,b,x_0,x_1,x_2,Degrees=>{2:{2,0},3:{1,1}}]
+xx=matrix{{x_0,x_1,x_2}}
+A=kk[a,b,Degrees=>{2:{2,0}}]
+E=kk[a,b,e_0,e_1,e_2,Degrees=>{2:{2,0},3:{1,1}},SkewCommutative=>true]
+ee=matrix{{e_0,e_1,e_2}}
+use S
+mm=matrix{{x_0,x_1,x_2},{a^3,a^2*b,b^3}}
+J=saturate(minors(2,mm),ideal(a,b))
+M=S^1/J
+d=6
+m=presentation ((ideal(x_0,x_1,x_2))^d*M)**S^{{0,d}}
+N=symmetricToExteriorOverA(m,ee,xx)
+fN=(res(coker N, LengthLimit=>2*d-1))[d-1]**E^{{0,d}}
+bettiT dual(fN)
+T=degreeZeroPart(fN,A)
+prune HH^(-1)(T)
+prune HH^0(T)
+bettiT dual chainComplex(fN.dd_1)
+fN.dd_3
+
+H1=prune HH^1 T
+fH1=res H1
+T.dd_1,T.dd_0,T.dd_(-1)
+
+fH1.dd
+Rpis=apply(-3..3,i->degreeZeroPart(fN[i]**E^{{0,i}},A))
+apply(Rpis,c->bettiT dual(c))
+bettiT dual(fN)
+prune HH^0 (Rpis#2)
+prune HH^1 Rpis#2
+(Rpis#2).dd_0,(Rpis#2).dd_1
+(Rpis#1).dd_0,(Rpis#1).dd_1
+bettiT dual Rpis#1
+syz transpose (Rpis#1).dd_1
+(Rpis#1).dd_0,(Rpis#1).dd_1

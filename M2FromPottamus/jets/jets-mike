@@ -1,0 +1,57 @@
+From mike@polygon.math.cornell.edu Sun Feb 15 13:37:56 1998
+Received: from msri.org by chern.msri.org (8.8.2/HUB)
+	id NAA26790; Sun, 15 Feb 1998 13:37:55 -0800 (PST)
+Received: (from smap@localhost) by msri.org (8.8.2/8.7.2) id NAA15280 for <de@msri.org>; Sun, 15 Feb 1998 13:37:25 -0800 (PST)
+X-Authentication-Warning: hill.msri.org: smap set sender to <mike@polygon.math.cornell.edu> using -f
+Received: from polygon.math.cornell.edu(128.84.234.110) by hill.msri.org via smap (V1.3)
+	id sma015269; Sun Feb 15 13:36:35 1998
+Received: by polygon.math.cornell.edu (5.x/SMI-SVR4)
+	id AA02799; Sun, 15 Feb 1998 16:36:31 -0500
+Date: Sun, 15 Feb 1998 16:36:31 -0500
+Message-Id: <9802152136.AA02799@polygon.math.cornell.edu>
+From: Mike Stillman - Math Prof <mike@math.cornell.edu>
+To: de@msri.org
+Status: RO
+X-Status: A
+Content-Length: 636
+Lines: 38
+
+Dear David,
+
+Here is the m2 code that we just did.
+
+-- Mike
+
+--- BUG
+R = ZZ/32003[x,y,s,t,u,v]
+f = x^2+x^3+y^2
+jf = jacobian matrix {{f}}
+tt = matrix{{s,t,u,v,0,0}}
+f1 = tt*jf
+jf1 = jacobian f1
+f2 = tt*jf1
+j2 = ideal (f | f1 | f2)
+S = ZZ/32003[x,y,s,t]
+use R
+A = R/j2
+use A
+phi = map(A,S,{x,y,s,t})
+ker phi
+
+--
+R = ZZ/32003[x,y,s,t,u,v]
+f = x^2+x^3+y^2
+jf = jacobian matrix {{f}}
+tt = matrix{{s,t,u,v,0,0}}
+f1 = tt*jf
+jf1 = jacobian f1
+f2 = tt*jf1
+j2 = ideal (f | f1 | f2)
+R1 = ZZ/32003[u,v,x,y,s,t,MonomialOrder=>Eliminate 2]
+j2 = substitute(j2,R1)
+gens gb j2
+I = ideal selectInSubring(1,gens gb j2)
+J = decompose I
+J = J#0     
+I : J
+

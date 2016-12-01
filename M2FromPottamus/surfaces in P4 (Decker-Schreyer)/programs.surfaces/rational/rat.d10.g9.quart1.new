@@ -1,0 +1,71 @@
+ring r
+;
+5
+x[0]-x[4]
+;
+;
+nres r kos
+betti kos
+dsum kos.5 kos.5 kos5m2
+transpose kos5m2 tkos5m2
+setdegs tkos5m2
+-2:2
+;
+dsum kos.3 kos.3 kos3m2
+transpose kos3m2 tkos3m2
+random 2 20 ran
+mult ran tkos3m2 aaa
+setdegs aaa
+-2:2
+;
+lift-std tkos5m2 stkos5m2
+lift stkos5m2 aaa tphi
+betti tphi
+
+random 20 1 tphi2
+dsum kos.4 kos.4 kos4m2
+transpose kos4m2 tkos4m2
+mult tkos4m2 tphi2 tphi2
+setdegs tphi2
+-1:20
+;
+concat tphi tphi2
+betti tphi
+
+sparse null
+20
+1
+;
+copy tkos3m2 tpresg
+concat tpresg null
+setdegs tpresg
+-2:20
+-1:20 0
+betti tpresg
+
+<stack dir tphi tpresg
+setdegs dir
+-1:10 -2:20
+;
+nres dir fdir
+betti fdir
+
+flatten fdir.2 i
+nres i fi 
+betti fi
+
+; total:      1    11    18    10     2 
+; --------------------------------------
+;     0:      1     -     -     -     - 
+;     1:      -     -     -     -     - 
+;     2:      -     -     -     -     - 
+;     3:      -     1     -     -     - 
+;     4:      -    10    18    10     2 
+
+
+hilb fi.1
+
+; codimension = 2
+; degree      = 10
+; genus       = 9
+

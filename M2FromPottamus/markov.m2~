@@ -1,0 +1,13 @@
+loadPackage "RandomIdeal"
+rsf = randomSquareFreeStep
+rsf(Ideal, ZZ) := (I,n) ->(
+     I1 := rsf I;
+     for m from 1 to n do I1 = rsf I1;
+     I1)
+
+
+setRandomSeed currentTime()
+S=kk[x,y]
+I=ideal{1_S}
+tally for c from 1 to 100 list first (
+     I=rsf (1,)

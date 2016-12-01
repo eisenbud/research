@@ -1,0 +1,10 @@
+S=kk[a..f]
+i=ideal(b*c,c*e,c*f, a*f, b*f, d*b)
+betti res i
+E=kk[a..f, SkewCommutative =>true]
+ie=substitute(i,E)
+annihilator ie
+j=substitute(oo, S)
+F=res j
+F.dd_2
+F.dd_1

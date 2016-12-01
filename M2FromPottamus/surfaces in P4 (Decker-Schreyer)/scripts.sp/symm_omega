@@ -1,0 +1,36 @@
+incr-set prlevel 1
+if #0=2 START
+incr-set prlevel -1
+;;; Usage:
+;;; 	<symm_omega j a
+;;;
+;;;  Computes a morphism whose kernel is the j-th symmetric power
+;;;  of the contangent bundle Omega^1 over the current ring
+;;;
+incr-set prlevel 1
+jump END
+;;; Parameters: j a natural number
+;;;             a a matrix with entries linear forms
+;;;
+;;; Output values:
+;;;
+;;; (discussion)
+;;;
+;;; Caveats:
+;;;
+; created 92/SP
+START:
+<getvars @coord
+if #1=1 NOTHING
+int @j #1-1
+power @coord @j @coordj
+power @coord #1 @coord
+diff @coordj @coord @coord
+kill @coordj @j
+NOTHING:
+copy @coord #2
+kill @coord 
+END:
+incr-set prlevel -1
+
+$;;;;;;;; EXAMPLE SECTION ;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -1,0 +1,413 @@
+newPackage(
+              "CompleteIntersectionResolutions",
+              Version => "0.1", 
+              Date => "August 21, 2010",
+              Authors => {{Name => "David Eisenbud", 
+                        Email => "de@msri.org", 
+                        HomePage => "http://www.msri.org/~de"}},
+              Headline => "Analyzing Resolutions over a Complete Intersection",
+              DebuggingMode => true
+              )
+n
+      export {ExtModule, 
+	   evenExtModule, 
+	   oddExtModule,
+	   rewriteCompleteIntersection,
+	   makeT,
+	   isSurj,
+	   splittings,
+	   decomposeResolution,
+	   newDifferential}
+
+
+ExtModule = M -> (
+     --If M is a module over a complete intersection R
+     --of codim c, the script returns 
+     --Ext^*(M,(ring M)^1/(ideal vars ring M))
+     --graded in POSITIVE degrees
+     --as a module over the polynomial ring kk[X_1..X_(codim R)],
+     --where the vars have degree 2
+     kk= coefficientRing R;
+     kkk := (ring M)^1/(ideal vars ring M);
+     E := Ext(M,kkk);
+     TE := ring E;
+     c := numgens source presentation R;
+     T := kk[X_0..X_(c-1), Degrees => toList(c:{2})];
+     v := map(T,
+	  ring E, 
+	  vars T | matrix{toList ((numgens R):0_T)}, 
+	  DegreeMap => i -> {-first i} );
+     prune coker v presentation E)
+
+evenExtModule = M -> (
+     --If M is a module over a complete intersection R
+     --of codim c, the script returns 
+     --Ext^(even)(M,(ring M)^1/(ideal vars ring M))
+     --graded in POSITIVE degrees
+     --as a module over the polynomial ring kk[X_1..X_(codim R)],
+     --where the vars have degree 1
+     E := ExtModule M;
+     P := positions(flatten degrees E, even);
+     Ee:=prune image (E_P);
+     T := ring E;
+     kk:= coefficientRing T;
+     T1 := kk[X_0..X_(numgens T -1)];
+     v1 = map(T1, T, DegreeMap => i->{(first i)//2});
+     coker v1 presentation Ee
+     )
+
+oddExtModule = M -> (
+     --If M is a module over a complete intersection R
+     --of codim c, the script returns 
+     --Ext^(odd)(M,(ring M)^1/(ideal vars ring M))
+     --graded in POSITIVE degrees
+     --as a module over the polynomial ring kk[X_1..X_(codim R)],
+     --where the vars have degree 1
+     E := ExtModule M;
+     P := positions(flatten degrees E, odd);
+     Eo:=prune image (E_P);
+     T := ring E;
+     kk:= coefficientRing T;
+     T1 := kk[X_0..X_(numgens T -1)];
+     v1 = map(T1, T, DegreeMap => i->{(first i)//2});
+     coker v1 presentation Eo
+     )
+
+liftM = method()
+liftM(Module, Ring) := (M,S) ->(
+     P = lift (presentation M, S);
+     prune coker(((target P)**(presentation R))|P)
+     )
+
+rewriteCompleteIntersection = (f, F) -> (
+          {*
+     If F = {{g0,..,gn}} is a matrix of 
+     minimal generators of a
+     complete intersection R, and f is a minimal generator of 
+     ideal F, this returns a matrix of (homogeneous) minimal
+     generators of ideal F with first entry f.
+     *}
+     const := map((ring F)/ideal vars ring F, ring F);
+     f1 := sub(f, ring F);
+     ff := map(target F, (ring F)^1, matrix{{f1}});
+     h := flatten entries (ff//F);
+     m := first positions(h, x -> 0!=const x);
+     map(target F, source F, (i,j)-> if j==m then f1 else F_j_0)
+     )
+
+makeT = method()
+makeT(Matrix, ChainComplex,ZZ) := (F,G,i) ->(
+     {*
+     If F is an m x 1 matrix and
+     G is a resolution of a module at least up to the i-th step,
+     over R = S/(ideal F), this returns a map
+     G_i\otimes source F \to G_{i-2} giving
+     operators corresponding to the entries of F.
+     *}
+     R := ring G;
+     S := ring F;
+     if S =!= ring presentation R then error("rings don't match");
+     d0 := lift(G.dd_i, S);
+     d1 := lift(G.dd_(i-1), S);
+     u := apply(rank source presentation R,
+	     i-> (d1*d0)//((target d1)**F_{i}));
+     ret := map(R,S);
+     apply(u, u1 -> ret u1)
+     )
+     
+makeT(RingElement, ChainComplex, ZZ) := (f,G,i) ->(
+     {*
+     If F = {{f,f1, f2,..,fn}} is a matrix of 
+     minimal generators of a
+     complete intersection R, and 
+     G is a resolution of a module at least up to the i-th step,
+     over R = S/(ideal F), this returns a map
+     G_i \to G_{i-2} giving
+     the operators corresponding to f.
+     *}
+     F := presentation ring G;
+     S := ring F;
+     F1 := rewriteCompleteIntersection(f,F);
+     I1 := ideal F1_{1..numgens source F1-1};
+     S1 := S/I1;
+     d0 := S1**lift(G.dd_i, S);
+     d1 := S1**lift(G.dd_(i-1), S);
+     ret := map(R,S1);
+     map(G_(i-2), G_i, ret( (d1*d0)//((target d1)**F1_{0}) ))
+     )
+
+isSurj = (f,G,i) ->(
+     {*
+     Assuming that G is a resolution over a complete intersection,
+     f = f1, f2, ...
+     returns "true" iff the operator G_i -> G_(i-2)
+     corresponding to f is surjective.
+     *}
+     v := makeT(f,G,i);
+     0 == coker v
+     )
+splittings = method()
+splittings (Matrix, Matrix) := (a,b) -> (
+     {*
+     Assuming that (a,b) are the maps of a right exact
+     sequence 
+         a      b
+     A ----> B ----> C ----> 0 
+     
+     with B, C free,
+     the script produces a pair of maps sigma, tau
+     with tau: C --> B a splitting of b and
+     sigma: B --> cover A such that a*sigma+tau*b = 1_B.
+     Remark: we could have used the function "quotientRemainder"
+     *}
+     if not isFreeModule source b then error("source b not free");
+     if not isFreeModule target b then error("target b not free");
+     (tau,remtau) := quotientRemainder(id_(target b),b);
+     if remtau !=0 then error("second map not splittable");
+     (sigma,remsigma) := quotientRemainder(id_(source b) - (tau*b),a);
+     if remsigma !=0 then error("first map not splittable");
+     (sigma,tau)
+     )
+
+
+decomposeResolution=(f,G,i) ->(
+     {*
+     Assumes that the operator t corresponding to f is
+     surjective in two successive places:
+     t_i: G_i --> G_(i-2) and
+     t_(i-1): G_(i-1) --> G_(i-3).
+     Returns the differntial as the 4 blocks of
+     ker t_i ++ G_(i-2) --> ker t_(i-1) ++ G_(i-3)
+     *}
+     if not (isSurj(f,G,i) and isSurj(f,G, i-1)) then 
+	  error("operators not surjective");
+     d := G.dd_i;
+     d':= G.dd_(i-2);
+     t := makeT(f,G,i);
+     t' := makeT(f,G,i-1);
+     s := map(source t, , syz t);
+     s':= map(source t', , syz t');
+     (sigma, tau) = splittings(s,t);
+     (sigma', tau') = splittings(s',t');
+     d00 := sigma'*d*s;
+     d10 := map(target t', source s, d'*t*s); -- silly way to write 0
+     d01 := sigma'*d*tau;
+     d11 = d';
+     {d00,d01,d10,d11}
+     )
+
+newDifferential = method()
+newDifferential(RingElement, ChainComplex, ZZ) := (f, G,i) -> (
+     --make the new differential at the i-th step
+     L := decomposeResolution(f,G,i);
+     (L_0|L_1)||(L_2|L_3)
+     )
+
+
+newComplex = method()
+newComplex(RingElement, ChainComplex, ZZ) := (f,G,i) -> (
+     --builds the new complex inductively starting from the
+     --i th differential.
+     len = length G;
+     H := new ChainComplex from G;
+     H.dd_i = newDifferential(f,G,i);
+     H.dd_(i+1) = newDifferential(f,G,i+1);
+)     
+
+      beginDocumentation()
+doc ///
+Key
+  CompleteIntersectionResolutions
+Headline 
+  "Resolution over a Complete Intersection"
+Description 
+ Text
+  The resolution of a module over a hypersurface ring (graded or local) is always periodic of period at most 2 (Eisenbud **** ),
+  But the structure of minimal resolutions over a complete intersection remains somewhat mysterious. This package contains 
+  code that helps analyze examples. In the following example we look at a resolution G of a module N
+  over a codimension 2 complete intersection.
+ Example
+  kk= ZZ/101
+  S = kk[x,y,z]
+  F = map(S^1, S^2, matrix"x2, z3")
+  f1 = x^2
+  f2 = y^3
+  R = S/ideal F
+  M = R^1/ideal gens R
+  G1 = res(M,LengthLimit => 5)
+  N = coker transpose G1.dd_5
+  G = res(N,LengthLimit => 15)
+ Text
+  In fact, the resolution is an extension of a "true" codim 2 resolution by a "periodic part"
+ Example
+  L= decomposeResolution(f1, G,9);
+  netList L
+  L/betti
+  for i from 10 to 15 list decomposeResolution(f1,G,i)
+  d10=newDifferential(f1, G, 10)
+  d11 = newDifferential(f1, G, 11)
+  d10*d11
+Caveat
+  Assumes things are graded.
+///
+
+doc ///
+Key
+  ExtModule
+Headline
+  Ext^*(M,k)
+Usage
+  E = ExtModule M
+Inputs
+  M:Module
+    Module over a complete intersection
+Outputs
+  E:Module
+    Module over a new ring, in c variables, where c is the codimension of ring M
+Consequences
+Description
+ Text
+  M should be a module over a complete intersection 
+  R = S/(f1..fc) in a polynomial ring S = k[x1..xn] (graded)
+ Example
+  kk = ZZ/101
+  S = kk[a,b,c]
+  R = S/ideal"a2,b3,c4"
+  M = R^1/ideal"a,b,c"
+  E = ExtModule M 
+  
+Caveat
+  Expects everything graded
+SeeAlso
+  Ext
+  evenExtModule
+  oddExtModule
+///
+TEST ///
+restart
+needsPackage "CompleteIntersectionResolutions"
+  kk = ZZ/101
+  S = kk[a,b,c]
+  R = S/ideal"a2,b3,c4"
+  M = R^1/ideal"a,b,c"
+  assert (degrees ExtModule M == {{0}, {1}, {1}, {1}, {2}, {2}, {2}, {3}})
+///
+TEST ///
+restart
+needsPackage "CompleteIntersectionResolutions"
+  kk = ZZ/101
+  S = kk[a,b,c]
+  R = S/ideal"a2,b3,c4"
+  M = R^1/ideal"a,b,c"
+assert(degrees evenExtModule M != {{0}, {1}, {1}, {1}})
+///
+viewHelp TEST
+
+end
+
+
+restart
+uninstallPackage "CompleteIntersectionResolutions"
+installPackage "Style"
+installPackage( "CompleteIntersectionResolutions")
+
+
+
+
+
+
+viewHelp "CompleteIntersectionResolutions"
+over a a complete intersection ring R = S/(f1..fc) where S = k[x1..xn] is a graded polynomial ring.
+   Module over a new polynomial ring T = k[X_1..X_c].
+viewHelp ExtModule
+
+
+///
+restart
+load "completeIntersection.m2"
+kk= ZZ/101
+S = kk[x,y,z]
+f = x^2
+F = map(S^1, S^2, matrix"x2, z3")
+rewriteCompleteIntersection(x^2*z+z^3, F)
+rewriteCompleteIntersection(z^3, F)
+///
+///
+restart
+load "completeIntersection.m2"
+
+kk= ZZ/101
+S = kk[x,y,z]
+F = map(S^1, S^2, matrix"x2, z3")
+f0 = z^3
+f1 = x^2*z+z^3
+rewriteCompleteIntersection(f1, F)
+R = S/ideal F
+M = R^1/ideal gens R
+G = res(M,LengthLimit => 5)
+
+liftM(M,S)
+makeT(F,G,4)
+makeT(f1,G,4)
+///
+///
+restart
+
+load "completeIntersection.m2"
+
+kk= ZZ/101
+S = kk[x,y,z]
+F = map(S^1, S^2, matrix"x2, z3")
+f0 = z^3
+f1 = x^2*z+z^3
+rewriteCompleteIntersection(f1, F)
+R = S/ideal F
+M = R^1/ideal gens R
+G = res(M,LengthLimit => 5)
+v = makeT(f0,G,4)
+0==coker v
+isSurj(f0, G, 1)
+G1 = res( coker transpose G.dd_5, LengthLimit => 10)
+for i from 2 to 10 list isSurj(f0, G1, i)
+for i from 2 to 10 list isSurj(f1, G1, i)
+///
+
+
+///The following is a variant that doesn't seem as good,
+since the tests are harder.
+
+splittings' = method()
+splittings'(Matrix, Matrix) := (a,b) -> (
+     {*
+     Assuming that (a,b) are the maps of a right exact
+     sequence 
+         a      b
+     A ----> B ----> C ----> 0 
+     
+     with B, C free,
+     the script produces a pair of maps sigma, tau
+     with tau: C --> B a splitting of b and
+     sigma: B --> cover A such that a*sigma+tau*b = 1_B.
+     Remark: we could have used the function "quotientRemainder"
+     *}
+     if not isFreeModule source b then error("source b not free");
+     if not isFreeModule target b then error("target b not free");
+     tau := id_(target b)//b;
+     sigma := (id_(source b) - (tau*b))//a;
+     (sigma,tau)
+     
+     )
+///
+
+{*
+restart
+load "completeIntersection.m2"
+kk= ZZ/101
+S = kk[x,y,z]
+b0 = id_(S^{1,1,0,0})|random(S^4, S^{3:-1})
+b = random(target b0, target b0) * b0 * random(source b0, source b0)
+a = map(source b, ,syz b)
+(s,t) = splittings(a,b)
+assert(b*t == id_(target b))
+assert(s*a ==id_(source a))
+*}

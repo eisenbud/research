@@ -1,0 +1,8 @@
+kk = ZZ/101
+S=kk[x]
+f = map(kk^0,kk^0,(i,j)->0)
+
+inverse f
+
+g = map(S^0,S^0,(i,j)->0)
+inverse g

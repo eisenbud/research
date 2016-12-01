@@ -1,0 +1,67 @@
+--This file contains three bug reports. The first
+--is an oddity of what is "the same ring".
+--The second is a wish-list of (some) things that
+--would be nice to do with maps between different rings.
+--The third is a bug in the "rank" function over a 
+--quotient ring, a nonzero free module with rank 0.
+
+--different rings
+bug=()->(
+kk=ZZ/101;
+R=kk[a,b];
+I=ideal(a);
+((vars R)**(R/I))**((vars R)**(R/I))
+)
+
+
+-- Some things I'd like to be able to do with "basis"
+kk=ZZ/101
+R=kk[a,b,c,d]
+I= saturate (intersect(ideal(a,b),
+     ideal(c,d))+
+     ideal((a+c)^4))
+degree I
+dim I
+x=(vars R) * 
+       random(source vars R, 
+       R^{-1})
+Q=R/(I+ideal(x-1))
+dim Q
+B=basis Q
+
+--wish list
+transpose B
+B**B
+c^2//B
+
+-----------------------------
+--A bug in "rank"
+     B = (basis Q)**Q;
+     n = rank source B;
+     k = coefficientRing Q;
+     S = k[A_0..A_(n-1)];
+     G = S^n;
+     -- Make the multiplication table, over Q
+     m1 = 1*(B**B);
+     -- and the row of elements of V*V
+     vv1 = 1*(V**V);
+     -- (the operation ** does not
+     -- automatically reduce its entries;
+     -- mult by 1 corrects this.)
+     --
+     -- The columns of m2 are the coefficients
+     -- of the elements of the row matrix m1 in terms of the
+     -- basis B
+     m2 = transpose substitute(contract(transpose m1,B),0);
+     m2 = lift(m2,k);
+     -- m3 is the same, expressed as a row matrix of linear forms
+     m3 = (vars S)*m2;
+     -- and finally the table
+     m = adjoint(m3,G,G);
+     -- Now do the same for VV
+     vv2 = transpose substitute(contract(transpose vv1,B),0);
+     vv2 = lift(vv2,k);
+     vv = (vars S)*vv2;
+     mbar = m**(S/ideal(vv));
+     (kernel mbar)==0
+     rank kernel mbar

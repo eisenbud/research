@@ -1,0 +1,127 @@
+betti(ZZ, ChainComplex):=o->(m,F) ->(
+     --returns a table in which the i-th column is the hilbert function of
+     --H_i(F**S/mm^m), where mm is the maximal ideal of S.
+     S := ring F;
+     n := length F;
+     mm := ideal vars S;
+     Sbar := S^1/(mm^m);
+     Fdegs := flatten flatten for i from 0 to n list degrees F_i;
+     minF := min Fdegs;
+     maxF := max Fdegs;
+     Fimin := 0;
+     Fimax := 0;
+     H := 0;
+     B = for i from 0 to n list(
+	  Fimin = min flatten degrees F_i;
+	  Fimax = max flatten degrees F_i;
+	  H = HH_i(Sbar**F);
+	  for j from 1 to m+Fimax-Fimin list
+	       {(i, {m+Fimax-j},m+Fimax-j),
+	         hilbertFunction (m+Fimax-j,H)});
+     new BettiTally from hashTable flatten B)
+///TEST
+S = kk[x,y,z]
+M = S^1/ideal"x4,y5,z3"
+F = res M
+assert(betti F == betti(1,F))
+///
+
+diffBetti = (d,n,F) -> (
+     --provides the n-th difference of the betti(i,F),
+     --from i=d to i=d+n (n+1 terms)
+     S:=ring F;
+     sum(toList(0..n), i->
+	  (-1)^(i)*binomial(n,i)*betti(d+n-i,F**S^{-i}))
+	       )
+          
+end
+restart
+load "higherBetti.m2"
+
+--Proposition: if n is the number of variables, and F is
+--a resolution of a finite length module, then
+--diffBetti(d,n,F) == 0 except in the first column for all
+--d>>0. (Conjecture: d >= reg F+1 is enough.) Proof: ++_m(Tor_i(M, S/mm^m) is a finitely generated
+--module over S[t*mm], the Rees algebra of the maximal ideal, and is also killed by a power of mm.
+--This is proved (essentially) in Kodiyalam's paper.
+
+--Also, the first column gives the alternating sums
+--of the betti numbers of F, degree by degree. Something similar is true for
+--free complexes with homology, too.
+
+--Thus the info in the
+--"higher betti numbers" is all contained in the first 2*(reg F)
+--of them.
+
+S = kk[x,y]
+M = S^1/ideal"x4,y5"
+r = regularity M
+F = res M
+betti F
+diffBetti(1+r,2,F)
+
+M = coker random(S^{0,-1}, S^{-1,-2,-3,-4,-4})
+
+F = res M
+r = regularity F
+betti F
+diffBetti(1+r, 2, F)
+diffBetti(3+r, 2, F)
+
+S = kk[x,y,z]
+M = S^1/ideal"x4,y5,z3"
+F = res M
+r = regularity F
+diffBetti(1+r, 3, res M)
+for d from 0 to r do (
+print diffBetti(d, 3, res M);
+print"")
+
+
+M = coker random(S^{0,-1}, S^{-1,-2,-3,-4,-4})
+diffBetti(1+regularity M, 3, res M)
+diffBetti(regularity M, 3, res M)
+diffBetti(2+regularity M, 3, res M)
+
+F = res M
+r = regularity F
+for i from 1+r to 4+r do (
+print betti(i,F);
+print"")
+
+--What about a module not of finite length?? is n really the
+--(max) codim of the homology??
+
+--example with 0-dim and 1-dim homology:
+S = kk[x,y,z]
+I = ideal(x,y)*ideal"x,y,z"
+M = S^1/I
+F = res M
+r = regularity F
+diffBetti(1+r,2,F)
+diffBetti(3+r,2,F)
+diffBetti(1+r,3,F)
+betti res M
+
+diffBetti(1+r, 0, F)
+diffBetti(1+r, 1, F)
+diffBetti(1+r, 2, F)
+diffBetti(1+r, 3, F)
+
+--A complex with finite length homology in 2 places, and 
+--3-dim homology in one place
+S = kk[x,y,z]
+G = res (S^1/(ideal vars S))
+F = chainComplex{G.dd_1, G.dd_2, G.dd_1**G.dd_3}
+r = regularity F
+betti res prune HH_0 F
+betti res prune HH_1 F
+betti res prune HH_2 F
+betti res prune HH_3 F
+
+diffBetti(r+1, 3, F)
+--this gives the betti numbers of the individual homology modules!
+
+--hypertor?
+viewHelp
+methods Tor

@@ -1,0 +1,47 @@
+kk=ZZ/32003
+kk=ZZ/101
+R=kk[a,b,c,d]
+m=matrix{{a,b,c,0,0,0},
+	 {b,c,d,a,b,c},
+	 {0,0,0,b,c,d}}
+F=res image m
+keys F
+F.dd
+m
+ker m
+S=kk[a,b,c]
+use S
+f=map(S,R,matrix{{a,b,c,-a-b-c}})
+M=f(m)
+ker M
+i = minors(3,M)
+radical i
+decompose i
+j1=ideal(a,b)*ideal(b,c)*ideal(c,a)
+j=ideal (a+10*b, -10*b+c)*ideal (a+b, b+c)*ideal (a-10*b, 10*b+c)
+G=res coker gens i
+G0=res coker gens j
+G1=res coker gens j1
+m1= (gens ideal(a+10*b, -10*b+c))++
+     (gens ideal(a+b, b+c))++(gens ideal(a-10*b, 10*b+c))
+mm1 =coker m1
+mm = coker M
+
+H=prune Hom(mm,mm1)
+betti H
+
+G.dd
+G1.dd
+betti G
+betti G1
+decompose i
+
+betti res coker gens j
+intersect(ideal(a+10*b, -10*b+c),ideal (a+b, b+c)) -- a+11*b+10*c
+intersect(ideal(a+10*b, -10*b+c),ideal(a-10*b, 10*b+c)) -- a+c
+intersect(ideal(a+b, b+c),ideal(a-10*b, 10*b+c)) -- a-9*b-10*c
+
+g=map(S,S,matrix{{a+11*b+10*c, a+c, a-9*b-10*c}})
+g(j)
+decompose g(j)
+intersect apply(0..2,i->o113_i)

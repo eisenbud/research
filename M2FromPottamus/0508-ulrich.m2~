@@ -1,0 +1,221 @@
+restart
+load "rees.m2"
+
+kk=ZZ/32003
+S=kk[a,b,c]
+Q=a^2-b*c
+i=ideal(Q)*ideal(vars S)+ideal(random(S^1,S^{-3}))
+betti (G=res i)
+phi=G.dd_2
+phi1=phi_{0..2}
+I=reesClassic i
+T=ring I
+red=map(T,T,matrix{{0_T,0_T,0_T,X_1..X_4}})
+IY=trim red I
+betti res IY
+trans=map(T,S)
+J=IY+ideal(matrix{{X_1..X_4}}*(trans phi1))
+II=saturate(J,I)
+betti res (I:II)
+betti res J
+
+
+-----------
+
+
+ThmI subset S=kk[x_0..x_n] gen by m+1 forms of the same degree and lin pres,
+then the map, restricted to any line either:
+i. undefined (line in base locus)
+ii. contracts the line to a point
+iii. is injective on the line.
+
+Proof: restricted to the line the ideal is still lin pres. If =0,
+then i. If principal then ii. Otherwise gives same map as after
+dividing by GCD, and by lin pres it's a power of the max ideal,
+so injective.//
+
+Cor: Same hypothesis:
+then the fibers of the map Pn -> Pm defined by I are all linear spaces.
+
+Proof: connect any two points in a fiber by a line, look at the restriction.
+Can't be i or iii, so its ii. Thus the line lies in the fiber. This implies
+the fiber is linear.//
+
+----------
+S=kk[s,t]
+m1=matrix{
+     {5, -1,-2},
+     {22,-10,-6},
+     {29,-31,-6}}
+M=map(S,ZZ)
+D=transpose((M m1)*(m2=transpose matrix{{s*t^2, s^2*t, s^3+t^3}}))
+FF=res coker D
+FF.dd_2
+codim ideal (D_{0,1})
+codim ideal (D_{0,2})
+codim ideal (D_{1,2})
+
+i01=(ideal(D_{0,1}))
+primaryDecomposition i01
+
+
+------
+Fails:
+primaryDecomposition ideal(s^2*t+s*t^3)
+------
+factor (s^2*t+s*t^3)
+
+Conjecture: if J is lin pres ideal, I = J^d, 
+then for general p (maybe p not in V(J)), 
+I_p:=(G in gens I | G(p)= 0),
+I_p:I is linear.
+
+(hope that it's the same as long as the fiber of 
+     |J| through p is linear.)
+
+example
+
+S=kk[a,b,c,d]
+r=4
+j=ideal(a*b^r, a*c^r, b^(r-1)*c*d)+ideal(b*c)*(ideal(b,c))^(r-1)
+betti res j
+
+betti(FF= res (j^r))
+
+rr=random(S^1,S^4)
+spec= map(S,S,rr)
+J=mingens (j^r);
+K=gens kernel spec J;
+trim ideal(J*K):(j^r)
+
+-------------
+Example: where the different types of fibers look different
+kk=ZZ/32003
+S=kk[a,b,c]
+J=ideal(a^2*c-b^3, a^3-b^2*c, a^2*b-a*b^2)
+I=J+ideal(c^3)
+J:I
+saturate(J,I)
+
+betti res J
+betti res o11
+
+J=ideal(b^2, b*c, a*c)
+I=J+ideal(c^2-a*b)
+J:I
+saturate(J,I)
+d=7
+(J*I^d):(I^(d+1))
+betti res I
+
+J=intersect(ideal(a,b), ideal(c,b^3))
+truncate(3,J)
+f=ideal random(S^1,S^{-3})
+I=J+f
+J:I
+saturate(J,I)
+d=7
+(J*I^d):(I^(d+1))
+
+---
+restart
+load "rees.m2"
+kk=ZZ/32003
+S=kk[a,b,c,d]
+J=ideal(a*b^2,a*c^2,b^2*c, b*c^2)
+I=J+ideal(b*c*d)
+J:I
+saturate(J,I)
+I
+RI=reesClassic I
+T=ring RI
+spec=map(S, T, vars S|matrix{{0_S,0_S,0_S,0_S,1_S}})
+trim spec RI
+L=primaryDecomposition I
+scan(L, i->print i)
+
+
+I1=ideal random(S^1,S^{2:-3})
+I1=ideal(d^3,a^3+b^3+c^3)
+II=I+I1
+codim II
+JJ=J+I1
+betti res (JJ:II)
+betti res saturate(JJ,II)
+RI=reesClassic II
+transpose gens II
+T=ring RI
+spec=map(S, T, vars S|matrix{{0_S,0_S,0_S,0_S,1_S,0_S,0_S}})
+trim spec RI
+
+---
+--r+1 random forms of degree d in n+1 variables
+restart
+load "rees.m2"
+kk=ZZ/32003
+n=1
+r=2
+d=5
+S=kk[x_0..x_n]
+I=ideal(random(S^1,S^{r+1:-d}));
+
+rr=random(S^1,S^(n+1))
+spec= map(S,S,rr)
+K=gens kernel spec gens I;
+J=trim ideal((gens I)*K);
+
+betti (J:I)
+betti saturate(J,I)
+
+RI=reesClassic I;
+T=ring RI
+spec=map(S, T, vars S|spec gens I);
+trim spec RI
+codim RI
+betti res RI
+
+
+---
+restart
+
+general map from Pn to Pr with d-ics, and an imposed double point,
+with fiber 1,0.. and 0,1,0...
+We look at fiber through one of the double points.
+restart
+load "rees.m2"
+kk=ZZ/32003
+n=2
+r=4
+d=5
+S=kk[x_0..x_n]
+doublepoint=gens intersect(ideal(x_1..x_n), ideal(x_0,x_2..x_n))
+I1= ideal (doublepoint*random(source doublepoint, S^{r:-d}))
+I2=ideal random(S^1,S^{-d})
+I=I1+I2
+
+rr=map(S^1,S^(n+1),(u,v)->(if v==0 then 1 else 0))
+spec= map(S,S,rr)
+K=gens kernel spec gens I;
+J=trim ideal((gens I)*K);
+
+betti (J:I)
+betti saturate(J,I)
+
+RI=reesClassic I;
+T=ring RI
+spec=map(S, T, vars S|spec gens I);
+betti trim spec RI
+
+kk=ZZ/101
+S=kk[s,t]
+map(S^{4:-4}, S^{2
+
+m=transpose matrix{
+     {t, 0,0},
+     {t-s, t-s, t^2-s^2},
+     {t+s,-t-s,-t^2+s^2},
+     {0, -s, 0}
+     }
+kernel m
+n=matrix{{s,t,0,0},{0,s,t,s^2}}
+kernel n

@@ -1,0 +1,74 @@
+
+July 28, 2008.
+
+This file contains a list of all the 2 variable,
+4-monomial primary ideals generated in degree 20
+such that the stabilization point for
+
+reg I^t = dt+e
+
+is NOT reached at t=reg_y Rees i - e.
+Each entry starts with listing the 
+(y-regularity, d, e);
+then the ideal;
+then the power at which the regularity function actually
+stabilizes.
+
+This was produced by a version of "regfunction" in the file
+reesRegs.m2.
+
+------------------
+(5, 20, 7)
+ideal(x^20,y^20,x^2*y^18,x^12*y^8)
+2
+(6, 20, 5)
+ideal(x^20,y^20,x^2*y^18,x^14*y^6)
+4
+(7, 20, 3)
+ideal(x^20,y^20,x^2*y^18,x^16*y^4)
+6
+(8, 20, 1)
+ideal(x^20,y^20,x^2*y^18,x^18*y^2)
+8
+(7, 20, 7)
+ideal(x^20,y^20,x^3*y^17,x^12*y^8)
+2
+(7, 20, 4)
+ideal(x^20,y^20,x^3*y^17,x^15*y^5)
+4
+(5, 20, 5)
+ideal(x^20,y^20,x^4*y^16,x^14*y^6)
+2
+(3, 20, 3)
+ideal(x^20,y^20,x^4*y^16,x^16*y^4)
+3
+(7, 20, 3)
+ideal(x^20,y^20,x^4*y^16,x^18*y^2)
+6
+(7, 20, 6)
+ideal(x^20,y^20,x^5*y^15,x^13*y^7)
+2
+(2, 20, 4)
+ideal(x^20,y^20,x^5*y^15,x^15*y^5)
+2
+(7, 20, 4)
+ideal(x^20,y^20,x^5*y^15,x^17*y^3)
+4
+(6, 20, 5)
+ideal(x^20,y^20,x^6*y^14,x^14*y^6)
+2
+(5, 20, 5)
+ideal(x^20,y^20,x^6*y^14,x^16*y^4)
+2
+(6, 20, 5)
+ideal(x^20,y^20,x^6*y^14,x^18*y^2)
+4
+(7, 20, 6)
+ideal(x^20,y^20,x^7*y^13,x^15*y^5)
+2
+(7, 20, 7)
+ideal(x^20,y^20,x^8*y^12,x^17*y^3)
+2
+(5, 20, 7)
+ideal(x^20,y^20,x^8*y^12,x^18*y^2)
+2

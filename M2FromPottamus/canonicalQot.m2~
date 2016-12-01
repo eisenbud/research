@@ -1,0 +1,5 @@
+--How big is the family of Gorenstein
+--"almost linear" ideals gen in deg d in n vars?
+-- A subfamily is obtained by embedding the twisted
+--module as an ideal gen in degree d in kk[x_1,..x_n]/(x_2,..,x_n)^d
+

@@ -1,0 +1,11 @@
+Using simpleDoc, I had some troubles:
+
+The spacing is very particular, and I didn't find the documentation
+and examples clear enough.
+
+It also wasn't clear what could go into the Key line (several
+     lines of text, or whether it needed to have quotes etc
+
+Even when everything compiled, the links created in the web pages
+didn't work.
+

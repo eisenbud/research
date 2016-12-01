@@ -1,0 +1,7 @@
+kk=ZZ/101
+S=kk[u,v,x,y]
+i=ideal(u*x,u*y,v*x,v*y)
+betti (F=res i)
+m=F.dd_2
+res coker transpose m
+betti oo

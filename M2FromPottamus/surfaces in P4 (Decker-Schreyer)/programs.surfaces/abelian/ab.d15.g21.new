@@ -1,0 +1,163 @@
+ring r10
+;
+10
+x[0]-x[4]y[0]-y[4]
+;
+;
+mat c1
+5
+1
+x[0]y[0]
+x[3]y[4]
+x[1]y[3]
+x[4]y[2]
+x[2]y[1]
+
+mat c2
+5
+1
+x[3]y[1]
+x[1]y[0]
+x[4]y[4]
+x[2]y[3]
+x[0]y[2]
+
+mat c3
+5
+1
+x[1]y[2]
+x[4]y[1]
+x[2]y[0]
+x[0]y[4]
+x[3]y[3]
+
+mat c4
+5
+1
+x[4]y[3]
+x[2]y[2]
+x[0]y[1]
+x[3]y[0]
+x[1]y[4]
+
+mat c5
+5
+1
+x[2]y[4]
+x[0]y[3]
+x[3]y[2]
+x[1]y[1]
+x[4]y[0]
+copy c1 moore
+concat moore c2 c3 c4 c5
+type moore
+
+imap map1 r10 r10
+y[0] 1
+y[1] 0
+y[2] 0
+y[3] 0
+y[4] 0
+;
+
+imap map2 r10 r10
+y[0] 0
+y[1] 1
+y[2] 0
+y[3] 0
+y[4] 1
+;
+
+imap map3 r10 r10
+y[0] 0
+y[1] 0
+y[2] 1
+y[3] 1
+y[4] 0
+;
+
+ev map1 moore  alpha
+ev map2 moore  alpha2
+ev map3 moore  alpha3
+concat alpha alpha2 alpha3
+ring r
+;
+5
+x[0]-x[4]
+;
+;
+fetch alpha alpha
+setdegs alpha
+-4:5
+;
+res alpha falpha
+betti falpha
+
+; total:      5    15    29    37    20     2 
+; --------------------------------------------
+;    -4:      5    15    10     2     -     - 
+;    -3:      -     -     4     -     -     - 
+;    -2:      -     -    15    35    20     - 
+;    -1:      -     -     -     -     -     2 
+
+submat falpha.4 tbeta
+3..37
+;
+transpose tbeta beta
+nres beta fbeta
+betti fbeta
+
+; total:     20    35    24    15    10     2 
+; --------------------------------------------
+;    -2:     20    35    15     -     -     - 
+;    -1:      -     -     4     -     -     - 
+;     0:      -     -     -     -     -     - 
+;     1:      -     -     5    15    10     2 
+
+submat fbeta.3 gamma
+16..24
+;
+transpose gamma tgamma
+
+random 1 4 tphi
+sparse null
+1
+5
+;
+concat tphi null
+setdegs tphi
+-1 
+-1:4 -3:5
+
+<stack dir tphi tgamma 
+setdegs dir
+-1 -4:5
+-1:4 -3:5
+nres dir fdir
+betti fdir
+
+flatten fdir.2 i
+nres i fi
+betti fi
+
+; total:      1     8    15    10     2 
+; --------------------------------------
+;     0:      1     -     -     -     - 
+;     1:      -     -     -     -     - 
+;     2:      -     -     -     -     - 
+;     3:      -     -     -     -     - 
+;     4:      -     3     -     -     - 
+;     5:      -     -     -     -     - 
+;     6:      -     5    15    10     2 
+
+hilb fi.1
+
+; codimension = 2
+; degree      = 15
+; genus       = 21
+
+
+
+
+
+

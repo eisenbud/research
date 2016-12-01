@@ -1,0 +1,32 @@
+input "points.m2"
+p2=kk[x..z]
+pointsmat=id_(p2^3)|random(p2^3,p2^3)
+idealpoints=points(pointsmat)
+mults={2,2,2,1,1,1}
+ideal((vars p2)*syz transpose (pointsmat_{3}))
+pointsmat_{3}
+
+idealOfMultiplePoints=(pointsmat, mults)->(
+     R := ring pointsmat;
+     l:= min(rank source pointsmat, #mults);
+     listOfIdeals := apply(l , 
+	  p -> (ideal((vars R)*syz transpose (pointsmat_{p})))^(mults_p));
+     intersect listOfIdeals
+     )
+i=idealOfMultiplePoints(pointsmat, mults)
+
+curveOfClass = (pointsmat, d, mults) -> (
+     i=idealOfMultiplePoints(pointsmat, mults);
+     ((gens i) *map(source gens i, source basis(d,i), basis(d,i)))_{1})
+curveOfClass(pointsmat, 4, mults)
+
+p3=kk[a,b,c,d]
+cubicSurface = (S, pointsmat)->
+
+--compute the linear series of plane curves with assigned multiple basepoints
+divclass={4,2,2,2,1,1,1}
+linsys=(pointsmat, divclass)->(
+     l=#divclass
+     apply(divclass,     
+     )
+idealOfMultiplePoints(p2,pointsmat,mults)

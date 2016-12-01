@@ -1,0 +1,33 @@
+kk=ZZ/101
+E=kk[e_0,e_1,e_2,y,z,Degrees=>{3:{1,1},2:{2,0}},SkewCommutative=>true]
+e012=e_0*e_1*e_2
+M=matrix{{0,0,0,e012},{0,0,e012,y*e_0*e_2},{0,e012,0,z*e_0*e_1},{e012,-y*e_0*e_2,z*e_0*e_1,e_0*y*z}}
+N=map(E^{{-2,2},{-1,1},{-1,1},{0,0}},E^{{-3,-3},{-4,-2},{-4,-2},{-5,-1}},M)
+isHomogeneous N
+betti N
+N
+betti (fN=res coker N)
+fN.dd_2
+y*e_0-e_0*y
+
+betti res coker vars E
+N1=matrix{
+ {e_0, 0 , 0 ,0,0,0,0,0,0},
+ {e_1,e_0, 0 ,y,0,0,0,0,0},
+ {e_2, 0 ,e_0,0,z,0,0,0,0},
+ { 0 ,e_1, 0 ,0,0,y,0,0,0},
+ { 0 ,e_2,e_1,0,0,0,y,z,0},
+ { 0,  0 ,e_2,0,0,0,0,0,z}}
+isHomogeneous N1
+betti (fN1=res coker N1)     
+betti fN
+N2=fN1.dd_3
+betti(N3=transpose N2**E^{{-9,-5}})
+N3
+time betti (hom=Hom(coker N2,coker N3))
+time betti (homa=Hom(coker N2,coker N2))
+betti (hom1=prune hom)
+betti prune homa
+N2
+N2
+N3

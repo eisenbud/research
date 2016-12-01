@@ -1,0 +1,2 @@
+n:=3;
+P<x> := PolynomialRing(GF(32003), 2*n^2);P;

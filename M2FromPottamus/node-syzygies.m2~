@@ -1,0 +1,21 @@
+{*
+Kloosterman's thm: if C is a nodal plane curve of degree d, then the last
+syzygies of the ideal of the nodes are of degree at most d, and the number
+of syz of degree = d is 1 less than the number of components.
+*}
+k=ZZ/101
+S = k[x,y,z]
+d = 10
+rat = d->(
+     T = k[X,Y];
+     i = ker map(T,S, random(T^1,T^{3:-d}));
+     diffs = ideal diff(vars S, gens i);
+     --time j= radical diffs;
+     --time j = saturate diffs;
+     time j = intersect decompose diffs;
+     assert(degree j == binomial(d-1,2));
+     print betti res j;
+     (i,j)
+     )
+rat 5     
+rat 10

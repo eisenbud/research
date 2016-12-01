@@ -1,0 +1,350 @@
+Macaulay 2, version 0.8.10
+  Copyright 1997, Daniel R. Grayson and Michael E. Stillman
+  Factory library from Singular, copyright 1996, G.-M. Greuel and R. Stobbe
+  Factorization and characteristic sets library, copyright 1996, M. Messollen
+  GC, copyright 1996, Hans-J. Boehm, Alan J. Demers, Xerox, Silicon Graphics
+  GNU libc and libg++, copyright 1996, Free Software Foundation
+  GNU MP, copyright 1996, Free Software Foundation
+
+i1 = ll=ZZ/32003
+
+o1 = ll
+
+o1 : QuotientRing
+
+i2 = T = ll[a..j,s,t]
+
+o2 = T
+
+o2 : PolynomialRing
+
+i3 = use T
+
+o3 = T
+
+o3 : PolynomialRing
+
+i4 = M1 = matrix(T,{
+     {0,a,b,c,d},
+     {0,0,e,f,g},
+     {0,0,0,h,i},
+     {0,0,0,0,j},
+     {0,0,0,0,0}}
+     )
+
+o4 = | 0 a b c d |
+     | 0 0 e f g |
+     | 0 0 0 h i |
+     | 0 0 0 0 j |
+     | 0 0 0 0 0 |
+
+             5       5
+o4 : Matrix T  <--- T
+
+i5 = 
+
+i5 = 
+
+i5 = M2 = matrix(T,{
+     {0,0,0,0,0},
+     {1,0,0,0,0},
+     {0,1,0,0,0},
+     {0,0,1,0,0},
+     {0,0,0,1,0}}
+     )
+
+o5 = | 0 0 0 0 0 |
+     | 1 0 0 0 0 |
+     | 0 1 0 0 0 |
+     | 0 0 1 0 0 |
+     | 0 0 0 1 0 |
+
+             5       5
+o5 : Matrix T  <--- T
+
+i6 = 
+
+i6 = M=s*M1+t*M2
+
+o6 = | 0 as bs cs ds |
+     | t 0  es fs gs |
+     | 0 t  0  hs is |
+     | 0 0  t  0  js |
+     | 0 0  0  t  0  |
+
+             5       5
+o6 : Matrix T  <--- T
+
+i7 = 
+
+i7 = M=substitute(M,{d=>0})
+
+o7 = | 0 as bs cs 0  |
+     | t 0  es fs gs |
+     | 0 t  0  hs is |
+     | 0 0  t  0  js |
+     | 0 0  0  t  0  |
+
+             5       5
+o7 : Matrix T  <--- T
+
+i8 = M=substitute(M,{g=>-c})
+
+o8 = | 0 as bs cs 0   |
+     | t 0  es fs -cs |
+     | 0 t  0  hs is  |
+     | 0 0  t  0  js  |
+     | 0 0  0  t  0   |
+
+             5       5
+o8 : Matrix T  <--- T
+
+i9 = M=substitute(M,{f=>-b-i})
+
+o9 = | 0 as bs cs     0   |
+     | t 0  es -bs-is -cs |
+     | 0 t  0  hs     is  |
+     | 0 0  t  0      js  |
+     | 0 0  0  t      0   |
+
+             5       5
+o9 : Matrix T  <--- T
+
+i10 = M=substitute(M,{a=>a-e,j=>-a-h})
+
+o10 = | 0 as-es bs cs     0      |
+      | t 0     es -bs-is -cs    |
+      | 0 t     0  hs     is     |
+      | 0 0     t  0      -as-hs |
+      | 0 0     0  t      0      |
+
+              5       5
+o10 : Matrix T  <--- T
+
+i11 = M=substitute(M,{h=>-h})
+
+o11 = | 0 as-es bs cs     0      |
+      | t 0     es -bs-is -cs    |
+      | 0 t     0  -hs    is     |
+      | 0 0     t  0      -as+hs |
+      | 0 0     0  t      0      |
+
+              5       5
+o11 : Matrix T  <--- T
+
+i12 = 
+
+i12 = t5=trace exteriorPower(5,M)
+
+           2  3        2  3        2  3        2  3
+o12 = a b s  t  - b h s  t  - a i s  t  + e i s  t 
+
+o12 : T
+
+i13 = t4=trace exteriorPower(4,M)
+
+         2  2  2        2  2
+o13 = - a  s  t  + e h s  t 
+
+o13 : T
+
+i14 = t3=trace exteriorPower(3,M)
+
+o14 = 0
+
+o14 : T
+
+i15 = t2=trace exteriorPower(2,M)
+
+o15 = 0
+
+o15 : T
+
+i16 = transpose mingens minors(4,M)
+
+
+o16 = | t4                                                                                         |
+      | ist3                                                                                       |
+      | est3-hst3                                                                                  |
+      | bst3                                                                                       |
+      | ast3-est3                                                                                  |
+      | bis2t2                                                                                     |
+      | ais2t2-eis2t2                                                                              |
+      | ahs2t2-ehs2t2+cst3                                                                         |
+      | aes2t2-ehs2t2-cst3                                                                         |
+      | abs2t2-bhs2t2                                                                              |
+      | a2s2tI=ideal(
+2-ehs2t2                                                                              |
+      | e2is2t2-ehis2t2                                                                            |
+      | e2hs2t2-eh2s2t2-2chst3                                                                     |
+      | behs2t2-bh2s2t2                                                                            |
+      | aeis3t-e2is3t-bcs2t2                                                                       |
+      | abhs3t-bh2s3t+cis2t2                                                                       |
+      | a2hs3t-aehs3t-ah2s3t+eh2s3t+acs2t2-chs2t2                                                  |
+      | a2es3t-ae2s3t-aehs3t+e2hs3t-acs2t2+ces2t2                                                  |
+      | a2ehs4-ae2hs4-aeh2s4+e2h2s4+ab2s3t+aces3t-b2hs3t-achs3t+beis3t-bhis3t-ai2s3t+ei2s3t-c2s2t2 |
+      | be2his3t-beh2is3t+b2chs2t2+cei2s2t2                                                        |
+
+              20       1
+o16 : Matrix T   <--- T
+
+i17 = 
+i17 =       contract(gens(ideal(s,t))^5,t5)|
+contract(gens(ideal(s,t))^4,t4)|
+contract(gens(ideal(s,t))^3,t3)|
+contract(gens(ideal(s,t))^2,t2))
+
+I=ideal mingens I
+                  
+o17 = ideal | 0 0 0 ab-bh-ai+ei 0 0 0 0 -a2+eh 0 0 0 0 0 0 0 0 0 |
+
+o17 : Ideal
+
+i18 = 
+i18 = 
+o18 = ideal | ab-bh-ai+ei a2-eh |
+
+o18 : Ideal
+
+i19 = codim I
+
+o19 = 2
+
+i20 = degree I
+
+o20 = 4
+
+i21 = M
+
+o21 = | 0 as-es bs cs     0      |
+      | t 0     es -bs-is -cs    |
+      | 0 t     0  -hs    is     |
+      | 0 0     t  0      -as+hs |
+      | 0 0     0  t      0      |
+
+              5       5
+o21 : Matrix T  <--- T
+
+i22 = Is=saturate(I,(a-e)*e*h*(a-h))
+radical Is
+
+o22 = ideal | bh+ai ab+ei a2-eh |
+
+o22 : Ideal
+
+i23 = codim Is
+degree Is
+
+o23 = ideal | bh+ai ab+ei a2-eh |
+
+o23 : Ideal
+
+i24 = 
+o24 = 2
+
+i25 = 
+o25 = 3
+
+i26 = FF=res coker gens Is
+
+       1      3      2
+o26 = T  <-- T  <-- T
+                    
+      0      1      2
+
+o26 : ChainComplex
+
+i27 = FF.dd_2
+
+o27 = | -b -i |
+      | a  -h |
+      | -e a  |
+
+              3       2
+o27 : Matrix T  <--- T
+
+i28 = 
+
+i28 = --The generic nilp pencil up to change of var in s,t 
+
+i28 = --(assuming transverse flags)
+
+i28 = restart
+Macaulay 2, version 0.8.10
+  Copyright 1997, Daniel R. Grayson and Michael E. Stillman
+  Factory library from Singular, copyright 1996, G.-M. Greuel and R. Stobbe
+  Factorization and characteristic sets library, copyright 1996, M. Messollen
+  GC, copyright 1996, Hans-J. Boehm, Alan J. Demers, Xerox, Silicon Graphics
+  GNU libc and libg++, copyright 1996, Free Software Foundation
+  GNU MP, copyright 1996, Free Software Foundation
+kk= ZZ/32003
+
+i1 = 
+o1 = kk
+
+o1 : QuotientRing
+
+i2 = R = kk[s,t,u,v,w,c]
+
+o2 = R
+
+o2 : PolynomialRing
+
+i3 = M1 = matrix(R,{
+     {0,w*u+w^2,w*v,c,0},
+     {0,0,-w^2,-w*v-u*v,-c},
+     {0,0,0,u^2,u*v},
+     {0,0,0,0,-w*u-u^2},
+     {0,0,0,0,0}}
+     )
+
+o3 = | 0 uw+w2 vw  c      0      |
+     | 0 0     -w2 -uv-vw -c     |
+     | 0 0     0   u2     uv     |
+     | 0 0     0   0      -u2-uw |
+     | 0 0     0   0      0      |
+
+             5       5
+o3 : Matrix R  <--- R
+
+i4 = 
+
+i4 = 
+
+i4 = M2 = matrix(R,{
+     {0,0,0,0,0},
+     {1,0,0,0,0},
+     {0,1,0,0,0},
+     {0,0,1,0,0},
+     {0,0,0,1,0}}
+     )
+
+o4 = | 0 0 0 0 0 |
+     | 1 0 0 0 0 |
+     | 0 1 0 0 0 |
+     | 0 0 1 0 0 |
+     | 0 0 0 1 0 |
+
+             5       5
+o4 : Matrix R  <--- R
+
+i5 = 
+
+i5 = M=s*M1+t*M2
+
+o5 = | 0 suw+sw2 svw  sc       0        |
+     | t 0       -sw2 -suv-svw -sc      |
+     | 0 t       0    su2      suv      |
+     | 0 0       t    0        -su2-suw |
+     | 0 0       0    t        0        |
+
+             5       5
+o5 : Matrix R  <--- R
+
+i6 = M^5==0
+
+o6 = true
+
+i7 = quit
+
+Process M2 finished

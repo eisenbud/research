@@ -1,0 +1,28 @@
+-- Talking with David and Craig, Oct 16, 2006 Banff
+
+-- Search for examples of ideals with high regularity in small numbers of variables
+e.g. in 3 variables, find examples of ideals with regularity roughly d^3, d = maxgen(I),
+or even d^2.
+
+-- Projective dimension of 3 forms of degree d, small d.
+
+-- Multiplicities
+if R = S/I is not CM, try to find counterexamples of
+  deg I <= 1/c! M1 ... Mc
+
+or (f1, ..., fd are general linear forms, d + cod I = numvars)
+counterexamples to
+  deg(I,f1,f2,...,fd) <= 1/c! m1 m2 ... mc
+
+-- powers of a linearly presented ideal
+-- conj: If I is generated in degress d, and primary in n variables ,
+--  and linear for p = ceiling((n-1)/k) steps,
+--  then I^k = power of the max ideal.
+-- So: take random ideals, truncate to get p steps linear, don't forget primary,
+-- and then the check the result.
+
+-- find a counterexample of strong lefschetz
+-- 3 forms in 3 variables
+-- reg(I,f^d)
+
+-- or check weak lefschetz in 4 variables

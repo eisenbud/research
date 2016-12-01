@@ -1,0 +1,5 @@
+S = kk[a,b,c, Degrees=>{{1,1,0,0},{1,0,1,0},{1,0,0,1}}]
+F=res ideal"a3,a2bc,c3"
+betti F
+betti(F, Weights => {0,1,0,0})
+viewHelp Degrees

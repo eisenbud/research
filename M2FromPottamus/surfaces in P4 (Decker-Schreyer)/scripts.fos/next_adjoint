@@ -1,0 +1,146 @@
+incr-set prlevel 1
+if #0=6 START
+incr-set prlevel -1
+;;; Usage:
+;;; 	<next_adjoint r j E s i D 
+;;;
+;;;	r ring, j ideal of surface, E matrix, whose rows
+;;; 	are the ideals of basepoints
+;;;	s new ring, i ideal of the adjoint, D matrix whose
+;;;	rows are the ideal of the mapped basepoints, the first row
+;;;	corresponds to the new exceptional divisor
+;;;
+;;;	it is assumed that j is a 3-regular and arithmetically CM
+;;;
+incr-set prlevel 1
+jump END
+;;; Parameters:
+;;;
+;;; Output values:
+;;;
+;;; (dis}cussion)
+;;;
+;;; Caveats:
+;;;
+; created 92/FOS
+START:
+<random_aut #1 @aut @inv
+ev @aut #2 @j
+<check_para_sys #1 @j @a
+if @a>0 START
+std @j @j
+<dualizing #1 @j @w
+nrows @w @n
+char #1 @char
+<xring #4 @char @n
+ring-sum #1 #4 @rr
+fetch @w @w
+fetch #4 @s
+mult @s @w @graph
+poly @x {@rr}
+set autocalc 1
+set autodegree 2
+quot @graph @x @j
+fetch #1 @rh
+ncols #1 @n
+submat @rr @h2
+1
+@n
+concat @h2 @graph
+quot @h2 @x @jh2
+submat @rr @h3
+1
+@n-1
+concat @h3 @graph
+quot @h3 @x @jh3
+submat @rr @h1
+1
+@n-2
+concat @h1 @graph
+quot @h1 @x @jh1
+kill @h2 @h3 @h1
+setring #4
+fetch @j @jj
+set autocalc -1
+std @jj #5
+shout hilb #5
+fetch @jh2 @jh2
+fetch @jh3 @jh3 
+fetch @jh1 @e
+concat @e @jh2 @jh3 
+std @e @e
+shout deg @e
+deg @e @cd @deg
+codim #5 @co
+int @co @cd-@co
+if @co=2 Sat
+if @co=3 Empty 
+shout type @co
+shout type @co
+shout type @co
+jump END
+Empty:
+copy #4 @e
+std @e @E
+jump AAA
+Sat:
+ncols @e @col
+Sat1:
+<random_mat 1 1 #4 @xx 
+std @xx @xx
+ncols @xx @co
+if @co=0 Sat1
+quot @e @xx @E
+deg @E @cod @dg
+if @cd<@cod Sat1
+if @dg<@deg Sat1
+ncols @E @co
+copy @E @e
+if @co>@col Sat 
+if @co<@col Sat 
+kill @jh2 @rh @jh3 @jh1 @deg @cod @cd @e @xx @col @co
+AAA:
+nrows #3 @k
+int @l 1
+ncols #1 @n
+submat #1 @xx
+1
+@n-2..@n
+LOOP:
+setring #1
+submat #3 @D
+@l
+;
+flat @D @D
+ev @aut @D @D
+std @D @D
+setring @rr
+fetch @D @D1
+ABA:
+concat @D1 @graph
+fetch @xx @xx
+std @D1 @D1
+quot @D1 @xx @D2
+setring #4
+fetch @D2 @D1
+std @D1 @D1
+deg @D @cd @deg
+deg @D1 @cd @dg
+if @dg=@deg korrekt
+shout type @dg
+shout type @deg
+shout type @l
+setring @rr
+copy @D2 @D1
+jump ABA
+korrekt:
+<stack @E @E @D1
+int @l @l+1
+if @l<=@k LOOP
+copy @E #6
+kill @l @k @a @jj @E @cd @deg @dg @aut @inv @j @x @s @w @rr 
+kill @n @char @graph @xx @D1 @D @D2
+END:
+incr-set prlevel -1
+
+$ ;;;;;;;; EXAMPLE SECTION ;;;;;;;;;;;;;;;;;;;;;;;;;

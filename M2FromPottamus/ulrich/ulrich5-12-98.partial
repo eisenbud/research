@@ -1,0 +1,21 @@
+--An example of a height one ideal i in a 2diml domain
+--of depth 1 R/I, such that a:i is unmixed, b:i is mixed
+--for nonzerodivisors a,b in i.
+
+kk=ZZ/101
+R=kk[x_0..x_3]
+I=monomialCurve(R,{1,5,6})
+res I
+anni=annihilator Ext^2(module I, R)
+
+P=(I+ideal(x_0,x_2)) -- a prime of dim 1
+codim(((I+ideal(x_2)):P)+P) 
+-- =4, so x_2 generically generates P
+i=(I+ideal(x_2)):P
+-- in the factor ring we have (x_2):i = P, unmixed
+codim i -- 3
+anni:i -- i is contained in anni and thus:
+j=intersect(i,anni) -- an ideal from which to take b
+k=(I+ideal(x_3^3)):i
+betti res k -- k is mixed.
+

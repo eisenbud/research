@@ -1,0 +1,46 @@
+kk=ZZ/32003
+R=kk[a..f]
+M=genericSymmetricMatrix(R,a,3)
+N=matrix({{a,b,d,e},{b,c,e,f}})
+i=ideal mingens minors(2,M)
+j=minors(2,N)
+i4=ideal ((gens i)*random(R^6,R^4))
+i4res= (i4:i)
+j4=ideal ((gens j)*random(R^6,R^4))
+j4res= (j4:j)
+codim i4res
+codim j4res
+
+Pi=poincare (R^1/i4res)
+Pj=poincare (R^1/j4res)
+
+f=map(R,ring Pi, matrix{{a}}) 
+Pi=f (Pi)
+Pi//((a-1)^4)
+
+Pj=f (Pj)
+Pj//((a-1)^4)
+
+------
+5-resid ints
+
+i5=ideal ((gens i)*random(R^6,R^{4:0,-1}))
+i5res= (i5:i)
+j5=ideal ((gens j)*random(R^6,R^{4:0,-1}))
+betti j5
+j5res= (j5:j)
+codim i5res
+codim j5res
+degree i5res -- 3 points
+degree j5res -- 2 points
+
+Pi=poincare (R^1/i5res)
+Pj=poincare (R^1/j5res)
+
+f=map(R,ring Pi, matrix{{a}}) 
+Pi=f (Pi)
+Pi//((a-1)^5)
+
+Pj=f (Pj)
+Pj//((a-1)^5)
+

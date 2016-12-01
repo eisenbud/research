@@ -1,0 +1,402 @@
+
++ M2 --no-readline --print-width 93
+Macaulay2, version 1.6
+with packages: ConwayPolynomials, Elimination, IntegralClosure, LLLBases,
+               PrimaryDecomposition, ReesAlgebra, TangentCone
+
+i1 : needs"Extension-Scripts.m2"
+
+i2 : R = QQ[x]
+
+o2 = R
+
+o2 : PolynomialRing
+
+i3 : A = coker matrix{{x^5}}
+
+o3 = cokernel | x5 |
+
+                            1
+o3 : R-module, quotient of R
+
+i4 : B = coker matrix{{x^4}}
+
+o4 = cokernel | x4 |
+
+                            1
+o4 : R-module, quotient of R
+
+i5 : F = complete res A
+
+      1      1
+o5 = R  <-- R  <-- 0
+                    
+     0      1      2
+
+o5 : ChainComplex
+
+i6 : G = complete res B
+
+      1      1
+o6 = R  <-- R  <-- 0
+                    
+     0      1      2
+
+o6 : ChainComplex
+
+i7 : E = constructRandomExtensions(3,F,G)
+
+o7 = cokernel | x5 | <-- cokernel | x5     0  | <-- cokernel | x4 |
+                                  | -6/5x3 x4 |      
+     0                                              2
+                         1
+
+o7 : ChainComplex
+
+i8 : prune HH E
+
+o8 = 0 : 0
+
+     1 : 0
+
+     2 : 0
+
+o8 : GradedModule
+
+i9 : R = QQ[x]
+
+o9 = R
+
+o9 : PolynomialRing
+
+i10 : A = coker matrix{{x^3}} ++ coker matrix {{x^9}}
+
+o10 = cokernel | x3 0  |
+               | 0  x9 |
+
+                             2
+o10 : R-module, quotient of R
+
+i11 : B = coker matrix{{x^9}} ++ coker matrix {{x^4}} ++ coker matrix {{x^8}}
+
+o11 = cokernel | x9 0  0  |
+               | 0  x4 0  |
+               | 0  0  x8 |
+
+                             3
+o11 : R-module, quotient of R
+
+i12 : F = res A;
+
+i13 : G = res B;
+
+i14 : E = constructRandomExtensions(5,F,G)
+
+o14 = cokernel | x3 0  | <-- cokernel | x3     0       0  0  0  | <-- cokernel | 0  0  x9 |
+               | 0  x9 |              | 0      x9      0  0  0  |              | x4 0  0  |
+                                      | -7x5   -7/8x5  0  0  x9 |              | 0  x8 0  |
+      0                               | 0      0       x4 0  0  |      
+                                      | -1/3x5 -7/10x5 0  x8 0  |     2
+                              
+                             1
+
+o14 : ChainComplex
+
+i15 : prune HH E
+
+o15 = 0 : 0
+
+      1 : 0
+
+      2 : 0
+
+o15 : GradedModule
+
+i16 : S = QQ[a,b,c]
+
+o16 = S
+
+o16 : PolynomialRing
+
+i17 : A = coker matrix{{a^3,b^4,c^2}}
+
+o17 = cokernel | a3 b4 c2 |
+
+                             1
+o17 : S-module, quotient of S
+
+i18 : B = coker matrix{{a^1,b^6,c^3} }
+
+o18 = cokernel | a b6 c3 |
+
+                             1
+o18 : S-module, quotient of S
+
+i19 : e = constructRandomExtensions(10,res A, res B)
+
+o19 = cokernel | c2 a3 b4 | <-- cokernel | c2 a3 b4 0 0  0  | <-- cokernel | a c3 b6 |
+                                         | 0  0  0  a c3 b6 |      
+      0                                                           2
+                                1
+
+o19 : ChainComplex
+
+i20 : prune HH e
+
+o20 = 0 : 0
+
+      1 : 0
+
+      2 : 0
+
+o20 : GradedModule
+
+i21 : S = QQ[a,b,c]
+
+o21 = S
+
+o21 : PolynomialRing
+
+i22 : A = coker matrix{{a^3,b^4,c^2}}
+
+o22 = cokernel | a3 b4 c2 |
+
+                             1
+o22 : S-module, quotient of S
+
+i23 : B = coker matrix{{a^1,b^6,c^3} }
+
+o23 = cokernel | a b6 c3 |
+
+                             1
+o23 : S-module, quotient of S
+
+i24 : e = constructRandomExtensions(10,res A, res B)
+
+o24 = cokernel | c2 a3 b4 | <-- cokernel | c2 a3 b4 0 0  0  | <-- cokernel | a c3 b6 |
+                                         | 0  0  0  a c3 b6 |      
+      0                                                           2
+                                1
+
+o24 : ChainComplex
+
+i25 : prune HH e
+
+o25 = 0 : 0
+
+      1 : 0
+
+      2 : 0
+
+o25 : GradedModule
+
+i26 : C = coker matrix{{a^3,b^4},{c^2,c^9}}
+
+o26 = cokernel | a3 b4 |
+               | c2 c9 |
+
+                             2
+o26 : S-module, quotient of S
+
+i27 : D = coker matrix{{a^3,b^8}}
+
+o27 = cokernel | a3 b8 |
+
+                             1
+o27 : S-module, quotient of S
+
+i28 : f = constructRandomExtensions(10, res C, res D)
+
+o28 = cokernel | a3 b4 | <-- cokernel | a3                                                                                                                                                                                                       b4                                                                                                                                                                                                   0  0  | <-- cokernel | a3 b8 |
+               | c2 c9 |              | c2                                                                                                                                                                                                       c9                                                                                                                                                                                                   0  0  |      
+                                      | -5/4a2b7c-8/3a2b6c2-10ab7c2-7/4a2b5c3-5/6ab6c3-2/3b7c3-4/3a2b4c4-4/5ab5c4-7/4b6c4-5a2b3c5-3/5ab4c5-3b5c5-6a2b2c6-5/9ab3c6-9/7b4c6-2/3a2bc7-1/3ab2c7-5/7b3c7-1/4a2c8-9/8abc8-3/5b2c8-1/5ac9-3/5bc9-9/2c10 -2/5a2b7c-9/4a2b6c2-9/2ab7c2-9/5a2b5c3-ab6c3-8b7c3-3/10a2b4c4-3/5ab5c4-1/2b6c4-2/3a2b3c5-ab4c5-5/4b5c5-5/3a2b2c6-5/4ab3c6-1/2b4c6-3/4a2bc7-8/7ab2c7-4/3b3c7-7/4a2c8-abc8-8/5b2c8-1/3ac9-10bc9-1/7c10 a3 b8 |     2
+      0                       
+                             1
+
+o28 : ChainComplex
+
+i29 : prune HH f
+
+o29 = 0 : 0
+
+      1 : 0
+
+      2 : 0
+
+o29 : GradedModule
+
+i30 : exit
+
+Process M2 finished
+
++ M2 --no-readline --print-width 192
+Macaulay2, version 1.6
+with packages: ConwayPolynomials, Elimination, IntegralClosure, LLLBases, PrimaryDecomposition, ReesAlgebra, TangentCone
+
+i1 : needs"Extension-Scripts.m2"
+
+i2 : R = QQ[x]
+
+o2 = R
+
+o2 : PolynomialRing
+
+i3 : A = coker matrix{{x^5}}
+
+o3 = cokernel | x5 |
+
+                            1
+o3 : R-module, quotient of R
+
+i4 : B = coker matrix{{x^4}}
+
+o4 = cokernel | x4 |
+
+                            1
+o4 : R-module, quotient of R
+
+i5 : F = complete res A
+
+      1      1
+o5 = R  <-- R  <-- 0
+                    
+     0      1      2
+
+o5 : ChainComplex
+
+i6 : G = complete res B
+
+      1      1
+o6 = R  <-- R  <-- 0
+                    
+     0      1      2
+
+o6 : ChainComplex
+
+i7 : G = res B;
+
+i8 : B = coker G.dd_1
+
+o8 = cokernel | x4 |
+
+                            1
+o8 : R-module, quotient of R
+
+i9 : M = image F.dd_1
+
+o9 = image | x5 |
+
+                             1
+o9 : R-module, submodule of R
+
+i10 : Z = Hom(M,B)
+
+o10 = cokernel {-5} | x4 |
+
+                             1
+o10 : R-module, quotient of R
+
+i11 : numgens Z
+
+o11 = 1
+
+i12 : isExtensionTrivial({x^4 + x^3},F,G)
+
+o12 = false
+
+i13 : isExtensionTrivial({x^4 + x^3}, F, G)
+
+o13 = false
+
+i14 : isExtensionTrivial({x^4}, F, G)
+
+o14 = true
+
+i15 : isExtensionTrivial({0_R}, F, G)
+
+o15 = true
+
+i16 : isExtensionTrivial({x^6}, F, G)
+
+o16 = true
+
+i17 : isExtensionTrivial({x^1}, F, G)
+
+o17 = false
+
+i18 : isExtensionTrivial({x^2}, F, G)
+
+o18 = false
+
+i19 : isExtensionTrivial({x^3}, F, G)
+
+o19 = false
+
+i20 : isExtensionTrivial({x^1}, F, G)
+
+o20 = false
+
+i21 : isExtensionTrivial({0}, F, G)
+
+o21 = true
+
+i22 : S = QQ[a,b,c]
+
+o22 = S
+
+o22 : PolynomialRing
+
+i23 : A = coker matrix{{a^3,b^4,c^2}}
+
+o23 = cokernel | a3 b4 c2 |
+
+                             1
+o23 : S-module, quotient of S
+
+i24 : B = coker matrix{{a^1,b^6,c^3} }
+
+o24 = cokernel | a b6 c3 |
+
+                             1
+o24 : S-module, quotient of S
+
+i25 : F = res A;
+
+i26 : G = res B;
+
+i27 : B = coker G.dd_1
+
+o27 = cokernel | a c3 b6 |
+
+                             1
+o27 : S-module, quotient of S
+
+i28 : M = image F.dd_1
+
+o28 = image | c2 a3 b4 |
+
+                              1
+o28 : S-module, submodule of S
+
+i29 : Z = Hom(M,B)
+
+o29 = subquotient ({-2} | 0 b2 0   c2 |, {-2} | 0 0 a 0  0  c3 0  0  b6 |)
+                   {-3} | 0 0  b2c 0  |  {-3} | 0 a 0 0  c3 0  0  b6 0  |
+                   {-4} | c 0  0   b4 |  {-4} | a 0 0 c3 0  0  b6 0  0  |
+
+                                3
+o29 : S-module, subquotient of S
+
+i30 : numgens Z
+
+o30 = 4
+
+i31 : isExtensionTrivial({0,0,0,0},F,G)
+
+o31 = true
+
+i32 : isExtensionTrivial(flatten entries random(S^1,S^{4:-3}),F,G)
+
+o32 = false
+
+i33 : 

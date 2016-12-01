@@ -1,0 +1,76 @@
+--functions to compute the hilbert function and its relation to 
+--1-dependent processes.
+
+probabilities = (i,n) ->(
+     --produces the "probabilities" of j ones in a row, for j = 1..n,
+     --coming from the Hilbert function of (ring i)/i, as if this
+     --were a 1-dependent process.
+     ss := (coefficients hilbertSeries(i, Order=>n+4))_1;
+     H := flatten entries ss;
+     H = apply(H, s -> lift(s,ZZ));
+     H = apply(H, s -> promote(s,QQ));
+     if #H<n+2 then H = H | toList(n+2-#H:0_QQ);
+     apply(toList(2..n+1), m -> H_m/((H_1)^(m))))
+
+binaryDigits = n -> (
+     --returns the list of  digits of the number n, written in binary
+     r:=0;
+     reverse while n>0 list (
+	  r = n%2;
+	  n = n//2;
+	  r))
+
+testMatrix = (b,p)->(
+     --p is a list of the probabilities of getting i 1's in a row
+     --b is a list of 0's and 1's.
+     --This routine produces the matrix whose determinant is the
+     --probability of the given pattern b.
+     z1 := (positions(b,b->b===0))/(m->m+1);
+     zeros := {0}|z1|{1+#b};
+     m = #zeros-1;
+     P := {1,1}|p;
+     map(QQ^m, QQ^m, (i,j) -> (
+	       if i > j+ 1 then 0
+	       else P_(zeros_(j+1) - zeros_i)))
+     )
+
+testIdeal = (i,m)->(
+     --returns a hash table whose keys are all the 0,1 patterns
+     --with m bits, and whose values are the probabilities of
+     --computed as if the Hilbert function of (ring i)/i determined
+     --a 1-dependent process (which it does iff all the values, for all m,
+     --are non-negative.)
+     p := probabilities(i,m+1);
+     D := new MutableHashTable;
+     scan(0..2^m-1, t ->(
+	  b = binaryDigits t;
+	  B = toList(m-#b:0)|b;
+	  D#B = det testMatrix(B,p)));
+     new HashTable from D)
+
+reportNegatives = H ->(
+     --prints the pairs in the Hash table H such that
+     --the value is negative.
+     scanKeys(H, i-> if H#i<0 then print(i,H#i)))     
+
+     
+end
+restart
+load "koszulAlgebras.m2"
+kk=ZZ/101
+S = kk[a,b,c,d]
+i = ideal(a^2)
+j = ideal(a^3)
+
+p = probabilities (i,5)
+
+det testMatrix({0,0,0},p)
+for n from 0 to 7 list det testMatrix(binaryDigits n,p)
+
+time D = testIdeal(i,10
+pairs D
+
+reportNegatives D
+
+hilbertSeries i
+viewHelp hilbertSeries

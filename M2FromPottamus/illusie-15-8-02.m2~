@@ -1,0 +1,10 @@
+kk=ZZ/32003
+n=4
+S=kk[x_1..x_n]
+m=diff(vars S, product(1..n, i->x_i))
+HK= i -> prune homology (koszul(i, m),koszul(i+1,m))
+HK 1
+
+betti res HK 0
+betti res HK 1
+betti res HK 2

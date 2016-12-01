@@ -1,0 +1,89 @@
+ring r
+;
+5
+x[0]-x[4]
+;
+;
+<ideal alpha1 x[0] x[1] x[2] x[3] x[4] 0 0
+random 1 1 ran1
+random 1 1 ran2
+random 1 1 ran3
+random 1 1 ran4
+random 1 1 ran5
+dsum ran1 ran2 ran3 ran4 ran5 ran
+mult r ran alpha21
+<ideal j22 x[0]2 x[1]2 x[2]2
+<ideal j23  x[3]2 x[4]2
+random 3 1 ran22
+random 2 1 ran23
+mult j22 ran22 alpha22
+mult j23 ran23 alpha23
+concat alpha21 alpha22 alpha23
+<stack alpha alpha1 alpha21
+type alpha
+setdegs alpha
+-2:2
+;
+nres alpha falpha
+betti falpha
+
+; total:      2     7    19    25    14     3 
+; --------------------------------------------
+;    -2:      2     5     -     -     -     - 
+;    -1:      -     2    15    14     4     - 
+;     0:      -     -     4    11    10     3 
+
+
+nres r kos
+betti kos
+transpose kos.5 tkos5
+setdegs tkos5
+-2
+;
+random 1 14 ran
+submat falpha.3 aaa
+;
+1..14
+transpose aaa taaa
+mult ran taaa bbb
+setdegs bbb
+-2
+;
+lift-std tkos5 stkos5
+lift stkos5 bbb tphi
+betti tphi
+setdegs tphi
+-1:5
+-1:15 -2:4
+
+transpose falpha.3 tpresg
+<stack dir tphi tpresg
+setdegs dir
+-1:5 -2:14 -3:11
+;
+nres dir fdir
+betti fdir
+
+flatten fdir.2 i
+nres i fi 
+betti fi
+
+; total:      1    14    24    14     3 
+; --------------------------------------
+;     0:      1     -     -     -     - 
+;     1:      -     -     -     -     - 
+;     2:      -     -     -     -     - 
+;     3:      -     -     -     -     - 
+;     4:      -    10    13     4     - 
+;     5:      -     4    11    10     3  
+
+
+hilb fi.1
+
+; codimension = 2
+; degree      = 10
+; genus       = 8
+
+
+
+

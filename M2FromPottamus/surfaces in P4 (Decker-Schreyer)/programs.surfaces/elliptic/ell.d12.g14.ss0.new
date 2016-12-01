@@ -1,0 +1,160 @@
+ring r
+;
+5
+x[0]-x[4]
+;
+;
+nres r kos
+betti kos
+
+random 25 24 ran
+dsum kos.2 kos.2 kos.1 alpha
+setdegs alpha
+-1
+0
+mult alpha ran beta
+nres beta fbeta 
+betti fbeta
+ 
+; total:     11    24    25    14     5     1 
+; --------------------------------------------
+;    -1:     11    24    25    10     1     - 
+;     0:      -     -     -     4     4     1 
+
+random 2 25 tphi1
+
+transpose fbeta.3 tpresg
+submat tpresg aaa
+1..10
+;
+random 3 10 ran
+setdegs ran
+-2:3
+;
+mult ran aaa bbb
+
+nres r kos
+betti kos
+dsum kos.5 kos.5 kos.5 kos5m3
+transpose kos5m3 tkos5m3
+setdegs tkos5m3
+-2:3
+;
+lift-std tkos5m3 stkos5m3
+lift stkos5m3 bbb tphi2
+betti tphi2
+<stack tphi tphi1 tphi2
+setdegs tphi
+-1:17
+;
+
+
+<stack dir tphi tpresg
+setdegs dir
+-1:17 -2:10 -3:4
+;
+nres dir fdir
+betti fdir
+
+flatten fdir.2 i
+nres i fi
+betti fi
+
+; total:      1     8    11     5     1 
+; --------------------------------------
+;     0:      1     -     -     -     - 
+;     1:      -     -     -     -     - 
+;     2:      -     -     -     -     - 
+;     3:      -     -     -     -     - 
+;     4:      -     8     7     1     - 
+;     5:      -     -     4     4     1 
+
+hilb fi.1
+
+; codimension = 2
+; degree      = 12
+; genus       = 14
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+dsum kos.5 kos.5 kos.5 kos5m3
+betti kos5m3
+setdegs kos5m3
+1 
+;
+betti kos5m3
+
+
+ring r1
+7
+5
+xyzuv
+;
+;
+random 10 3 ran1
+random 25 2 ran2
+setring r
+fetch ran1 ran1
+fetch ran2 ran2
+
+submat fbeta.3 gamma
+1..25
+1..10
+
+
+mult gamma ran1 gammaran1
+betti gammaran1
+
+transpose kos5m3 tkos5m3
+betti tkos5m3
+transpose gammaran1 gammaran1
+betti gammaran1
+lift-std tkos5m3 stkos5m3
+lift stkos5m3 gammaran1 tmor2
+betti tmor2
+transpose tmor2 mor2
+concat ran2 mor2
+betti ran2
+betti fbeta.3
+setdegs ran2
+1
+;
+copy ran2 dir
+
+concat dir fbeta.3
+betti dir
+
+
+transpose dir tdir
+betti tdir
+
+
+nres tdir id 2
+betti id
+
+flatten id.2 j
+nres j fj 1
+betti fj
+copy fj.1 i
+hilb fj.1
+
+; codimension = 2
+; degree      = 12
+; genus       = 14
+
+
+putmat i >ideal.ell.d12.g14

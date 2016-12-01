@@ -1,0 +1,24 @@
+restart
+kk=ZZ/101
+S=kk[a,b,c,d]
+i=ideal"ab,c2,cd, a2c+d3, b2d+ad2"
+
+conormalRank = i->(
+F:=res (i, LengthLimit =>2);
+T:=(ring i)/i;
+f:=substitute (transpose F.dd_2, T);
+g:=syz f;
+specialize := map(kk,T,matrix{{numgens T:0_kk}});
+rank specialize g
+)
+
+time print conormalRank i^2
+
+M=(S/i)**module(i)
+
+freeRank = M ->(
+     T = ring M
+     f=syz transpose presentation M          
+     specialize := map(kk,T,matrix{{numgens T:0_kk}});
+     rank specialize f
+     )

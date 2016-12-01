@@ -1,0 +1,2 @@
+A=kk[e,f,t,Degrees=>{1,1,2},SkewCommutative=>true]
+phi=map(A^4,A^{-1,-1,-2},matrix{{e,0,0},{f,e,0},{0,t*e, e*f}})

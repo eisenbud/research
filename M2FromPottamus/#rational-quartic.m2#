@@ -1,0 +1,11 @@
+kk=ZZ/101
+S=kk[x,y,z]
+i=intersect((ideal(x,y))^2,(ideal(x,z))^2,(ideal(y,z))^2)
+j=intersect(i, (ideal(x-y,y-z))^2)
+g=x^2*y^2+x^2*z^2+y^2*z^2-x^2*y*z-x*y^2*z-x*y*z^2
+g%j
+---g must be prod of 2 conics
+f=x^2*y^2+x^2*z^2+y^2*z^2
+f=x^2*y^2+x^2*z^2+y^2*z^2+x^2*y*z+x*y^2*z+x*y*z^2
+dim singularLocus(S/ideal(f)) 
+degree singularLocus(S/ideal(f))

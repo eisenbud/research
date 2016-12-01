@@ -1,0 +1,65 @@
+//////////
+
+/*
+function my_power_min(I, e)
+    if e eq 1 then
+	return I;
+    elif IsOdd(e) then
+	IB := MinimalBasis(I);
+	JB := MinimalBasis(my_power(I, e - 1));
+	return Ideal([f*g: f in IB, g in JB]);
+    else
+	JB := MinimalBasis(my_power(I, e div 2));
+	return Ideal([f*g: f, g in JB]);
+    end if;
+end function;
+*/
+
+function my_power(I, e)
+    // IB := MinimalBasis(I);
+    IB := GroebnerBasis(I);
+    J := I;
+    for i := 2 to e do
+	// JB := MinimalBasis(J);
+	JB := GroebnerBasis(J);
+	J := Ideal([f*g: f in IB, g in JB]);
+    end for;
+    return J;
+end function;
+
+function relative_regularity(LP, I, d)
+    LPd := my_power(LP, d);
+    ILPd := I+LPd;
+    assert IsZeroDimensional(ILPd);
+    return Max([Degree(f): f in GroebnerBasis(ILPd)]) - d;
+end function;
+
+function rees_ideal(R, LP, nzd)
+
+    n := Rank(R);
+    I := DivisorIdeal(R);
+    P := Generic(I);
+    k := BaseRing(P);
+
+    M:=sub<EModule(R, 1) | [[f]: f in Basis(LP)]>;
+    SB := MinimalBasis(MinimalSyzygyModule(M));
+
+    r := #Basis(LP);
+    PZ := PolynomialRing(k, n + r, "grevlex");
+    AssignNames(
+	~PZ, [Sprint(P.i): i in [1..n]] cat [Sprintf("z%o", i): i in [1..r]]
+    );
+    f := hom<P -> PZ | [PZ.i: i in [1 .. n]]>;
+    IZ := Ideal(f(Basis(I)));
+    RZ := PZ/IZ;
+    phiz := Matrix([[f(v[j]): j in [1..Ncols(v)]]: v in SB]);
+    zmat := Matrix([[PZ.(n + j)]: j in [1..r]]);
+    mat := phiz*zmat;
+    J := IZ + Ideal(Eltseq(mat));
+    S := PZ/J;
+    g := f(nzd);
+    return Saturation(J, g), f;
+
+end function;
+
+//////////

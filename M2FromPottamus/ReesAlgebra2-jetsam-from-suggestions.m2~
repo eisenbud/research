@@ -1,0 +1,28 @@
+
+
+--from reesRegs.m2:
+assymptoticDegree = method()
+assymptoticDegree(Ideal, Module, RingElement) := (i,M,u) ->(
+     --takes an ideal and a module over a polynomial ring, returns the
+     --assymptotic degree of the generators of the module on the ideal.
+     --Here u should be an element of i that is outside each minimal prime of M.
+     igens := orderedMinGens i;
+     A:= annihilator M;
+     R:=(ring i)/A;
+     jgens := substitute(igens,R);
+     I:=reesIdeal(ideal igens, u);
+     xVars:=ideal substitute(vars ring i, ring I) ;
+     J:=mingens(I+xVars);
+     T:=(ring I)/ideal J;
+     s:=dim T-1;
+     ti:=ideal((vars T)_{0..s});
+     while (dim (T/ti))>0 do (
+     	  s=s+1;
+	  ti=ti+ideal(T_s));
+     print s;
+     degree igens_s
+     )
+assymptoticDegree(Ideal):= i -> assymptoticDegree(i, (ring i)^1, i_0)
+
+orderedMinGens = i-> sort(mingens i, DegreeOrder=>Ascending)
+

@@ -1,0 +1,28 @@
+
+
+document{quote artinRees,
+     TT"artinRees(inclusion-map)",
+Given an inclusion of graded modules f: S--> M over a ring R,
+the program outputs the smallest integer q
+such that 
+m^{n-q}(S\cap m^qM)=S\cap m^nM 
+for all large n.
+The idea is to form the ring R'=R[y,t]/(yt-x):t^\infty,
+and to take the largest degree in y of a generator of
+the kernel of M'-->>(M/S)', where 
+X' denotes (R'\otimes X)/(t-torsion).
+Note that we can actualy compute the same thing by setting
+R'' = R[y,t]/(yt-x) and
+X'= (R'' \otimes X)/(t-torsion). It's not clear which
+is better!
+     "
+
+artinRees= f ->(
+     R  := ring f;
+     R'':= R[y,t];
+     q)
+
+TEST ///
+load "artin-rees.m2"
+path
+///

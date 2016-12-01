@@ -1,0 +1,280 @@
+From mike@math.cornell.edu Thu May 25 12:17:53 2000
+Received: from ep2.msri.org [198.129.64.227] 
+	by rafiki.msri.org with esmtp (Exim 2.05 #1 (Debian))
+	id 12v38j-0005gx-00; Thu, 25 May 2000 12:17:53 -0700
+Received: from postoffice.mail.cornell.edu [132.236.56.7] 
+	by ep2.msri.org with esmtp (Exim 2.05 #1 (Debian))
+	id 12v36V-00024s-00; Thu, 25 May 2000 12:15:35 -0700
+Received: from [128.84.234.38] (HABANERO.MATH.CORNELL.EDU [128.84.234.38])
+	by postoffice.mail.cornell.edu (8.9.3/8.9.3) with ESMTP id PAA22963
+	for <de@msri.org>; Thu, 25 May 2000 15:17:52 -0400 (EDT)
+X-Sender: mes15@postoffice.mail.cornell.edu
+Message-Id: <v03110700b5532dbbcb7e@[128.84.234.38]>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Date: Thu, 25 May 2000 15:25:40 -0400
+To: de@msri.org
+From: Mike Stillman <mike@math.cornell.edu>
+Subject: m2 file
+Status: RO
+Content-Length: 2924
+Lines: 117
+
+Dear David,
+
+It was nice seeing you in Texas.  Hope you have a nice trip ti Europe (wish
+I was going....!)  Below is the file we were working on...  I haven't
+changed it at all.  This would be a good time (or next week) to send me
+your latest versions of your scripts (e.g. circuits,points,exterior algebra
+stuff), since we will be getting the various packages into polished form in
+the next several weeks.
+
+Best,
+
+mike
+----------------------------------
+setMaxIdeal = method()
+setMaxIdeal(Ideal) := (maxI) -> (
+     R := ring maxI;
+     R.residueMap = map(R,R,vars R % maxI);
+     R.maxIdeal = maxI
+     )
+
+localComplement = method()
+localComplement Matrix := Matrix => (m) -> (
+     n := transpose syz transpose ((ring m).residueMap m);
+     id_(target n) // n)
+
+defaultResolutionLength := (R) -> (
+     numgens R + 1 + if ZZ === ultimate(coefficientRing, R) then 1 else 0
+     )
+
+resolutionLength := (R,options) -> (
+     if options.LengthLimit == infinity then defaultResolutionLength R else
+options.LengthLimit
+     )
+
+localsyz = method()
+localsyz(Matrix) := (m) -> (
+     C = res(coker m,LengthLimit=>3);
+     C.dd_2 * localComplement(C.dd_3))
+
+localMingens = method()
+localMingens(Matrix) := Matrix => (m) -> (
+     -- warning: this routine should perhaps take a Module...
+     m * localComplement syz m
+     )
+
+localModulo = method()
+localModulo(Matrix,Matrix) := Matrix => (m,n) -> (
+     P := target m;
+     Q := target n;
+     if P != Q then error "expected maps with the same target";
+     if not isFreeModule P or not isFreeModule Q
+     or not isFreeModule source m or not isFreeModule source n
+     then error "expected maps between free modules";
+     localMingens syz(m|n, SyzygyRows => numgens source m)
+     )
+
+
+localPrune = method()
+localPrune Module := (M) -> (
+     p = presentation M;
+     p1 = localComplement p;
+     p2 = localModulo(p1,p);
+     N := coker(p2);
+     N.pruningMap = map(M,N,p1);
+     N
+     )
+
+localResolution = method(Options => options resolution)
+localResolution Module := options -> (M) -> (
+     R := ring M;
+     maxlength := resolutionLength(R,options);
+     if M.?resolution
+     then C := M.resolution
+     else (
+	  C = new ChainComplex;
+	  C.ring = R;
+	  f := presentation M;
+	  C#0 = target f;
+	  C#1 = source f;
+	  C.dd#1 = f;
+	  M.resolution = C;
+	  C.length = 1;
+	  );
+     i := C.length;
+     while i < maxlength and C.dd#i != 0 do (
+	  g := localsyz C.dd#i;
+	  shield (
+	       i = i+1;
+	       C.dd#i = g;
+	       C#i = source g;
+	       C.length = i;
+	       );
+	  );
+     C)
+
+end
+kk = ZZ/32003
+R = kk[x,y,z,w,SkewCommutative=>true]
+m = matrix{{x,y*z},{z*w,x}}
+C = localResolution(coker m, LengthLimit=>10)
+C^2
+C.dd_4
+
+kk = QQ
+R = kk[a,b,c,d]
+setMaxIdeal(ideal(a-1,b-2,c-3,d-4))
+R.residueMap
+I = ideal(a*(1+a), a*(1+b))
+I = ideal(a*(a-1), a*(b-2))
+I = ideal((1+a), (1+b))
+localResolution coker gens I
+module I
+localPrune module I
+localMingens gens I
+decompose I
+
+
+
+From mike@math.cornell.edu Thu May 25 12:17:53 2000
+Received: from ep2.msri.org [198.129.64.227] 
+	by rafiki.msri.org with esmtp (Exim 2.05 #1 (Debian))
+	id 12v38j-0005gx-00; Thu, 25 May 2000 12:17:53 -0700
+Received: from postoffice.mail.cornell.edu [132.236.56.7] 
+	by ep2.msri.org with esmtp (Exim 2.05 #1 (Debian))
+	id 12v36V-00024s-00; Thu, 25 May 2000 12:15:35 -0700
+Received: from [128.84.234.38] (HABANERO.MATH.CORNELL.EDU [128.84.234.38])
+	by postoffice.mail.cornell.edu (8.9.3/8.9.3) with ESMTP id PAA22963
+	for <de@msri.org>; Thu, 25 May 2000 15:17:52 -0400 (EDT)
+X-Sender: mes15@postoffice.mail.cornell.edu
+Message-Id: <v03110700b5532dbbcb7e@[128.84.234.38]>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Date: Thu, 25 May 2000 15:25:40 -0400
+To: de@msri.org
+From: Mike Stillman <mike@math.cornell.edu>
+Subject: m2 file
+Status: RO
+Content-Length: 2924
+Lines: 117
+
+Dear David,
+
+It was nice seeing you in Texas.  Hope you have a nice trip ti Europe (wish
+I was going....!)  Below is the file we were working on...  I haven't
+changed it at all.  This would be a good time (or next week) to send me
+your latest versions of your scripts (e.g. circuits,points,exterior algebra
+stuff), since we will be getting the various packages into polished form in
+the next several weeks.
+
+Best,
+
+mike
+----------------------------------
+setMaxIdeal = method()
+setMaxIdeal(Ideal) := (maxI) -> (
+     R := ring maxI;
+     R.residueMap = map(R,R,vars R % maxI);
+     R.maxIdeal = maxI
+     )
+
+localComplement = method()
+localComplement Matrix := Matrix => (m) -> (
+     n := transpose syz transpose ((ring m).residueMap m);
+     id_(target n) // n)
+
+defaultResolutionLength := (R) -> (
+     numgens R + 1 + if ZZ === ultimate(coefficientRing, R) then 1 else 0
+     )
+
+resolutionLength := (R,options) -> (
+     if options.LengthLimit == infinity then defaultResolutionLength R else
+options.LengthLimit
+     )
+
+localsyz = method()
+localsyz(Matrix) := (m) -> (
+     C = res(coker m,LengthLimit=>3);
+     C.dd_2 * localComplement(C.dd_3))
+
+localMingens = method()
+localMingens(Matrix) := Matrix => (m) -> (
+     -- warning: this routine should perhaps take a Module...
+     m * localComplement syz m
+     )
+
+localModulo = method()
+localModulo(Matrix,Matrix) := Matrix => (m,n) -> (
+     P := target m;
+     Q := target n;
+     if P != Q then error "expected maps with the same target";
+     if not isFreeModule P or not isFreeModule Q
+     or not isFreeModule source m or not isFreeModule source n
+     then error "expected maps between free modules";
+     localMingens syz(m|n, SyzygyRows => numgens source m)
+     )
+
+
+localPrune = method()
+localPrune Module := (M) -> (
+     p = presentation M;
+     p1 = localComplement p;
+     p2 = localModulo(p1,p);
+     N := coker(p2);
+     N.pruningMap = map(M,N,p1);
+     N
+     )
+
+localResolution = method(Options => options resolution)
+localResolution Module := options -> (M) -> (
+     R := ring M;
+     maxlength := resolutionLength(R,options);
+     if M.?resolution
+     then C := M.resolution
+     else (
+	  C = new ChainComplex;
+	  C.ring = R;
+	  f := presentation M;
+	  C#0 = target f;
+	  C#1 = source f;
+	  C.dd#1 = f;
+	  M.resolution = C;
+	  C.length = 1;
+	  );
+     i := C.length;
+     while i < maxlength and C.dd#i != 0 do (
+	  g := localsyz C.dd#i;
+	  shield (
+	       i = i+1;
+	       C.dd#i = g;
+	       C#i = source g;
+	       C.length = i;
+	       );
+	  );
+     C)
+
+end
+kk = ZZ/32003
+R = kk[x,y,z,w,SkewCommutative=>true]
+m = matrix{{x,y*z},{z*w,x}}
+C = localResolution(coker m, LengthLimit=>10)
+C^2
+C.dd_4
+
+kk = QQ
+R = kk[a,b,c,d]
+setMaxIdeal(ideal(a-1,b-2,c-3,d-4))
+R.residueMap
+I = ideal(a*(1+a), a*(1+b))
+I = ideal(a*(a-1), a*(b-2))
+I = ideal((1+a), (1+b))
+localResolution coker gens I
+module I
+localPrune module I
+localMingens gens I
+decompose I
+
+
+

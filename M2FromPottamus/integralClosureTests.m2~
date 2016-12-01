@@ -1,0 +1,41 @@
+restart
+
+S=kk[a,b]
+R = S/ideal(b^2-a^2*(a-1))
+integralClosure R
+icFractions R
+
+
+restart
+load "ReesAlgebra2.m2"
+S=kk[a,b]
+R = reesAlgebra ideal(a^3,b^3)
+degrees vars R
+degrees vars (flattenRing R)_0
+T=integralClosure (R, Variable=>Z)
+vars T
+icFractions R
+
+
+--problems: 
+--1. Z_0 appears in one of the fractions, but the definition in terms
+--of the original variables is not given; it must be "from" an intermediate
+--stage of the computation.
+
+degrees vars T
+
+--2. R was doubly graded, but T has been given a flat grading. This will make it
+--impossible to use this routine to compute the integral closure of an ideal.
+
+
+restart
+load "ReesAlgebra2.m2"
+S=kk[a,b]
+R = reesAlgebra ideal(a^3+a^4,b^3)
+degrees vars R
+isHomogeneous presentation R
+
+T=integralClosure (R, Variable=>Z)
+vars T
+icFractions R
+isHomogeneous presentation T

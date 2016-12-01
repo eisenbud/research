@@ -1,0 +1,47 @@
+incr-set prlevel 1
+if #0=4 START
+incr-set prlevel -1
+;;; Usage:
+;;; 	<smoothness r i hyp sing 
+;;;
+;;; 	r ring of P4, i ideal of a suface in P4,
+;;;	computes hyp the ideal of the non hypersurface singularity locus of i
+;;;	and sing the singular locus of i
+;;;
+incr-set prlevel 1
+jump END
+;;; Parameters:
+;;;
+;;; Output values:
+;;;
+;;; (discussion)
+;;;
+;;; Caveats:
+;;;
+; created 92FOS.
+START:
+copy #2 @i
+jacob @i @di
+flat @di @hyp
+std @hyp #3
+deg #3 @codim @sing
+if @codim<5 END
+;only hypersurface singularities
+shout deg #3
+wedge @di 2 @min
+flat @min @sing
+kill @min 
+concat @sing @i
+std @sing #4
+codim #4 @codim @deg
+if @codim<5 END
+incr-set prlevel -1
+;smooth
+codim #4
+codim #3
+incr-set prlevel 1
+kill @i @di @sing @hyp @codim @deg
+END:
+
+incr-set prlevel -1
+$;;;;;;;; EXAMPLE SECTION ;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -1,0 +1,946 @@
+restart
+----------------------------------
+--How to go from a module with linear presentation m
+--over  symmetric algebra to the first map p in 
+--the corresponding complex over the exterior algebra R.
+--If the original module has regularity 0, then the 
+--resolution of coker p is the complex corresponding
+--to coker n. The exterior algebra must have the same
+--number of variables as the symmetric algebra (base ring of m).
+
+--example1
+kk=ZZ/32003
+S=kk[a,b,c,d]
+R=kk[A,B,C,D,SkewCommutative=>true]
+m=map(S^2,S^{-1,-1},matrix{{a,b},{c,d}})
+p=symExt(m,R)
+betti p
+mm = symExt(p,S)
+betti mm
+
+--example 2
+kk=ZZ/32003
+S=kk[a,b,c]
+R=kk[A,B,C,SkewCommutative=>true]
+m1=map(S^1,S^{-2,-2,-2},matrix{{b*c,a*c,a*b}})
+F1=res coker m1
+betti F1
+--regularity is 1
+m=presentation (truncate(1,coker m1))
+F=res coker m
+betti F -- linear res
+p=symExt(m,R) 
+--get R/A + R/B + R/C.
+
+I=ideal(A*B, A*C, B*C)
+G=res (R^1/(I*R^1), LengthLimit=>5)
+betti G
+
+--An example for Aramova-Avramov-Herzog Thm 4.2
+R=kk[A,B,C,D,SkewCommutative=>true]
+I=ideal(A*D,A*C,B*D)
+S=kk[a,b,c,d]
+G=res (R^1/(I*R^1), LengthLimit=>5)
+m = symExt(G.dd_2,S)
+annihilator coker m -- = bc
+i=ideal(a*d,a*c,b*d)
+F=res (S^1/(i*S^1)) -- maximal shifts are abd and acd
+
+---------------------
+--find the linear part of a matrix over a ring (exterior or symmetric)
+restart
+kk=ZZ/32003
+R=kk[a,b,c,d,SkewCommutative=>true]
+S=kk[a,b,c,d,SkewCommutative=>true]
+use R
+m=matrix{{a+b*c,a*b,c*d+a*b}}
+use S
+m1=matrix{{a+b*c,a*b,c*d+a*b}}
+
+linearPart m
+linearPart m1
+
+------------------
+restart
+-- A CM example: 3 points in the plane.
+-- The exterior resolution is eventually linear.
+-- The co-resolution is too. The co-resolution  represents
+-- the dualizing module.
+kk=ZZ/32003
+S=kk[a,b,c,d]
+i = ideal(a*b, a*c, b*c)
+n=gens i
+G=res coker n -- Cohen Macaulay
+betti G
+R=kk[a,b,c,d,SkewCommutative=>true]
+betti ecoh(n,R,5)
+
+--------------------------
+-- A non-CM but locally CM example:
+-- two skew lines in P^3. Note that the 0th cohomology
+-- of the structure sheaf is 2-dimensional.
+restart
+kk=ZZ/32003
+S=kk[a,b,c,d]
+R=kk[A,B,C,D,SkewCommutative=>true]
+i = ideal(a*c, a*d, b*c, b*d)
+n=gens i
+betti(G=res coker n) -- not Cohen-Macaulay
+betti (F=ecoh(n,R,5))
+
+-----------------------------------
+--------------------------
+
+restart
+-- A non-CM, not even locally CM example: 
+-- 2 planes meeting in a point in P^4 (cone over the previous)
+kk=ZZ/32003
+S=kk[a,b,c,d,e]
+i = ideal(a*c, a*d, b*c, b*d)
+n=gens i
+betti(G=res coker n) -- not Cohen-Macaulay
+
+R=kk[a,b,c,d,e,SkewCommutative=>true]
+betti(F=ecoh(n,R,8))
+
+hf(2..5,omegan=Ext^2(coker n, S^{-4}))
+hf(2..5,Ext^3(coker n, S^{-4}))
+
+-- non linear!!
+--total: 11 5 2 3 7 13 21 31 43
+--         -2: 11 5 1 . . .  .  .  . 
+--         -1: .  . 1 1 1 1  1  1  1 
+--          0: .  . . 2 6 12 20 30 42
+--
+--Hilb fcn of omegan  (2, 6, 12, 20)
+--Hilb fcn of Ext3(coker n, R) is 1 1 1 1
+--we're seeing the direct sum  Ext^2 + Ext^3  after we liinearize.
+--------------------------
+
+---------------
+--Fitting ideals for superalgebras?
+restart
+kk=ZZ/32003
+R=kk[a,b,c,d,x,y,z,w,SkewCommutative=>true, Degrees=>{3,1,1,1,4:2}]
+--one relation
+M=map(R^{2,1,1},R^{0},matrix{{x},{b},{a}})
+annihilator cokernel M
+--If the relation has all odd elements, then the annihilator
+--is the product; if at least one is even, the annihilator is 0.
+ 
+--two relations
+
+--2x2 even
+m=genericMatrix(R,x,2,2)
+annihilator cokernel m
+-- x z
+-- y w
+--the determinant as usual
+
+--2x2 odd:
+m=genericMatrix(R,a,2,2)
+annihilator cokernel m
+-- a c
+-- b d
+-- Three generators  -(c*d), - a*d + b*c, -(a*b)
+-- the exterior minors
+
+--2x2 mixed -- case 1
+M=map(R^{0,0},R^{-1,-2},matrix{{c,x},{b,y}})
+betti M
+isHomogeneous M
+annihilator coker M
+-- c x
+-- b y
+-- two generators,   b*c, b*x - c*y
+
+--2x2 mixed -- case 2 
+M=map(R^{0,-1},R^{-2,-3},matrix{{x,a},{b,y}})
+betti M
+isHomogeneous M
+annihilator coker M
+-- x a
+-- b y
+-- four generators: b*x*y, a*b*y + x*y2 , a*b*x - x2*y, a*x*y
+
+
+--2x2 mixed -- case 3
+M=map(R^{0,1},R^{-1,-1},matrix{{c,d},{x,y}})
+betti M
+isHomogeneous M
+annihilator coker M
+--  c d
+--  x y
+-- four generators   c*d*y, c*d*x, d*x*y - c*y2 , d*x2  - c*x*y
+
+-----------
+--generic Z/2-graded matrices
+superGeneric=(p,evenrows,oddrows,evencols,oddcols)->(
+     --make a generic matrix 
+     --over a char p superalgebra
+     --of pattern:
+     --  size           evencols     oddcols
+     --  evenrows      |even            odd |
+     --  oddrows       |odd             even|
+     --
+     -- the diagonal entries will all be deg 2, the lower left deg 3,
+     -- the upper right deg 1
+     --
+     --BUG:
+     --gives error msg if there are no rows or no cols at all.
+kk:=ZZ/p;
+R:=kk[A_{0,0}..A_{evenrows-1,evencols-1},
+     B_{0,0}..B_{evenrows-1,oddcols-1},
+     C_{0,0}..C_{oddrows-1,evencols-1},
+     D_{0,0}..D_{oddrows-1,oddcols-1},
+     SkewCommutative=>true, 
+     Degrees=>{(evenrows*evencols):2,
+	       (evenrows*oddcols):1,
+	       (oddrows*evencols):3,
+	       (oddrows*oddcols):2}];
+f:=(i,j)->if i<evenrows and j<evencols then A_{i,j} else
+          if i>=evenrows and j<evencols then C_{i-evenrows,j} else
+	   if i<evenrows and j>=evencols then B_{i,j-evencols} else
+	    D_{i-evenrows,j-evencols};
+map(R^{evenrows:2,oddrows:3},
+     R^{evencols:0,oddcols:1},
+     table(evenrows+oddrows,evencols+oddcols,f))
+)
+
+------------------------------
+restart
+--test the dependence of annihilators of cokernels of generic matrices
+--(in the super case) on the characteristic.
+--for any nxn matrix, the ann in char 2 contains the determinant (
+--(everything commutes!) whereas for 2x2 matrices with mixed row
+--degs the ann does not contain any sum of monomials with just
+--two factors apiece:
+
+--Format is:
+--        superGeneric=(characteristic,evenrows,oddrows,evencols,oddcols)
+
+i0=ann coker superGeneric(32003,0,2,2,0)
+i3=ann coker superGeneric(3,0,2,2,0)
+i2=ann coker superGeneric(2,0,2,2,0)
+betti i0
+betti i2--the same
+betti i3
+
+i0=ann coker superGeneric(32003,1,1,2,0)
+i3=ann coker superGeneric(3,1,1,2,0)
+i2=ann coker superGeneric(2,1,1,2,0)
+betti i0
+betti i2--not the same!!
+betti i3
+print i0
+print i2
+;
+i0=ann coker superGeneric(32003,1,1,1,1)
+i3=ann coker superGeneric(3,1,1,1,1)
+i2=ann coker superGeneric(2,1,1,1,1)
+betti i0 -- 4 gens
+betti i2--not the same!!
+betti i3
+print i0
+print i2
+;
+i0=ann coker superGeneric(32003,1,1,0,2)
+i3=ann coker superGeneric(3,1,1,0,2)
+i2=ann coker superGeneric(2,1,1,0,2)
+betti i0
+betti i2--not the same!
+betti i3
+print i0
+print i2
+-----------------------------------------
+--different in char 3:
+betti(i0=ann coker superGeneric(32003,1,2,3,0))
+betti(i0=ann coker superGeneric(32003,1,2,2,1))
+betti (i0=ann coker superGeneric(32003,1,2,1,2))
+--the same in char 3:
+betti(i0=ann coker superGeneric(32003,1,2,0,3))
+--------------
+--this is the simplest case in which char 3 differs from char 0
+betti(i0=ann coker superGeneric(32003,1,2,2,0))
+betti(i2=ann coker superGeneric(2,1,2,2,0))
+betti(i3=ann coker superGeneric(3,1,2,2,0))
+transpose gens i0
+transpose gens i2
+transpose gens i3
+
+-----------
+--this is the simplest case in which char 3 differs from char 0
+ft =(char, evenrows, oddrows, evencols, oddcols)->(
+print (L0=degrees source gens (i0=ann coker superGeneric(32003,evenrows, oddrows, evencols, oddcols)));
+print (L5=degrees source gens(i5=ann coker superGeneric(char,evenrows, oddrows, evencols, oddcols)));
+L0==L5)
+ft(5,1,4,2,0) -- exceptional in char 5
+ft(7,1,6,2,0) -- exceptional in char 7
+----------------
+restart
+--cohomology of structure sheaf of fermat curve in P^2
+restart
+kk=ZZ/32003
+R=kk[A,B,C,SkewCommutative=>true]
+S=kk[a,b,c]
+d=3 -- degree
+f=a^d+b^d+c^d -- defining equation
+f=a*b*c
+m= map(S^1,S^{-d},matrix{{f}})
+betti(F=ecoh(m,R,6))
+-- case d=3, f=a^3+b^3+c^3
+-- -1: 9 6 3 1 . .
+--  0: . . 1 3 6 9
+(F.dd)_3
+--{1} | A 0  0  -BC |
+--{1} | B 0  AC 0   |
+--{1} | C AB 0  0   |
+--{2} | 0 -C B  A   |
+---------------
+--Twisted cubic
+restart
+kk=ZZ/32003
+R=kk[A,B,C,D,SkewCommutative=>true]
+S=kk[a,b,c,d]
+i=monomialCurve(S,{1,2,3})
+betti (F=ecoh(gens i,R,6))
+F.dd_2
+i
+j=ideal(a,b,c)
+j/i
+betti (G=ecoh(presentation (j/i),R,6))
+G.dd_2 -- matrix defining the Chow form in Pluecker coords
+--------------
+-- ideal of 2 skew lines
+restart
+kk=ZZ/32003
+R=kk[A,B,C,D,SkewCommutative=>true]
+S=kk[a,b,c,d]
+i=intersect(ideal (a,b), ideal(c,d))
+m=presentation module i
+betti (F=ecoh(m,R,8))
+
+--------------------------
+-- Stanley-Reisner ring of the real projective plane (Enriques surface)
+-- A non-CM but locally CM example. 
+restart
+kk=ZZ/2
+S=kk[a,b,c,d,e,f]
+R=kk[A,B,C,D,E,F,SkewCommutative=>true]
+i = ideal(a*b*d,a*b*e,a*c*d,a*c*f,a*e*f,b*c*e,b*c*f,b*d*f,c*d*e,d*e*f)
+betti (F=ecoh(gens i,R,5))
+betti (F=ecoh(module i,R,5))
+
+--------------------
+--Hodge diamond of a K3 quartic in P3
+restart
+kk=ZZ/32003
+S=kk[a,b,c,d]
+R=kk[A,B,C,D,SkewCommutative=>true]
+i = ideal(a^4+b^4+c^4+d^4+a*b*c*d+7*a^2*b*c-31*a*c*d^2)
+Sf=S/i
+
+Omega1 = cotangentSheaf(1,Proj Sf)
+m=presentation module Omega1
+M1=(S^1/i)**(coker lift(m,S))
+M2=exteriorPower(2,M1)
+time(M2double=Hom(Hom(M2,coker gens i),coker gens i)); 16 sec on my laptop
+
+n0=gens i
+n1=presentation prune M1;
+n2double=presentation prune M2double;
+n2=presentation prune M2;
+
+
+Omega0 = sheaf cokernel n0;
+Omega1 = sheaf cokernel n1;
+Omega2 = sheaf cokernel n2;
+
+
+time betti (F0=ecoh(n0,R,6))
+time betti (F1=ecoh(n1,R,6))
+time betti (F1=sheafCohomology(n1,R,6))
+time betti (F2=ecoh(n2double,R,10))
+time betti (F2=ecoh(n2,R,10))
+time HF(toList(-5..5), time HH^0(Omega))
+time HF(toList(-6..4), time HH^1(Omega))
+time HF(toList(-7..3), time HH^2(Omega))
+
+
+--%%%%%%%%%%%%%%%%%%%%%%%
+--Resolutions of quadrics over E are rather simple. Here's
+--an example
+restart
+kk=ZZ/32003
+S=kk[a,b,c,d]
+R=kk[A,B,C,D,SkewCommutative=>true]
+i=ideal(A*B+C*D)
+F=res i
+phi=transpose F.dd_4
+G=res (coker phi,LengthLimit=>7)
+betti F
+betti G
+
+
+--------------------
+--Poincare resolutions of sq free mon ids
+restart
+
+ --tests whether a list consists of all ones and zeros
+squareFreeP = i->(all(i,j->(j==0 or j==1)))
+
+-- tests for all ones
+allOnesP = i->(all(i,j->(j==1)))
+
+--takes a list of n-tuples of ints, 
+--returns the ones that are all 0s and 1s EXCEPT in the first place
+--useful to find the square free part of a multigraded complex.
+squareFreeSublist = L->apply(L,i->(if squareFreeP drop(i,1) then i))
+
+-- same for all ones
+allOnesSublist= L->apply(L,i->(if allOnesP drop(i,1) then i))
+
+--the following takes a square free monomial ideal I in a ring R
+--(with monomial weights)
+--and returns the number of syzygies of R/(maximal ideal)
+--(as a module over R/I) that have all but the first element
+-- in their weight equal to 1
+canonicalBetti = i -> (
+     R:= ring i;
+     R1:= R/i;
+     F:= res(coker vars R1, LengthLimit=>rank source vars R1);
+     apply(1+length F, i->
+            number((degrees source F.dd_i),
+                    i->allOnesP(drop(i,1)))))
+-----
+n=4
+S = kk[vars(0..n-1), Degrees=>MultiDegs n]
+R=kk[x_1..x_n,SkewCommutative=>true, Degrees=>MultiDegs n]
+--NOTE: MultiDegs is defined in my init.m2
+ff=map(R,S,vars(R))
+
+i=ideal(a*b*c,a*b*d,a*c*d,b*c*d)
+i=ideal(a*b,c*d)
+i=ideal(a*b*c,a*b*d)
+j= ff i
+canonicalBetti i
+canonicalBetti j
+
+--------------------
+--Construction of Orlik-Solomon algebras
+--The idea is to code the dependent sets (circuits) as 
+--monomials, then apply an operator that makes each monomial
+--intor the corresponding Orlik-Solomon relation.
+
+restart
+
+--The following takes a monomial in the exterior alg and manufactures
+--an Orlik-Solomon relation from it (the alt sum of the derivatives
+--with respect to the variables in the monomial)
+orlikSolomon1 = n-> (
+     d:=(degree n)_0;
+     (compress diff(vars R, n))*
+               (transpose map(R^1,R^d,{{d:1}}))
+     )
+
+--now the same thing for a whole ideal:
+orlikSolomon = i->(
+     p:=rank source gens i;
+     j:=ideal(orlikSolomon1(i_0));
+     scan(p-1,t->(j=j+ideal(orlikSolomon1(i_(t+1)))));
+     j)
+
+--Test it:
+R=kk[a,b,c,d,SkewCommutative=>true]
+i=ideal(a*b,c*d,a*c)
+orlikSolomon i
+
+--OS alg of a generic arrangement of n hypersurfaces
+--in Pr
+n=5
+r=2
+R=kk[vars(0..n-1),SkewCommutative=>true]
+m=ideal(vars R)
+mm=ideal compress gens m^(r+2)
+i=orlikSolomon mm
+modT = R^1/(i*R^1)
+betti (F=res prune modT)
+g=transpose F.dd_1
+
+F.dd_2
+betti (G=res(coker g, LengthLimit=> 6))
+--The relations are in degree r+1, 
+--and the rest of the res seems to be linear!
+
+hh=hf(0..n-1,modT)
+T=R/i
+betti res(coker transpose vars T, LengthLimit=>2)
+
+-----
+--Braid arrangement
+--P2
+R=kk[vars(0..5),SkewCommutative=>true]
+i=ideal(a*b*d,a*c*e,b*c*f,d*e*f)
+j=orlikSolomon i
+modT = R^1/(j*R^1)
+betti (F=res prune modT)
+g=transpose F.dd_4
+betti (G=res (coker g,LengthLimit=>10))
+G.dd_1
+F.dd_1
+F.dd_2
+G.dd_6
+
+--P3
+R=kk[x_{1,2},x_{1,3},x_{1,4},x_{1,5},
+     x_{2,3},x_{2,4},x_{2,5},x_{3,4},
+     x_{3,5},x_{4,5},SkewCommutative=>true]
+
+i=ideal(x_{1,2}*x_{1,3}*x_{2,3},
+     x_{1,2}*x_{1,4}*x_{2,4},
+     x_{1,2}*x_{1,5}*x_{2,5},
+     x_{1,3}*x_{1,4}*x_{3,4},
+     x_{1,3}*x_{1,5}*x_{3,5},
+     x_{1,4}*x_{1,5}*x_{4,5},
+     x_{2,3}*x_{2,4}*x_{3,4},
+     x_{2,3}*x_{2,5}*x_{3,5},
+     x_{2,4}*x_{2,5}*x_{4,5},
+     x_{3,4}*x_{3,5}*x_{4,5})
+j=orlikSolomon i
+modT = R^1/(j*R^1)
+betti (F=res(prune modT,LengthLimit =>3))
+
+---------------------------------
+--P2(F3)
+restart
+R=kk[vars(0..8),SkewCommutative=>true]
+I=ideal(a*b*c, d*e*f, g*h*i, a*d*g, b*e*h, c*f*i, 
+        a*e*i, b*f*g, c*d*h, a*f*h, b*d*i, c*e*g)
+j=orlikSolomon I
+modT = R^1/(j*R^1)
+betti (F=res(prune modT,LengthLimit=>3))
+g=transpose F.dd_1
+betti (G=res (coker g,LengthLimit=>3))
+
+---------------
+-- an asymmetric example
+
+restart
+M=matrix{{1,0,0,0,1,1},{0,1,0,0,1,1},{0,0,1,0,1,0},{0,0,0,1,0,1}}
+minors(4, M)
+R=kk[vars(0..5),SkewCommutative=>true]
+I=ideal(a*b*c*e,a*b*d*f,c*d*e*f)
+j=orlikSolomon I
+modT = R^1/(j*R^1)
+betti (F=res(prune modT,LengthLimit=>3))
+g=transpose F.dd_1
+betti (G=res (coker g,LengthLimit=>6))
+
+--**********************
+restart
+R=kk[a,b,c,d,e,SkewCommutative=>true]
+m=matrix{{a,0},{b*c+d*e, a}}
+mm=map(R^{-1,0},R^{-2,-1}, m)
+isHomogeneous mm
+F= res coker mm
+F.dd_2
+
+--
+mm=random(R^{-3,-1,0},R^{-4,-2,-1})
+linearPart mm
+mm_(1,2)=0
+betti(F= minRes coker mm)
+F.dd_2
+----------
+restart
+R=kk[a,b,c,d,e,f,SkewCommutative=>true]
+m=matrix{{a,b,c},{0,d,e},{0,0,f}}
+isHomogeneous m
+betti(F= res (coker m,LengthLimit=>8))
+isHomogeneous linearPart F.dd_3
+betti res (coker linearPart F.dd_3,LengthLimit=>4)
+Ft = transpose linearPart F.dd_3
+betti (G=res (coker linearPart Ft,LengthLimit=>4))
+betti (F1=(res (coker linearPart G.dd_4,LengthLimit=>4)))
+betti (G1=res (coker linearPart transpose F1.dd_2,LengthLimit=>4))
+--It's become symmetric, at least in bettis
+betti (F2=(res (coker linearPart transpose G1.dd_4,LengthLimit=>4)))
+betti (G=res (coker linearPart transpose F1.dd_2,LengthLimit=>4))
+-- and stationary!
+
+--------------------------
+--Generic principal ideals
+--in the case of degree 4 in 8 vars, its 
+--linear res.
+--In the case of degree 3 in 9 vars, it's linear after one extra step
+--o5 = total: 1 1 58 513
+--         0: 1 . .   . 
+--         1: . . .   . 
+--         2: . 1 .   . 
+--         3: . . .   . 
+--         4: . . 4   . 
+--         5: . . 54 513
+restart
+R=kk[a,b,c,d,e,f,g,h,i,SkewCommutative=>true]
+F=random(R^1,R^{-3})
+betti(G=res(coker F,LengthLimit=>3))
+
+---------------------
+--study of iterated linearization
+restart
+R=kk[a,b,c,d,SkewCommutative=>true]
+F=genericMatrix(R,a,2,2)
+betti(G=res(coker F,LengthLimit=>5))
+ 
+-----------------
+cohomology ring of an orientable surface
+restart
+g=2
+R=kk[x_1..x_g,y_1..y_g,SkewCommutative=>true]
+icross=trim((ideal(x_1..x_g))^2+(ideal(y_1..y_g))^2)
+i2=ideal(x_1*y_2,x_2*y_1)
+i3=ideal(x_1*y_1-x_2*y_2)
+i=icross+i2+i3
+betti (F=res i)
+betti res coker transpose F.dd_2
+
+g=3
+R=kk[x_1..x_g,y_1..y_g,SkewCommutative=>true]
+icross=trim((ideal(x_1..x_g))^2+(ideal(y_1..y_g))^2)
+i2=ideal(x_1*y_2,x_2*y_1, x_1*y_3,x_2*y_3,x_3*y_2,x_3*y_1)
+i3=ideal(x_1*y_1-x_2*y_2, x_1*y_1-x_3*y_3)
+i=icross+i2+i3
+betti (F=res i)
+betti res coker transpose F.dd_2
+
+------------------
+--This should be similar for skew quadrics of any rank!
+g=3
+--dim of sheaf seems to be 2g; that is, maximal
+S=kk[x_1..x_g,y_1..y_g]
+R=kk[x_1..x_g,y_1..y_g,SkewCommutative=>true]
+use R
+q=ideal sum(1..g, i->x_i*y_i)
+betti(F= res (q, LengthLimit=>6))
+betti(G= res coker transpose F.dd_3)
+m=F.dd_3
+dim coker symExt(m, S)
+betti ecoh(F.dd_3, R, 8)
+----------------------
+--resolution of Gorenstein quotients of E
+kk=ZZ/32003
+g=3
+S=kk[x_1..x_g]
+E=kk[x_1..x_g,SkewCommutative=>true]
+use E
+--q=ideal sum(1..g, i->x_i*y_i)
+q=ideal random(E^1,E^{-3})
+betti(F= res (q, LengthLimit=>3))
+m=F.dd_3;
+n=symExt(m, S)
+isHomogeneous n
+betti n
+betti transpose n
+--------------------------
+restart
+g=4
+S=kk[x_1..x_g]
+E=kk[x_1..x_g,SkewCommutative=>true]
+i=monomialCurve(S, {1,2,3})
+--n=symExt(presentation module i, E)
+m1=transpose (res i).dd_2
+m=prune truncate(-3,coker m1)
+n=symExt(presentation m, E)
+betti(F=res coker n)	  
+N=cokernel n
+betti res N
+ee=matrix{{x_1}}
+een=ee**N
+Hx1=prune((E^{1}**(kernel een))/(image een))
+betti res Hx1
+betti res N
+---
+--Tate resolution of the homog coord ring of elliptic quartic in P3
+
+kk=ZZ/32003
+S=kk[a,b,c,d]
+R=kk[A,B,C,D,SkewCommutative=>true]
+ell=map(S^1,S^{-2,-2},matrix{{a^2,b^2}})
+m=presentation truncate(2,coker ell)
+betti res coker m
+p=symExt(m,R)
+betti (F=res coker transpose p)
+F.dd_2
+F.dd_3
+F.dd_1
+
+
+------------
+bgg1R=method(TypicalValue=>Matrix)
+bgg1R(ZZ,Module, Ring) :=(i,M,E) ->(
+     Mi:=coker presentation truncate(i,M);
+     f :=basis(i+1,Mi);
+     ev:=map(E,ring M, vars E);
+     (ev transpose super f)**(E^{numgens E}))
+restart
+S=kk[a,b,c,d]
+E=kk[A,B,C,D, SkewCommutative =>true]
+M=S^1
+help basis
+f1=bgg1R(presentation truncate(0,M),E)
+ff1=bgg1R(0,M,E)
+betti f1
+betti ff1
+
+f2=bgg1R(presentation truncate(1,M),E)
+ff2=bgg1R(1,M,E)
+
+f2*f1
+f3=bgg1R(presentation truncate(2,M),E)
+
+
+basis(2,coker presentation truncate(1,S^1))
+
+f3*f2
+--5/21: they don't compose to 0!
+
+F=new ChainComplex
+F#0=source f1
+F#-1=source f2
+F#-2=target f2
+betti (F.dd#0=f1)
+betti (F.dd#-1=f2)
+betti F
+(F.dd_-1)*(F.dd_0)
+F.dd_-1
+F.dd_0
+
+presentation M
+t1=transpose contract (transpose vars S, presentation truncate(1,M))
+t2=transpose jacobian presentation truncate(1,M)
+t1==t2
+betti t1
+betti t2
+
+     m=presentation S^1
+m=matrix{{a,b,c},{b,c,d}}
+basis(1,coker m)
+gens coker m
+M0=S^1
+d=1
+betti(fd= presentation truncate(d,M0))
+betti(fdd=presentation truncate(d+1,M))
+map(target fd, target fdd, basis(d+1, coker fd))
+
+     v  = numgens S
+     vS= vars S
+     -- matrix {reverse flatten entries vars S}
+     mt = transpose contract (transpose vS, m)
+     jn = (gens kernel mt)
+     q  = (vars S)**(id_(source transpose m))
+     n1 = q*jn -- right matrix, wrong degrees and ring
+betti n1
+help basis
+
+--
+S=kk[a,b]
+M=S^1/ideal a^2
+b1=basis(1,M)
+b2=basis(2,M)
+c=b2//b1
+target c
+map(target presentation M, source h2, h2)
+
+
+bgg1R=method(TypicalValue=>Matrix)
+bgg1R(ZZ,Module, Ring) :=(i,M,E) ->(
+     S :=ring(M);
+     ev:=map(E,S, vars E);
+     f0:=basis(i,M);
+     f1:=basis(i+1,M);
+     g :=((vars S)**f1)//f2;
+     (ev g)*((transpose vars E)**(ev source f1))
+     )
+
+restart
+S=kk[a,b]
+M=S^1/ideal a^2
+E=kk[A,B,SkewCommutative=>true]
+test=i->bgg1R(i+1,M,E)*bgg1R(i,M,E)
+test 3
+
+f0=bggR(0,M,E)
+f1=bggR(1,M,E)
+f1*f0
+f1=basis(1,M)
+f2=basis(2,M)
+f1
+g=((vars S)**f1)//f2
+ev:=map(E,ring M, vars E);
+ev g
+(ev g)*((transpose vars E)**(ev source f1))
+
+
+=bggR(0,M,E)
+betti f0
+P=kernel f0
+betti presentation P
+
+f1=bgg1R(1,M,E)
+f0
+f1*f0
+--speed test
+restart
+kk=ZZ/32003
+p=2
+q=3
+S=kk[x_(1,1)..x_(p,q)]
+m = map(S^p,S^{q:-1},transpose genericMatrix(S,x_(1,1),q,p))
+M=coker m
+E=kk[X_(1,1)..X_(p,q),SkewCommutative=>true]
+symExt( presentation truncate(0,M),E)
+betti m
+
+-----------------
+restart
+kk=ZZ/101
+R=kk[a,b,c,SkewCommutative=>true]
+m=map(R^{0,0},R^{-1,-1},matrix{{a,b},{b,c}})
+betti (F=res coker m)
+m=map(R^{0,0,0},R^{-1,-1,-1,-1},matrix{{a,b,0,0},{b,c,a,b},{0,0,b,c}})
+betti (F=res coker m)
+F.dd_2
+m=map(R^{0,0,0,0},R^{-1,-1,-1,-1,-1,-1},
+     matrix{{a,b,0,0,0,0},
+	    {b,c,a,b,0,0},
+	    {0,0,b,c,a,b},
+	    {0,0,0,0,b,c}})
+betti (F=res coker m)
+--------------
+S=kk[x_0..x_2]
+E=kk[x_0..x_2,SkewCommutative=>true]
+use S
+m=matrix{{x_0..x_2,0,0},{0,x_0..x_2,0},{0,0,x_0..x_2}}
+bggR(0,coker m,E)
+---------------
+--Chow form of the veronese in P5
+restart
+T=kk[a,b,c]
+omega=coker transpose vars T
+S=kk[x_0..x_5]
+nu=map(T,S,gens ((ideal(vars T))^2))
+Omega=pushForward(nu, omega);
+Omega=coker prune presentation  gensOfDeg(Omega,0);
+betti Omega
+E=kk[e_0..e_5,SkewCommutative=>true]
+om=bggR(0,Omega,E)
+betti (F=res coker om)
+
+cubics=-compress gens((ideal vars E)^3)
+pl=kk[p_0..p_19]
+m=sum(0..19,i->(pl_i*substitute(diff(cubics_{i}, F.dd_2),pl)));
+n=(res (image transpose m_{0..6},DegreeLimit=>1)).dd_1;
+betti n
+betti m_{7}
+betti transpose m_{7}
+betti ((transpose m_{7})*n)
+extChow=map(pl^1,pl^{-4},(transpose m_{7})*n)
+betti extChow
+
+
+vero=kernel nu
+S1=S/vero
+toVero=map(S1,S)
+Omega1=toVero Omega
+pOmega1=presentation Omega1
+pOmega1=prune pOmega1
+betti oo
+
+---------------
+--Chow form of elliptic quartic: different deg 0 line bundles
+--give different extensions of the Chow form to Pluecker space.
+--However, all the extensions, together with the square of the 
+--Pluecker eqn, seem to form a projective line in the space
+--of quartic forms!
+restart
+T=kk[a,b,c,d]
+p1=ideal(b,c,d)
+p2=ideal(a,c,d)
+p3=ideal(a,b,d)
+p4=ideal(a,b,c)
+ps=gens intersect(p1,p2,p3,p4)
+ideal (ps*random(T^(rank source ps),T^1))
+curve=ideal(a*b-c*d)+oo
+R=T/curve
+dim singularLocus R
+p1=ideal(b,c,d)
+p2=ideal(a,c,d)
+p3=ideal(a,b,d)
+p4=ideal(a,b,c)
+L12=prune Hom(module p1, module p2)
+L13=prune Hom(module p1, module p3)
+L23=prune Hom(module p2, module p3)
+L14=prune Hom(module p1, module p4)
+L24=prune Hom(module p2, module p4)
+L34=prune Hom(module p3, module p4)
+E=kk[e_0..e_3,SkewCommutative=>true]
+F12=res coker bggR(1,L12,E)
+quadrics=-compress gens((ideal vars E)^2)
+pl=kk[x_0..x_5]
+--The chow form corresponding to the line bundles O(pi-pj) is dij:
+d12=det (sum(0..5,i->
+     (pl_i*
+      substitute(diff(quadrics_{i},(res coker bggR(1,L12,E)).dd_2),
+      pl)))
+     )
+d13=det (sum(0..5,i->
+     (pl_i*
+      substitute(diff(quadrics_{i},(res coker bggR(1,L13,E)).dd_2),
+      pl)))
+     )
+d14=det (sum(0..5,i->
+     (pl_i*
+      substitute(diff(quadrics_{i},(res coker bggR(1,L14,E)).dd_2),
+      pl)))
+     )
+d23=det (sum(0..5,i->
+     (pl_i*
+      substitute(diff(quadrics_{i},(res coker bggR(1,L23,E)).dd_2),
+      pl)))
+     )
+d24=det (sum(0..5,i->
+     (pl_i*
+      substitute(diff(quadrics_{i},(res coker bggR(1,L24,E)).dd_2),
+      pl)))
+     )
+d34=det (sum(0..5,i->
+     (pl_i*
+      substitute(diff(quadrics_{i},(res coker bggR(1,L34,E)).dd_2),
+      pl)))
+     )
+
+pleq=ideal(x_0*x_5-x_1*x_4+x_2*x_3)
+j=pleq^2+ideal(d12,d13,d14,d23,d24,d34)
+betti mingens j
+j=pleq^2+ideal(d1,d2,d3)
+betti mingens j
+q13=(d12-d13)//(gens pleq)
+q14=(d12-d14)//(gens pleq)
+q24=(d12-d24)//(gens pleq)
+q34=(d12-d34)//(gens pleq)
+betti mingens (pleq+ideal (q13,q14,q24,q34))
+mingens (pleq+ideal (q13,q14,q24,q34))
+plbar=pl/(pleq+ideal (q13,q14,q24,q34))
+degree coker presentation singularLocus plbar
+
+-------------------------------------------------
+--Horrocks-Mumford bundle
+--Euler char
+hm=(x)->(x^2-1)*(x^2-24)/12
+hm 5
+hm 4
+hm 11
+hm 16
+hm 18
+
+2*(8^4)

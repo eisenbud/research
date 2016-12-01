@@ -1,0 +1,14 @@
+k=3
+g=2*k+1;
+kk=ZZ/101
+R=kk[x_1..x_g,y_1..y_g]
+m=matrix table (2,g,(i,j)->R_(i*g+j))
+i=minors(2,m)
+ires=res i
+v=map(ires_k,R^{-(k+1)},matrix table(rank ires_k,1,(i,j)->
+	             if i==49 then 1_R else 0_R))
+
+
+syzygyScheme(ires,3,v)
+
+code syzygyScheme

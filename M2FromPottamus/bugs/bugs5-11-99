@@ -1,0 +1,39 @@
+HashTable{VERSION => 0.8.52                   }
+                architecture => i586
+                compile node name => geometry
+                compile time => Mar  3 1999 08:31:10
+                dumpdata => true
+                factory => true
+                factory version => 1.2c
+                gc version => 4.13 alpha 3
+                libfac version => 0.3.1
+                mp => false
+                operating system => Linux
+                operating system release => 2.2.2
+
+R=kk[x,y,z]
+I=ideal(x^2+y^2, y^2+z^2, x^3, z^3)
+f=map(R^{0,1},R^{-1,0},matrix{{x,0},{z^2,y}})
+show symmetricKernel(I,f)
+
+--the following takes an ideal I in a polynomial ring R
+--and a matrix f over R
+--and returns the universal embedding of image (f ** R/I),
+--written as a matrix over R
+
+--If the third line of this program is replaced by
+--     Rbar:=R/I;
+--then the result changes!!
+
+universalEmbedding=(I,f)->(
+     R:=ring f;
+     Rbar=R/I;
+     fbar:=substitute(f, Rbar);
+     fres:=res(image fbar, LengthLimit=>2);
+     ftres:=res(image transpose fres.dd_1, LengthLimit=>2);
+     fnew:=transpose ftres.dd_1;
+     fbartot:=fbar||fnew;
+     substitute(fbartot, R)
+     )
+
+universalEmbedding(I,f)

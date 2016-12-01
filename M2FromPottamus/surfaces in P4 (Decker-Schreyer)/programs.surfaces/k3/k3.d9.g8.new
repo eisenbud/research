@@ -1,0 +1,40 @@
+ring r
+;
+5
+x[0]-x[4]
+;
+;
+<random_mat 1 6 r tphi1
+nres r kos
+betti kos
+transpose kos.4 tkos4
+random 10 6 ran
+mult tkos4 ran tphi2
+<stack tphi tphi1 tphi2
+setdegs tphi
+-1:6
+;
+betti tphi
+nres tphi ftphi
+betti ftphi
+flatten ftphi.2 i
+nres i fi 
+betti fi
+
+; total:      1     6     6     1 
+; --------------------------------
+;     0:      1     -     -     - 
+;     1:      -     -     -     - 
+;     2:      -     -     -     - 
+;     3:      -     6     6     1 
+
+hilb fi.1
+
+; codimension = 2
+; degree      = 9
+; genus       = 8
+
+
+
+
+

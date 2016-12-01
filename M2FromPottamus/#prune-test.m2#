@@ -1,0 +1,10 @@
+restart
+prune CoherentSheaf := F -> (
+     X := variety F;
+     sheaf_X prune HH^0 F)
+			            )
+S=kk[a..d]			       
+mm=ideal(vars S)		       			       
+F1=module mm^2
+F=sheaf F1
+HH^0 F

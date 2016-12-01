@@ -1,0 +1,126 @@
+ring r10
+911
+10
+x[0]-x[4]y[0]-y[4]
+;
+;
+mat c1
+5
+1
+x[0]y[0]
+x[3]y[4]
+x[1]y[3]
+x[4]y[2]
+x[2]y[1]
+
+mat c2
+5
+1
+x[3]y[1]
+x[1]y[0]
+x[4]y[4]
+x[2]y[3]
+x[0]y[2]
+
+mat c3
+5
+1
+x[1]y[2]
+x[4]y[1]
+x[2]y[0]
+x[0]y[4]
+x[3]y[3]
+
+mat c4
+5
+1
+x[4]y[3]
+x[2]y[2]
+x[0]y[1]
+x[3]y[0]
+x[1]y[4]
+
+mat c5
+5
+1
+x[2]y[4]
+x[0]y[3]
+x[3]y[2]
+x[1]y[1]
+x[4]y[0]
+copy c1 moore
+concat moore c2 c3 c4 c5
+type moore
+
+imap map1 r10 r10
+y[0] -443
+y[1] 20/21
+y[2] -438
+y[3] -11/18
+y[4] 1
+;
+
+imap map2 r10 r10
+y[0] -394
+y[1] -7/19
+y[2] 190
+y[3] 11/10
+y[4] 1
+;
+
+imap map3 r10 r10
+y[0] -241
+y[1] 105
+y[2] 35
+y[3] -329
+y[4] 1
+;
+
+ev map1 moore  alpha
+ev map2 moore  alpha2
+ev map3 moore  alpha3
+concat alpha alpha2 alpha3
+ring r
+911
+5
+x[0]-x[4]
+;
+;
+fetch alpha alpha
+res alpha falpha
+betti falpha
+
+; total:      5    15    31    45    30     6 
+; --------------------------------------------
+;     0:      5    15    10     -     -     - 
+;     1:      -     -     1     -     -     - 
+;     2:      -     -    20    45    30     5 
+;     3:      -     -     -     -     -     1 
+ 
+submat falpha.2 beta
+;
+1..11
+nres beta fbeta
+
+flatten fbeta.2 i
+nres i fi
+betti fi
+
+; total:      1    11    15     5 
+; --------------------------------
+;     0:      1     -     -     - 
+;     1:      -     -     -     - 
+;     2:      -     -     -     - 
+;     3:      -     -     -     - 
+;     4:      -     1     -     - 
+;     5:      -    10    15     5 
+
+hilb fi.1
+
+; codimension = 2
+; degree      = 15
+; genus       = 21
+
+
+
+

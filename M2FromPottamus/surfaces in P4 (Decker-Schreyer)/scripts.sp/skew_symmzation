@@ -1,0 +1,58 @@
+incr-set prlevel 1
+if #0=2 START
+incr-set prlevel -1
+;;; Usage:
+;;; 	<skew_symmzation Input_Mat Output_Mat
+;;;
+;;;  Input_Mat is a n x n matrix, with n even
+;;;
+;;;  Output_Mat is a n x n skew-symmetric matrix such that
+;;;        det(Input_Mat)=pfaff(Output_Mat)
+;;;
+incr-set prlevel 1
+jump END
+;;; Parameters: 
+;;;
+;;; Output values:
+;;;
+;;; (discussion)
+;;;
+;;; Caveats: Assumes that the rank of Input_Mat is even
+;;;
+; created 29/10/92 SP
+START:
+ncols #1 @n
+<zeromat @n @n #2
+edit #2
+
+int @i 1
+LOOPi:
+int @j @i+1
+LOOPj:
+int @k 1
+poly @tmp 0
+LOOP:
+submat #1 @min
+@k @k+1
+@i @j
+wedge @min 2 @min
+add @tmp @min @tmp
+int @k @k+1
+if @k<@n LOOP
+ce @i @j {@tmp}
+int @j @j+1
+if  @j<@n+1 LOOPj
+int @i @i+1
+if @i<@n LOOPi
+edit
+transpose #2 @t
+smult @t -1 @t
+add #2 @t #2
+setdegs #2
+;
+;
+kill @tmp @t @min @i @j @k @n
+END:
+incr-set prlevel -1
+
+$;;;;;;;; EXAMPLE SECTION ;;;;;;;;;;;;;;;;;;;;;;;;;

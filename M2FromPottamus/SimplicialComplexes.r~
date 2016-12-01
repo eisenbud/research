@@ -1,0 +1,75 @@
+is.subset = function(v1,v2){
+	return(setequal(union(v1,v2),v2))}
+
+sort.sets = function(L){
+	# returns the list of vectors in L, but sorted by length,
+	#longest first
+	lengths = sapply(L,length)
+	perm = order(lengths, decreasing=TRUE)
+	return(L[perm])
+	}
+#from now on, assume that all lists of sets are sorted!
+
+L=list(1:7, 2:7, 3:8)
+
+make.minimal = function(L){
+	#Returns a list of the maximal elements of the first list.
+	n = length(L)
+	Lnew = L
+	thingsToDrop = rep(0,n)
+	for (i in 1:(n-1)){
+		for (j in (i+1):n){
+			if (is.subset(L[[j]],L[[i]]))
+			       {thingsToDrop[j]=1}
+			   	}}
+	for(i in n:1){
+		if(thingsToDrop[i]==1){
+			Lnew = Lnew[-i]}}
+			return(Lnew)
+			}
+			
+make.minimal.socle = function(L){
+	#Returns a list of the minimal elements of the first list.
+	n = length(L)
+	Lnew = L
+	thingsToDrop = rep(0,n)
+	for (i in 1:(n-1)){
+		for (j in (i+1):n){
+			if (is.subset(L[[j]],L[[i]]))
+			       {thingsToDrop[i]=1}
+			   	}}
+	for(i in n:1){
+		if(thingsToDrop[i]==1){
+			Lnew = Lnew[-i]}}
+			return(Lnew)
+			}
+			
+SC.non.minimal= list(1,2,c(2,3),c(3,4),c(4,1),c(1,3),1,2)
+SCs=sort.sets(SC.non.minimal)
+#A simplicial complex will be a list of facets, each a vector
+SC =list(c(1,2), c(2,3), c(3,4),c(4,1), c(1,3))
+#We will work with pairs, a simplicial complex and a list of
+#its potential new facets (socle)
+SocSC = list(c(1,2,3), c(1,3,4))
+#A "simplicial complex pair":
+S = list(SC, SocSC)
+
+drop.facet = function(SC,i){
+	#Drops the i-th facet from a simplicial complex,puts in
+	#all the subsets, returns the minimal version
+	SCnew = SC[-i]
+	out = SC[[i]]
+	for (j in (1:length(out))){
+		SCnew = c(SCnew, as.list(out[-j]))
+		}
+		return(make.minimal(sort.sets(SCnew)))
+	}
+	
+drop.facet.in.pair= function(S,i){
+	SC = S[[1]]
+	socle = S[[2]]
+	SCnew = drop.facet(SC,i)
+	out = SC[[i]]
+	newSocle = c(socle,list(out))	
+	return(list(SCnew,make.minimal.socle(newSocle)))
+	}

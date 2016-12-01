@@ -1,0 +1,87 @@
+ring r
+;
+5
+x[0]-x[4]
+;
+;
+<random_mat 2 9 r alpha
+setdegs alpha
+-1:2
+;
+nres alpha falpha
+betti falpha
+
+; total:      2     9    16    14     6     1 
+; --------------------------------------------
+;    -1:      2     9    15    11     3     - 
+;     0:      -     -     1     3     3     1 
+
+
+nres r kos
+betti kos
+
+random 20 2 tphi
+dsum kos.4 kos.4 kos4m2
+transpose kos4m2 tkos4m2
+mult tkos4m2 tphi tphi
+setdegs tphi
+-1:20
+;
+
+
+dsum kos.5 kos.5 kos5m2
+transpose kos5m2 tkos5m2
+setdegs tkos5m2
+-2:2 
+;
+submat falpha.3 beta
+;
+1..11
+transpose beta tbeta
+random 2 11 ran
+mult ran tbeta aaa
+setdegs aaa
+-2:2
+;
+lift-std tkos5m2 stkos5m2
+lift stkos5m2 aaa tphi2
+concat tphi tphi2
+betti tphi
+
+transpose falpha.3 tpresg2
+sparse tpresg
+14 
+2
+;
+concat tpresg tpresg2
+setdegs tpresg
+-2:11 -3:3
+0:2 -1:15 -2
+
+<stack dir tphi tpresg
+setdegs dir
+-1:10 -2:11 -3:3
+;
+nres dir fdir 2
+betti fdir
+
+flatten fdir.2 i
+nres i fi 
+betti fi
+
+% ; total:      1     8    12     6     1 
+; --------------------------------------
+;     0:      1     -     -     -     - 
+;     1:      -     -     -     -     - 
+;     2:      -     -     -     -     - 
+;     3:      -     2     -     -     - 
+;     4:      -     5     9     3     - 
+;     5:      -     1     3     3     1 
+
+hilb fi.1
+
+; codimension = 2
+; degree      = 10
+; genus       = 9
+
+

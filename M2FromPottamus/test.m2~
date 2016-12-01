@@ -1,0 +1,15 @@
+restart
+load "ReesAlgebra2-suggestions.m2"
+catalecticant = (r,s, S) -> (
+     map(S^r, S^{s:-1}, (i,j)->S_(i+j))
+     )
+kk=ZZ/101
+S=kk[a..f]
+m=catalecticant(3,4, S)
+i=minors (3,m)
+whichGm i
+i=minors(2, catalecticant(2,3,S))
+whichGm i
+i=minors(5, random(S^5, S^{6:-1}))
+whichGm i
+time I=reesIdeal i

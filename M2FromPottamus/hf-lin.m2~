@@ -1,0 +1,5 @@
+-- M<--  S<-- m S(-d) <-- n S(-d-1) <-- \sum_{n-m+1} S(-d-1-x_i)
+--2* (const term of hil poly H_M(t)) is
+restart
+S=kk[m, n, x_1, x_2, d]
+f=(d+2)*(d+1)-m*(2*1)+0-(1-x_1)*(-x_1)-(1-x_2)*(-x_2)

@@ -1,0 +1,9 @@
+restart
+kk=ZZ/101
+S=kk[a,b]
+f = presentation module ideal(a,b)
+max degrees source f -- this is a list
+f = presentation module ideal(a)
+max degrees source f -- this is NOT a list
+
+

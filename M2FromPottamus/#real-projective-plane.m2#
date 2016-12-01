@@ -1,0 +1,48 @@
+-- Stanley-Reisner ring of the real projective plane (Enriques surface)
+-- A non-CM but locally CM example. 
+restart
+kk=ZZ/32003
+S=kk[a,b,c,d,e,f]
+i = ideal(a*b*d,a*b*e,a*c*d,a*c*f,a*e*f,b*c*e,b*c*f,b*d*f,c*d*e,d*e*f)
+
+betti res i -- in char 0 this is 3-linear (2 linear maps)
+codim i
+betti res i^2 -- in char 0 this has 4 linear maps, and then a nonlin!
+betti res i^3
+
+
+isGenerated gens i
+isAnnihilated gens i
+
+R=kk[A,B,C,D,E,F,SkewCommutative=>true]
+betti (F=ecoh(gens i,R,5))
+betti (F=ecoh(module i,R,5))
+
+betti(F=res module i^2)
+
+linearity= F->(
+L=0;
+f:=min flatten degrees F_0;
+if f==max flatten degrees F_0 then 
+(print "all generators in degree";print f);
+for i from 1  to length F when 
+(1+f==max flatten degrees F_i) do (f=f+1; L=L+1);
+if L==length F then (print "linear of length";print L) else 
+print "satisfies weak Np for p=";print L)
+
+linearity (F=res prune module i)
+betti F
+linearity (F=res prune module i^2)
+betti F
+linearity (F=res prune module i^3)
+betti F
+
+F=res(truncate (2,i), LengthLimit=>2)
+d=max flatten degrees F_2
+
+powertest= i->(
+F:=res(i, LengthLimit=>2);
+d=max flatten degrees F_2;
+j:=truncate(d-1,i);
+linearity j)
+if f==max flatten degrees F_0 then 

@@ -1,0 +1,10 @@
+P<[x]>:=ProjectiveSpace(GF(32003), 7);
+function RandomPoly(P,d)
+    
+    kk:=BaseRing(P);
+    B:=MonomialsOfDegree(P,d);
+    return &+[Random(kk)*b : b in B];
+
+    end function;
+C=
+    

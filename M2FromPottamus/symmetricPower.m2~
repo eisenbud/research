@@ -1,0 +1,26 @@
+--Goal: given a module M over a ring S, and an integer p, 
+--return the p-th symmetric power of M.
+restart
+kk=ZZ/101
+S=kk[a,b,c]
+M=prune module (ideal vars S)^2
+p=3
+phi = presentation M
+F = target phi
+G = source phi
+
+--pass to a new ring with variables corresponding to the 
+--generators of (degrees included!)
+
+n=rank F
+L=flatten degrees F
+T=ZZ/2[vars(0..n-1), Degrees=>{2,2,2,2,2,2}]
+
+--make 
+--         mult: vars**(deg p-1 monoms) --> (dep p monoms)
+-- as a map of free modules
+mp=gens (ideal vars T)^p
+mm=(vars T)**(gens(ideal vars T)^(p-1))
+mult=mm//mp
+
+

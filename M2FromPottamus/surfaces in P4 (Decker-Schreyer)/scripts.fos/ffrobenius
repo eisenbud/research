@@ -1,0 +1,57 @@
+incr-set prlevel 1
+if #0=3 START
+incr-set prlevel -1
+;;; Usage:
+;;; 
+;;;	<ffrobenius r i1 i2
+;;;
+;;; 	r ring, creates the ideal i1, i2 of fixpoints
+;;;	of the frobenius and its square.
+;;;	Only useful for small characteristic.
+;;;
+incr-set prlevel 1
+jump END
+;;; Parameters:
+;;;
+;;; Output values:
+;;;
+;;; (discussion)
+;;;
+;;; Caveats:
+;;;
+; created 1992, FOS.
+START:
+char #1 @char
+power #1 @char @rp
+jacob @rp @drp
+trans @drp @drp
+setdegs @drp
+;
+;
+set autocalc 1
+res @drp @fdrp 2
+betti @fdrp
+set autodegree 0
+res @drp @fdrp 2
+bet @fdrp
+mult @rp @fdrp.2 @p
+copy @p @p1
+ev @p @p1 @pp
+trans @p @p
+trans #1 @rt
+concat @p @rt
+wedge @p 2 @min
+flat @min #2
+trans @pp @pp
+concat @pp @rt
+wedge @pp 2 @min
+flat @min #3
+listvars
+kill @char @p1 @pp @rp @min
+kill @drp @p @rt
+kill @fdrp
+set autocalc -1
+END:
+incr-set prlevel -1
+
+$;;;;;;;; EXAMPLE SECTION ;;;;;;;;;;;;;;;;;;;;;;;;;

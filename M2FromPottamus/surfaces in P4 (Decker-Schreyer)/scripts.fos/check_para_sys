@@ -1,0 +1,58 @@
+incr-set prlevel 1
+if #0=3 START
+incr-set prlevel -1
+;;; Usage:
+;;; 	<check_para_sys r j a
+;;;	
+;;;	r ring, j ideal, a int =0, if yes
+;;;	checks, whether the last variables form a regular
+;;;	system of parameters of r modulo j.
+;;;	
+;;;
+incr-set prlevel 1
+jump END
+;;; Parameters:
+;;;
+;;; Output values:
+;;;
+;;; (discussion)
+;;;
+;;; Caveats:
+;;;
+; created 1992, FOS
+START:
+std #1 @r
+std #2 @j
+codim @r @n
+codim @j @m
+submat #1 @p
+1
+@m+1..@n
+concat @p #2
+std @p @p
+deg @p @cd @dg
+deg @j @c @deg
+int #3 @n-@cd
+if @cd<@n WARNING1
+if @deg=@dg OK
+WARNING2:
+int #3 2
+incr-set prlevel -1
+; not ACM
+incr-set prlevel 1
+jump END
+WARNING1:
+int #3 1
+incr-set prlevel -1
+; no parameter system
+incr-set prlevel 1
+jump END
+OK:   
+int #3 0
+incr-set prlevel -1
+;variety is ACM
+incr-set prlevel 1
+END:
+kill @r @j @m @n @c @deg @dg @cd @p
+incr-set prlevel -1
+$;;;;;;;; EXAMPLE SECTION ;;;;;;;;;;;;;;;;;;;;;;;;;

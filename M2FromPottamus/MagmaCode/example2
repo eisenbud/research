@@ -1,0 +1,33 @@
+//smooth Complete intersection of two cubics in P4
+k:=GF(32003);
+P<x_0,x_1,x_2,x_3,x_4> := PolynomialRing(k,5,"grevlex");
+I := ideal< P | 
+        x_0^3+x_1^3+x_0*x_1*x_2+x_2^3+x_3^3+x_4^3,
+        -3*x_0^2*x_1+3*x_0*x_1^2-3*x_1^2*x_2+3*x_1*x_2^2-3*x_2^2*x_3+3*x_2*x_3^2+3*x_0^2*x_4-3*x_3^2*x_4-3*x_0*x_4^2+3*x_3*x_4^2>;
+LP := ideal< P |
+         x_1,
+         x_2,
+         x_3,
+         x_4>;
+
+
+
+
+//n:=5;
+
+
+load "Rees.m";
+
+R:=P/I;
+nzd := Basis(LP)[1];
+ri, f := rees_ideal(R, LP, nzd);
+
+PZ := Codomain(f);
+M := GradedModule(ri);
+res := MinimalFreeResolution(M);
+res;
+
+load "set_degrees";
+
+BT,topLeft := BettiRes(res,[0],[0,0,0,0,0,1,1,1,1]);
+regBettiRes(BT, topLeft);

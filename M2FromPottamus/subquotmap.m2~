@@ -1,0 +1,98 @@
+
+
+setupRings=method()
+setupRings(Ring,List) := (kk,n) -> (
+     t:= #n;
+     x:= symbol x;
+     xx:=flatten apply(t,i->apply(n_i+1,j->x_(i,j)));
+     degs:=flatten apply(t,i->apply(n_i+1,k->apply(t,j->if i==j then 1 else 0)));
+     Sloc:=kk[xx,Degrees=>degs];
+     e:= symbol e;
+     ee:=flatten apply(t,i->apply(n_i+1,j->e_(i,j)));
+     Eloc:=kk[ee,Degrees=>degs,SkewCommutative=>true];
+     h:=symbol h;
+     H:=ZZ[h];
+     return(Sloc,Eloc,H))
+
+
+beilinsonWindow(ChainComplex) := C-> (
+     E:= ring C;
+     length C;
+     t:=#unique degrees E;
+     n:=apply(unique degrees E,d-> (#select( degrees  E, e-> e==d)-1));
+     Ck:=0;sourceCK:=0; tragetCK:=0;d:=0;
+     W:=chainComplex apply(min C+1..max C,k-> (Ck=C.dd_k;
+	  --source indices and target rows and columns in the Beilison window
+	  sourceCK = select(rank source Ck,i-> (d=degree (source Ck)_i;#select(#d,i->d_i>=0 and d_i<=n_i)==#n));	
+          targetCK =  select(rank target Ck,i-> (d=degree (target Ck)_i;#select(#d,i->d_i>=0 and d_i<=n_i)==#n));	
+     	  (transpose (transpose Ck)_targetCK )_sourceCK));
+     return W[-min C]) 
+
+isChainComplex=method()
+isChainComplex(ChainComplex) := W -> (
+     lengthW:= max W- min W;
+     #select(min W+1..max W-1,i->W.dd_i*W.dd_(i+1)==0) ==lengthW-1)
+
+outsideBeilinsonSource=method()
+outsideBeilinsonSource(Matrix) :=  m -> (
+     E:= ring m;
+     t:=#unique degrees E;
+     n:=apply(unique degrees E,d-> (#select( degrees  E, e-> e==d)-1));
+	  --source indices not in the Beilison window
+     d:=0;
+     sourcem = select(rank source m,i-> (d:=degree (source m)_i;#select(#d,i->d_i<0 or d_i>n_i)>0));
+     m_source m)	
+
+outsideBeilinsonTarget=method()
+outsideBeilinsonTarget(Matrix) :=  m -> (
+     E:= ring m;
+     t:=#unique degrees E;
+     n:=apply(unique degrees E,d-> (#select( degrees  E, e-> e==d)-1));
+	  --source indices not in the Beilison window
+     d:=0;
+     targetm := select(rank target m,i-> (d=degree (target m)_i;#select(#d,i->d_i<0 or d_i>n_i)>0));
+     transpose (transpose m)_targetm)          
+
+
+end
+
+tateExtension=method()
+tateExtension(ChainComplex) := C -> (
+     W:=beilinsonWindow C;
+     minW := min W;
+     maxW := max W;
+     k=minW;
+     mk:=W.dd_(k+1)     
+     Ck:=(chainComplex transpose syz transpose mk)[-k+1]
+     beilinsonWindow Ck
+     betti Ck
+     coCk=transpose (mingens image transpose (W.dd_k||gens truncate(n,image Ck.dd_k)))
+     coCk=outsideBeilinsonTarget (coCk||W.dd_k)
+     mk'=outsideBeilinsonSource m
+     m=(mingens image (gens truncate(n,image syz coCk)|mk))
+	  )|mk
+	  )|mk
+
+     betti mk,betti mk'
+     betti res coker transpose  mk'
+
+n={3}
+(S,E,H)=setupRings(ZZ/101,n)
+vars E
+vars S
+betti (fE=res ideal vars E)
+C=chainComplex {fE.dd_2,fE.dd_3 }[3]
+W=beilinsonWindow C
+
+
+E = kk[a,b,c,d, SkewCommutative => true]
+
+mm = ideal vars E
+
+M = (module trim (mm^2))/(module trim(mm^4))
+MM = Hom(Hom(M,E),E)
+
+
+
+hf(-10..10,M)
+

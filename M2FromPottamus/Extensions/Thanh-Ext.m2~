@@ -1,0 +1,64 @@
+--Mxi takes inputs as F, G, m, 
+--where F = (F_1 -> F_0) which is a presentation of B, 
+--and G = (G_1 -> G_0) is a presentation of A, and 
+--m is a map from F_1 to G_0. 
+--The output is the middle module in the extension 0 -> A -> M -> B -> 0
+
+Mxi = (F,G,m) -> (
+A = coker G.dd_1;
+f = inducedMap(A,G_0);
+zetam = f * m;
+zeta1 = F.dd_1 || (matrix entries zetam);
+zeta2 = map (directSum(F_0,A),F_1, zeta1);
+prune coker zeta2)
+
+--sameClass takes inputs the same as Mxi, and check whether m defines the trivial extension. 
+--The output is a module, its presentation matrix is a 1 by 1 matrix whose entry is the annihilator of Xi, 
+--if it is 1, then Mxi is the trivial extension.
+
+sameClass = (F,G,m) -> (
+A = coker G.dd_1;
+f = inducedMap (A,G_0);
+r = rank F_1 * rank G_0;
+mHom = map (Hom(F_1,G_0), R^r, id_(R^r));
+B = R^1;
+mR = map (R^r,B,transpose flatten m);
+M = Hom(F_1,A) / image Hom (F.dd_1,A);
+mM = inducedMap (M,Hom(F_1,A));
+xf = mM * Hom(F_1,f) * mHom * mR;
+prune B/ker xf)
+
+--isoType takes input as a matrix, and output the isomphism type of the coker of m.
+isoType = (m) -> (
+R = ring m;
+r = rank target m;
+c = rank source m;
+d = min (r,c);
+lastl = 1_R;
+l = {};
+for i from 1 to d do (
+a = (entries mingens minors(i,m))_0_0;
+l = append(l,a/lastl);
+lastl = a);
+l)
+
+
+
+--examp takes inputs as F and G, and produce a random extension, the output is a list, 
+--with the first entry is m:F_1 -> G_0, the second entry is Mxi, the middle module 
+--in the extension, and the last entry gives the information about the annihilator of Xi
+
+examp = (F,G) -> (m = random (G_0,F_1);mzeta = Mxi (F,G,m);{m, Mxi (F,G,m), sameClass (F,G,m)})
+
+end
+
+restart
+load "Thanh-Ext.m2"
+
+R = ZZ
+A = coker matrix {{4,0},{0,4}}
+F = res A
+netList apply (10, i -> examp (F,F))
+m = map (F_0,F_1, {{7,2},{1,-1}})
+sameClass(F,F,m)
+

@@ -1,0 +1,70 @@
+load "/Users/de/Documents/M2/rees.m2"
+
+frobPower = (m,d)->
+    map(S^(d*(degrees target m)),S^(d*(degrees source m)),
+          (i,j)->(m_(i,j))^d)
+
+isGenerated=f->(
+     --Checks whether the torsion in the symmetric algebra of 
+     --the image of the matrix f over the polynomial ring S
+     --is generated in degree (0,*) (that is, by elements
+     --that are pure polynomials in the "new" generators of
+     --the symmetric algebra, corresponding to the columns of f.
+I0:=ideal(0_(ring f));
+i:=symmetricKernel(I0,f);
+numorig:=rank source vars ring f;
+j:=(ideal(vars(ring i))_{0..numorig-1})*
+              (ideal(vars ring i)_{numorig..(numorig+(rank source f)-1)})^2;
+0==diff(gens j, gens i)
+ -- is 0 iff the generation is correct.
+)
+
+torsionGenerators=f->(
+     -- Assumes f is a matrix over a polynomial ring.
+     --computes the torsion in the symmetric algebra of the
+     --image of f.
+I0=ideal(0_(ring f));
+transpose gens symmetricKernel(I0,f))
+
+isAnnihilated = f->(
+--     tests whether the symmetric algebra torsion is annihilated
+--     by the maximal ideal of the base ring. If it is also
+--     generated in degree (0,*), then this annihilation is equiv alent
+--     to its being concentrated in degrees (0,*).
+I0=ideal(0_(ring f));
+i=symmetricKernel(I0, f);
+L=ideal((gens i)_{0..rank source syz f -1});
+firstvars=ideal((vars ring i)_{0..2});
+0==(gens((firstvars)*i))%(L)
+)
+
+linearity = method()
+
+linearity(ChainComplex):= F->(
+--describes how long the linear part of a resolution F is.
+-- "weak Np" means that the number of linear maps in the resolution
+-- F is p-1.
+L:=0;
+f:=min flatten degrees F_0;
+ff:=max flatten degrees F_0;
+if f==ff then 
+(<< "All generators are in degree "<< f <<"." << endl) 
+else (<< "Generators occur from degree " << f << " to degree " << ff<<".";
+     break);
+for i from 1 to length F when 
+(1+f==max flatten degrees F_i) do (f=f+1; L=L+1);
+if L==length F then 
+(<< "The resolution is linear of length " << L <<".") else 
+(<< "The number of linear maps at the start of the complex is "<< L <<endl 
+     <<"The length of the complex is " << length F);
+<<newline;
+)
+
+
+linearity(Module):=M->linearity res M
+linearity(Matrix):=m->linearity res coker m
+linearity(Ideal):=i->linearity res module i
+
+
+kk=ZZ/32003
+S=kk[a..e]

@@ -1,0 +1,109 @@
+
+incr-set prlevel 1
+if #0=3   START
+incr-set prlevel -1
+;;; Usage:
+;;; 	<dualizing r i w
+;;;
+;;;	r ring, i ideal.std, gives dualizing module w,
+;;;	if i is ACM and 3-regular and the last variables
+;;;	a regular system of parameters.
+;;;	Warning: if not, the result is of no use.
+;;;
+incr-set prlevel 1
+jump END
+;;; Parameters:
+;;;
+;;; Output values:
+;;;
+;;; (discussion)
+;;;
+;;; Caveats:
+;;;
+; created 1991, FOS 
+START:
+ncols #1 @ebdim
+deg #2 @cod @deg
+submat #1 @param
+1
+@cod+1..@ebdim
+copy @param @artin
+concat @artin #2
+std @artin @artin
+hilb @artin
+deg @artin @cd @dg
+if @dg=@deg OK2
+set prlevel 0
+set echo 1
+last variables not a regular sequence
+shout Mist2 ;
+jump ENDE
+OK2:
+k-basis #2 @kbasis2
+2
+2
+ncols @kbasis2 @a
+type @a
+k-basis @artin @kbart
+2
+2
+ncols @kbart @b
+type @b
+int @deg @b+@cod+1
+type @deg
+type @dg
+if @deg=@dg OK3
+set prlevel 0
+set echo 1
+not 3-regular
+shout Mist3 ;
+jump ENDE
+OK3:
+char #1 @char
+ring @r
+@char
+@a+@b
+a[1]-a[@a]b[1]-b[@b]
+;
+;
+ring-sum #1 @r @rr
+submat @rr @aa
+1
+@ebdim+1..@ebdim+@a
+submat @rr @bb
+1
+@ebdim+@a+1..@ebdim+@a+@b
+fetch #2 @j
+std @j @j
+fetch @kbart @generators
+fetch #1 @r
+fetch @kbasis2 @z
+transpose @aa @at
+mult @z @at @za
+mult @za @r @zar
+reduce @j @zar @zar
+contract @generators @zar @m
+betti @m
+flatten @m @m
+set autocalc 1
+set autodegree 1
+res @m @fm 2
+set autocalc -1
+trans @bb @bt
+mult @bt @r @n
+flatten @n @n
+mult @n @fm.2 @q
+jacob @q @dq b[1]..b[@b]
+trans @dq @w 
+setring #1 
+fetch @w #3
+std #3 #3
+kill @w @dq @q @n @bt @fm @m @zar @r @za @at
+kill @rr @char @z @aa @bb @generators @j 
+ENDE:
+kill  @a @kbasis2 @param @deg @dg @cod @artin @cd @ebdim @kbart @b
+listvar
+END:
+incr-set prlevel -1
+
+$;;;;;;;; EXAMPLE SECTION ;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -1,0 +1,26 @@
+Sorin Popescu 1/5/1993
+
+This folder contains several useful scripts:
+
+-sectional genus: computes the arithmetic sectional genus and allows to use
+		  this value as input of other commands. The hilb command
+                  lacks this feature.
+ 	          
+-self intersection: computes the self intersection number of a Cartier
+		    divisor on a smooth projective surface.
+
+-adjunction1: computes the image of a surface in P4 under H+K and the number 
+              of its exceptional lines, or rather the ideal of the 
+              corresponding points in the image surface. The script
+              is a version of the script by F.-O. Schreyer. It doesn't
+	      assume that the surface has p_g=0.
+
+-symm_omega: computes a morphism whose kernel is the j-th symmetric power
+             of the cotangent bundle Omega^1 over the current ring.
+
+-skew_symmzation: given a n x n matrix A, with n even, computes a 
+                  skew-symmetric matrix B such that pfaff(B)=det(A).
+
+For comments and questions on the scripts please contact me at
+               popescu@math.uni-sb.de
+

@@ -1,0 +1,29 @@
+net BettiTally := v -> (
+     v' := new MutableHashTable;
+     scan(pairs v, (key,n) -> (
+	       (i,d) := key;
+	       d = if d#?0 then d#0 else 0;
+                 -- just use the first component of the degree
+	       d = d-i; -- skew the degrees in the usual way
+	       key = (d,i);
+	       if v'#?key then v'#key = v'#key + n else v'#key = n;
+	       ));
+     v = v';
+     k := keys v;
+     fi := first \ k;
+     la := last  \ k;
+     mincol := min la;
+     maxcol := max la;
+     minrow := min fi;
+     maxrow := max fi;
+     v = table(toList (minrow .. maxrow), toList (mincol .. maxcol),
+       (i,j) -> if v#?(i,j) then v#(i,j) else 0);
+     leftside := splice {"", "total:", apply(minrow .. maxrow, i ->
+        toString i | ":")};
+     totals := apply(transpose v, sum);
+     v = prepend(totals,v);
+     v = applyTable(v, bt -> if bt === 0 then "." else toString bt);
+     v = prepend(toString \ toList (mincol .. maxcol), v);
+     v = apply(leftside,v,prepend);
+     netTable(v, Alignment => Right, HorizontalSpace => 1, BaseRow => 1))
+

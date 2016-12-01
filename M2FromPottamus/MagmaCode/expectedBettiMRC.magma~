@@ -1,0 +1,53 @@
+ExpectedBettiMRC := function(r,m)
+
+e:=1;
+while(Binomial(r+e,e) le m) do e := e+1; end while;
+d := e-1;
+a := m-Binomial(r+d,d);
+toprow := [0] cat [Max((Binomial(d+i-1,i-1))*(Binomial(r+d,d+i)) - a*(Binomial(r,i-1)), 0) : i in [1..r]];
+bottomrow :=[0] cat [Max(a*(Binomial(r,i))-(Binomial(d+i,i))*Binomial(r+d,d+i+1), 0) : i in [1..r]];
+N := Matrix([[1] cat [0 : j in [1..r]]]);
+
+if (d ge 2) then
+    N1 := Matrix([[0 : j in [0..r]] : i in [2..d]]);
+    N := VerticalJoin(N,N1);   
+end if;
+    
+M := Matrix([toprow,bottomrow]);
+return(VerticalJoin(N,M));
+
+end function;
+
+ExpectedBettiMRC1 := function(n,d,k)
+    //Like ExpectedBetti, but computes the number of point equivalent
+d:=d-1;
+r := n;
+m := &+[Binomial(r-1+i,i) : i in [0..d]]+k;
+a := m-Binomial(r+d,d);
+toprow := [0] cat [Max((Binomial(d+i-1,i-1))*(Binomial(r+d,d+i)) - a*(Binomial(r,i-1)), 0) : i in [1..r]];
+bottomrow :=[0] cat [Max(a*(Binomial(r,i))-(Binomial(d+i,i))*Binomial(r+d,d+i+1), 0) : i in [1..r]];
+N := Matrix([[1] cat [0 : j in [1..r]]]);
+
+if (d ge 2) then
+    N1 := Matrix([[0 : j in [0..r]] : i in [2..d]]);
+    N := VerticalJoin(N,N1);   
+end if;
+    
+M := Matrix([toprow,bottomrow]);
+return(VerticalJoin(N,M));
+
+end function;
+
+ebm := ExpectedBettiMRC;
+ebm1 := ExpectedBettiMRC1;
+
+ebm1(6,2,4);
+
+//This case is a counterexample to the "old" MRC conjecture,
+//but not the "new" one:
+
+load "benchmark-res.magma";
+I := MinFreeResConj1(GF(32003), 6, 2, 4);
+M:=QuotientModule(I); 
+BettiTable(FreeResolution(M));
+

@@ -1,0 +1,77 @@
+Wolfram Decker 1/5/1993
+
+This folder contains programs which compute the equations and syzygies
+of all smooth nongeneral type surfaces in P4 known to us. For smoothness 
+and adjunction see the folders with the scripts.
+
+How to construct the surfaces is described in in the main part
+and in Appendix B of our paper
+
+     Decker, Ein, Schreyer: ... Journal of Algebraic Geometry 1993.
+
+and in
+
+     Popescu: Thesis, Saarbruecken, 1993.
+
+We will update our programs in case new surfaces will be constructed.
+Wright now ( 1/5/1993 ) there are 3 surfaces not mentioned in Appendix B 
+above:
+- Nonminimal abelian surfaces with degree d=15, and sectional genus g=21
+  lying on one quintic hypersurface only ( compare the above thesis ).
+- Nonminimal bielliptic surfaces with degree d=15, and sectional genus g=21
+- Enriques surfaces with d=13 and g=16.
+The latter surface is not mentioned in Appendix B above, since we did not
+prove yet that this surface and the one  described in our paper are in
+different components of the Hilbert scheme ( though this is quite likely ).
+
+How to construct the abelian and bielliptic surfaces will be described
+in the forthcoming paper 
+     
+    Aure, Decker, Hulek, Popescu, Ranestad: Syzygies of abelian and
+                                               bielliptic surfaces in P4.
+
+The programs follow precisely the description in our paper ( for some 
+surfaces we provide alternative constructions too ). Especially
+we explicitely compute the mapping cone of phi e Hom(F,G) which is costly
+concerning time and memory. Many of the set degree commands should be
+considered just as comments. They are not necessary for the actual 
+computation. To save time and memory some easy changes can be made:
+- Choose random matrices more sparse and/or eg. modulo 7 ( and verify
+  by your computation that your choices are general enough ).
+- Avoid computations of dual modules if not actually needed.
+- Do not compute mapping cones directly. Use appropriate syzygy
+  computations instead.
+
+We use the following scripts of David Eisenbud.
+
+% <stack
+
+;;; Usage:
+;;;      <stack newmat mat1 .. matn
+;;;
+;;;    Creates a matrix newmat with rows the rows of mat1 ... matn 
+;;; in order.
+
+% <ideal
+
+;;; Usage:
+;;;     <ideal j f1 f2 ... fn
+;;;
+;;; Creates an ideal j over the current ring with generators f1, ..., fn.
+
+% <random_mat
+
+;;; Usage:
+;;;     <random_mat a b i m
+;;;
+;;; defines an  a x b  matrix m whose entries are random linear
+;;; combinations of the entries of the 1xn matrix i.  The rowdegs of m
+;;; are all = 0.
+
+If these are not available on your machine replace them appropriately.
+
+For questions please contact me, Wolfram Decker, at
+    decker@math.uni-sb.de.
+For questions concerning the thesis of Sorin Popescu contact
+    popescu@math.uni-sb.de.
+Comments, suggestions and new surfaces are welcome.

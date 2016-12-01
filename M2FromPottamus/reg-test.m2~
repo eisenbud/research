@@ -1,0 +1,13 @@
+kk=ZZ/32003
+S=kk[x,y]
+d=5
+e=3
+i1=ideal(x^d,y^d)
+i=ideal(x^d,y^d,x^(d-e+1)*y^e)
+regularity module i1
+regularity module i
+for n from 1 to 10 do print regularity module trim(i^n)
+for n from 1 to 10 do print regularity module trim(i1^n)
+
+
+

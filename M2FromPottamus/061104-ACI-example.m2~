@@ -1,0 +1,9 @@
+restart
+i=ideal"ac,ad,bc,bd+e2"
+ass i
+betti res i
+line=gens ideal"a,b"
+canon=ideal (line*random(source line, S^{3:-2}))
+betti res canon
+allbut=canon:(ideal line)
+betti res allbut

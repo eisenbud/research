@@ -1,0 +1,8 @@
+S=kk[a,x, Degrees=>{{1,1,0},{1,0,1}}]
+i=ideal (a*x)
+F=res i
+F_0
+F_1
+(degrees (F_1))_0
+ideal(
+help symmetricKernel(ideal(0_S), gens i)

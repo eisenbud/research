@@ -1,0 +1,26 @@
+getPackage "SimpleDoc"
+getPackage "Schubert2"
+path
+restart
+
+loadPackage "Schubert2"
+grassmannian = (m,n) -> flagBundle({m+1, n-m})
+time for n from 3 to 10 do(
+     G=grassmannian(1,n);
+     (S,Q) = G.Bundles;
+     d = 2*n-3;
+     print integral chern symmetricPower(d, dual S))
+
+
+
+viewHelp Schubert2
+
+
+restart
+n=3;
+d=3;
+S=kk[x_0..x_n]
+f = sum(0..min(n,(d-1)//2), i->x_(i+2)*x_0^(2*i)*x_1^(d-1-2*i))
+
+ideal singularLocus ideal f
+transpose jacobian ideal f

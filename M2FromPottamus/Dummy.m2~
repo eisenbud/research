@@ -1,0 +1,32 @@
+;; This buffer is for notes you don't want to save, and for Lisp evaluation.
+;; If you want to create a file, visit that file with C-x C-f,
+;; then enter the text in that file's own buffer.
+
+newPackage(
+       "Dummy",
+       Version => "0.1",
+       Date => "January 9, 2010",
+       Authors => {
+               {Name => "Baptiste Calmes"}
+               },
+       Headline => "Dummy package",
+       DebuggingMode => true)
+
+-- Put here the name of functions that should be visible to users
+export{
+mymethod
+}
+
+-- Variables that can be modified by the user
+exportMutable{
+}
+
+--package code
+
+mymethod=method(Options => true)
+
+mymethod(ZZ) := {aa=>1} >> o -> (n) -> n*(o.aa)
+
+--documentation
+
+beginDocumentation()

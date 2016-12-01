@@ -1,0 +1,27 @@
+incr-set prlevel 1
+if #0=1 START
+incr-set prlevel -1
+;;; Usage:
+;;; 	<get matrix
+;;;
+;;;	mat matrix <matrix
+;;;	std matrix matrix
+;;;     
+incr-set prlevel 1
+jump END
+;;; Parameters:
+;;;
+;;; Output values:
+;;;
+;;; (discussion)
+;;;
+;;; Caveats:
+;;;
+; created ...
+START:
+mat #1 <#1
+std #1 #1
+END:
+incr-set prlevel -1
+
+$;;;;;;;; EXAMPLE SECTION ;;;;;;;;;;;;;;;;;;;;;;;;;

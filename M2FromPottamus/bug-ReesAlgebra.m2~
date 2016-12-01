@@ -1,0 +1,10 @@
+restart
+--loadPackage "Snowbird/ReesAlgebra.m2"
+loadPackage "ReesAlgebra"
+loadPackage "ReesAlgebra-v01.m2"
+S=kk[x,y]
+i=ideal"x5,y5, x3y2"
+
+iR = reesIdeal(i,i_0)
+betti res iR 
+loadedPackages

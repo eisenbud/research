@@ -1,0 +1,36 @@
+ring r
+;
+5
+x[0]-x[4]
+;
+;
+power r 3 r3
+<random_mat 2 2 r tphi
+<random_mat 2 1 r3 tphi2
+concat tphi tphi2
+setdegs tphi
+-2:2
+;
+nres tphi ftphi
+betti ftphi
+flatten ftphi.2 i
+nres i fi 
+betti fi
+
+; total:      1     3     2 
+; --------------------------
+;     0:      1     -     - 
+;     1:      -     1     - 
+;     2:      -     -     - 
+;     3:      -     2     2 
+
+hilb fi.1
+
+; codimension = 2
+; degree      = 7
+; genus       = 6
+
+
+
+
+

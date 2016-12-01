@@ -1,0 +1,155 @@
+
+restart
+load "/Users/de/Library/m2/rees.m2"
+kk=ZZ/32003
+S=kk[x,y,z]
+I0=ideal 0_S
+
+--Example: all the cubics but xyz
+f=gens (I=ideal (x^3,x^2*y, x*y^2, y^3,y^2*z, y*z^2, z^3, z^2*x, z*x^2))
+i=symmetricKernel(I0,f)
+transpose gens i
+betti res I
+L=ideal((gens i)_{0..rank source syz gens I -1})
+rank source gens L
+firstvars=ideal((vars ring i)_{0..2})
+(gens((firstvars)*i))%(L)
+--satisfies generation and annihilation conjectures.
+
+--Quartics
+
+--Example: all quartics but y^4, yz3, z4. Has Linear resolution.
+transpose (m=gens(ideal vars S)^4)
+I=ideal m_{0..9,11..12}
+
+transpose gens I
+betti res I
+f=gens I
+i=symmetricKernel(I0,f)
+transpose gens i
+--satisfies generation conjecture.
+
+j=(ideal(vars(ring i))_{0..2})*(ideal(vars ring i)_{3..(rank source f -1)})^2
+diff(gens j, gens i)
+L=ideal((gens i)_{0..rank source syz gens I -1})
+rank source gens L
+firstvars=ideal((vars ring i)_{0..2})
+(gens((firstvars)*i))%(L)
+--satisfies annihilation conjecture.
+
+--two holes:
+I1=ideal m_{0..3,5..7,9..14}
+betti res I1
+--NOT linearly presented.
+
+--Quintics
+------Counterexample!!--------
+--define the ideal
+transpose (m=gens(ideal vars S)^5)
+I=(ideal m_{1..3,5..10,12,14,16..19})
+transpose gens I
+betti res I
+--This ideal satisfies the "generation" conjecture,
+--but fails the annihilation conjecture.
+--check lin type on punct spect. By symmetry, enough to check
+--lin type after setting z=1.
+i=symmetricKernel(I0,gens I)
+
+--check generation
+j=(ideal(vars(ring i))_{0..2})*(ideal(vars ring i)_{3..(rank source f -1)})^2
+diff(gens j, gens i) --should be 0
+transpose gens i
+
+--check annihilation
+L=ideal((gens i)_{0..rank source syz gens I -1})
+rank source gens L
+firstvars=ideal((vars ring i)_{0..2})
+(gens((firstvars)*i))%(L)
+(gens((firstvars)^2*i))%(L)
+
+--So: this seems to be an ideal that is:
+--satisfies the generation conj but NOT the annihilation
+--conjecture, as the Rees alg relations mod the Symm alg relations
+--are not killed by the max ideal of the ground ring. (But the square
+--does annihilate.)
+--generically a comp int on the punct spect.
+--linear presentation, but not lin 2nd syzygies and not CM
+o125 = total: 1 15 20 6
+           0: 1  .  . .
+           1: .  .  . .
+           2: .  .  . .
+           3: .  .  . .
+           4: . 15 20 3
+           5: .  .  . 3
+
+----------------------
+--variations:
+--define the ideal and cojmpute the symmetric kernel
+transpose (m=gens(ideal vars S)^5)
+I1=(ideal m_{1..3,5..10,12,14,16..19}) -- the original counterex. 3 holes, 
+--3 powers also missing.
+I2=(ideal m_{0,1..3,5..10,12,14,16..19}) -- add x5. Also a counterex
+I3=(ideal m_{0,1..3,5..10,12,14,15,16..19,20}) --cx add x5,y5,z5. Also a cx
+I4=(ideal m_{0,1..3,5..10,11,12,14,15,16..19,20}) --cx add x5,y5,z5 and xy3z.
+I5=(ideal m_{0,1..3,4,5..10,11,12,14,15,16..19,20}) 
+-- add x5,y5,z5, xy3z,x3yz. NOT a cx.
+
+I=I5
+transpose gens I
+betti res I
+
+
+
+i=symmetricKernel(I0,gens I)
+
+--check generation
+j=(ideal(vars(ring i))_{0..2})*(ideal(vars ring i)_{3..(rank source f -1)})^2
+diff(gens j, gens i) --should be 0
+transpose gens i
+
+--check annihilation
+L=ideal((gens i)_{0..rank source syz gens I -1})
+firstvars=ideal((vars ring i)_{0..2})
+compress((gens((firstvars)*i))%(L))
+(gens((firstvars)^2*i))%(L)
+
+----
+--Character of linearly presented ideals in 4 vars
+S=kk[a,b,c,d]
+m5=(ideal vars S)^5
+rem = ideal(a*b*c*d^2, a*b*c^2*d)
+mat= compress ((gens m5) % rem)
+betti res coker mat
+--linear presentation. So:
+
+Conjecture: A set $B$ in the n-dimensional simplex $\Delta$
+of monomials of degree d generates
+and ideal with linear presentation iff 
+the full subcomplex  of $\Delta$ 
+spanned by the complement $C$ of $B$ has 
+the property that if any n-1-simplex lies in $C$,
+then the "dual position" n-simplex it generates also
+lies in $C$.
+------------------------
+--5-7-02 example:
+i1=ideal(x,z)
+i2=y^3*(i1^6)+x^3*z^3*(ideal(y,z))^3+ideal(x^5*y^4,y^4*z^5)
+betti res i2
+I0=ideal(0_S)
+I=i2
+f=gens I
+i=symmetricKernel(I0,gens I)
+
+--check generation
+j=(ideal(vars(ring i))_{0..2})*(ideal(vars ring i)_{3..(rank source f -1)})^2
+diff(gens j, gens i) --should be 0
+transpose gens i
+
+--check annihilation
+L=ideal((gens i)_{0..rank source syz gens I -1})
+firstvars=ideal((vars ring i)_{0..2})
+compress((gens((firstvars)*i))%(L))
+(gens((firstvars)^2*i))%(L)
+(gens((firstvars)^3*i))%(L)
+
+--FAILS! (not of lin type on the punct spect.)

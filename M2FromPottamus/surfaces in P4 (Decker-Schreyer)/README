@@ -1,0 +1,35 @@
+Wolfram Decker, Sorin Popescu, Frank-Olaf Schreyer 1/5/1993
+
+In this directory you will find four folders:
+
+1) programs.surfaces
+2) scripts.fos
+3) scripts.sp
+4) an.explicit.example 
+
+1) contains programs ( written by Wolfram Decker ) which compute
+the equations and syzygies of all smooth nongeneral type surfaces 
+in P4 known to us.
+
+For smoothness, adjunction and other useful things see the scripts 
+in 2) and 3) (written by Frank-Olaf Schreyer and Sorin Popescu resp.).
+
+4) contains a commented version of our program for an Enriques surface
+with degree 11 and sectional genus 10 ( written by Frank-Olaf Schreyer
+and Wolfram Decker ). This is the contents of Appendix A of our preprint
+
+    Decker, Ein, Schreyer: Construction of surfaces in P4, 1991.
+
+Folders 1)-3) contain their own README files with more details
+
+You may use, modify, or redistribute programs and scripts freely,
+subject to the following restrictions:
+ 
+1. The authors accept no responsibility for any consequences of the
+programs and scripts and make no guarantee that the software is free of defects.
+2. The programs and scripts may not be included or redistributed as part of any
+package to be sold for profit unless the authors have given explicit written
+permission to do so.
+3. An acknowledgement of the use of the programs and scripts is requested when it is used in written work.
+
+

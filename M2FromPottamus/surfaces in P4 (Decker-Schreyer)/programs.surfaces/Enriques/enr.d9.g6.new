@@ -1,0 +1,50 @@
+
+ring r
+;
+5
+x[0]-x[4]
+;
+;
+power r 2 r2
+<random_mat 1 12 r2 alpha
+
+nres alpha falpha
+betti falpha
+ 
+; total:      1    12    25    21    10     3 
+; --------------------------------------------
+;     0:      1     -     -     -     -     - 
+;     1:      -    12    25    15     -     - 
+;     2:      -     -     -     6    10     3 
+
+
+submat falpha.3 beta
+;
+1..15
+nres beta fbeta
+betti fbeta
+
+flatten fbeta.2 i
+nres i fi 
+betti fi
+
+; total:      1    15    25    12     1 
+; --------------------------------------
+;     0:      1     -     -     -     - 
+;     1:      -     -     -     -     - 
+;     2:      -     -     -     -     - 
+;     3:      -     -     -     -     - 
+;     4:      -    15    25    12     - 
+;     5:      -     -     -     -     1 
+
+hilb fi.1
+
+; codimension = 2
+; degree      = 9
+; genus       = 6
+
+
+
+
+
+

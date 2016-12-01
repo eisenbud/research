@@ -1,0 +1,19 @@
+S=kk[a..e]
+i1=intersect(ideal(a,b),ideal(c,d))
+i2=ideal(a,c)
+j=intersect(i1,i2)
+betti res j
+
+S=kk[a..f]
+i1=intersect(ideal(a,b,c),ideal(b,c,d),ideal(c,d,e))
+i2=ideal(a,f,e)
+j=intersect(i1,i2)
+betti res j
+betti res i1
+
+
+i1=intersect(ideal(a,b,c),ideal(c,d,e),ideal(e,f,a))
+i2=ideal(a,f,e)
+j=intersect(i1,i2)
+betti res j
+betti res i1

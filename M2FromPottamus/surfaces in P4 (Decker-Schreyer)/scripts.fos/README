@@ -1,0 +1,50 @@
+These scripts are designed to analyse surfaces in P4.
+	- smoothness
+	- few_smooth
+	- speedy_smooth
+are scripts, which check the smoothness. The first uses the staight forward
+method based on the implicit function theorem. The two other sripts try
+to use less memory and time. The most expensiv part of the computation by
+the straight forward method is to compute all minors of the jacobian matrix.
+Few_smooth just picks a few of the minors and hopes for the best. It assumes
+that the ideal is generated anly in 2 different degrees. 
+Speedy_smooth is a more sophisticated method. It assumes that the smallest
+degree generators of the ideal are quintics. Then if a choosen quintic generator
+has only isolated singularities, and the degree of the singular set coincides
+with the degree of the zero loci of the corresponding section of the normal
+bundle of the surface, and this is the expected degree, then one can deduce the
+smoothness if the variety defined by the quintics has embedding dimension at
+most 3 at all points of the surface. All this can be checked by less expensive
+computations than the computation of all minors.
+	The other sripts are for the adjunction process of the surface.
+	- first_adjoint 
+computes the image of the surface under H+K, and the exceptional lines, or
+rather the ideal of the corresponding points in the image surface.
+	- next_adjoint
+computes the second or higher adjoint surfaces, and hence exceptional conics,
+twisted cubics etc of the original surface. It assumes that the surface
+is arithmetically Cohen_Macaulay and three-regular in sense of Castelnuovo-
+Mumford, which is reasonable to expect from an adjoint regular surface. Also
+pg=0 is assumed, which however could be overcome by a slight modification
+of the program.
+	- dualizing
+computes a presentation of the dualizing module under the assumption that
+the surface is arithmetically Cohen-Maculay, 3-regular and that
+the last variables form a regular sequence. It is used by next-adjoint.
+	- check_para_sys
+checks whether the last variables form indeed a regular system of parameters,
+	- random_aut
+performs a random linear coordinate transformation. It is used by next_adjoint
+in the attemp to obtain that the last variables form a regular system.
+The scripts
+	- xring
+	- put
+	- get
+are little things I find convenient to use,
+	- ffrobenius
+works for small characterics, and gives the fix points of the Frobenius 
+endomorphism and it square.
+	For comments and questions on the scripts please contact me under
+		schreyer@btm8x2.mat.uni-bayreuth.de
+
+

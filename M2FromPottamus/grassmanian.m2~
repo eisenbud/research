@@ -1,0 +1,14 @@
+GR(2,n)
+n=7
+R=kk[x_1..x_(binomial(n,2))]
+m=genericSkewMatrix(R,x_1,n)
+i=pfaffians(4,m);
+betti res i
+
+S=kk[y_0..y_8]
+M=map(S^4,S^{6:-1},(i,j)->y_(i+j))
+j=gens minors(4,M)
+R=kk[x_1..x_15]
+f=map(S,R,j)
+betti (I=ker f)
+betti mingens (ideal j)^2

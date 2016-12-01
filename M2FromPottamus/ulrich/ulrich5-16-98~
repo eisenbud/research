@@ -1,0 +1,15 @@
+kk=ZZ/32003
+R=kk[a..f]
+M=genericSymmetricMatrix(R,a,3)
+N=matrix({{a,b,d,e},{b,c,e,f}})
+i=ideal mingens minors(2,M)
+j=minors(2,N)
+i4=ideal ((gens i)*random(R^6,R^4))
+i4res= (i4:i)
+j4=ideal ((gens j)*random(R^6,R^4))
+j4res= (j4:j)
+codim i4res
+codim j4res
+
+poincare i4res
+poincare j4res

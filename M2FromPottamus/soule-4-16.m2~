@@ -1,0 +1,5 @@
+S=kk[x,y]
+a=3;
+b=4;
+c=5;
+i=ideal(x^a, y^b, (x+y)^c)

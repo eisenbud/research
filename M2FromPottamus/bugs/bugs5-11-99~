@@ -1,0 +1,23 @@
+
+R=kk[x,y,z]
+I=ideal(x^2+y^2, y^2+z^2, x^3, z^3)
+f=map(R^{0,1},R^{-1,0},matrix{{x,0},{z^2,y}})
+show symmetricKernel(I,f)
+
+--the following takes an ideal I in a polynomial ring R
+--and a matrix f over R
+--and returns the universal embedding of image (f ** R/I),
+--written as a matrix over R
+
+universalEmbedding=(I,f)->(
+     R:=ring f;
+     Rbar=R/I;
+     fbar:=substitute(f, Rbar);
+     fres:=res(image fbar, LengthLimit=>2);
+     ftres:=res(image transpose fres.dd_1, LengthLimit=>2);
+     fnew:=transpose ftres.dd_1;
+     fbartot:=fbar||fnew;
+     substitute(fbartot, R)
+     )
+
+universalEmbedding(I,f)

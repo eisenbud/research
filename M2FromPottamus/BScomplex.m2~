@@ -1,0 +1,136 @@
+
+HPR=ZZ[tt,b_0..b_n]
+bs=(vars HPR)_{1..n+1}
+vars HPR
+bin=alpha->product(n-1,i->alpha+tt+n-1-i)
+hp=method()
+hp(List):=a->sum(#a,i->(-1)^i*b_i*bin(-a_i))
+d={0,1,4,5}
+hp(d)
+
+
+
+bettiNumbers=method()
+bettiNumbers(List):=a->(pp:=hp(a);
+     pcoef:=(coefficients(pp,Variables=>{tt}))_1;
+     bb:=transpose syz substitute(diff(bs,pcoef),ZZ);
+     if bb_0_0>0 then bb else -bb)
+
+BTR=ZZ[a_(0,0)..a_(r,n)]
+
+rangeOK=(d,r,n)->#d==n+1 and 0<= d_0 and 
+   apply(n,i-> d_i<d_(i+1))==toList(n:true) and d_n<=r+n 
+
+bettiMatrix=method()
+bettiMatrix(List):=d->(
+     if  rangeOK(d,r,n) then (
+     bb:=bettiNumbers(d);
+     matrix apply(r+1,i->apply(n+1,j->if (d_j)==i+j then bb_(0,j) else 0))
+     ) else "wrong Range")
+
+nextLower=(d)->(if d_0>0 then join( {d_0-1},d_{1..n}) else (
+	  k:=1; 
+	  while (d_k-1==d_(k-1) ) do (k=k+1);
+	  join(d_{0..k-1},{d_k-1},d_{k+1..n})))
+nextUpper=(d)->(if d_n<n+r then join(d_{0..n-1},{d_n+1}) else (
+	  k:=n; 
+	  while (d_k-1==d_(k-1) ) do (k=k-1);
+	  join(d_{0..k-2},{d_(k-1)+1},d_{k..n})))
+
+     
+lowerRange=(d)->(A:={d};if (
+	  d =!= toList(0..n) ) then ( 
+          e:=nextLower(d);
+	  A=join(A,lowerRange(e)););
+     	  A)	  
+upperRange=(d)->(A:={d};if (
+	  d =!= toList(r..n+r) ) then ( 
+          e:=nextUpper(d);
+	  A=join(A,upperRange(e)););
+     	  A)	  
+
+rangeMatrices=(e)->apply(n+1,k-> matrix apply(r+1,i->apply(n+1,j->
+	       if  k==j and e_k==i+j then 1 else 0)))
+
+supportingEquation=(d,e)->(
+     A:=matrix apply(lowerRange(d),c->join(toSequence entries bettiMatrix(c)));
+     B:=matrix apply(upperRange(e),c->join(toSequence entries bettiMatrix(c)));
+     C:=matrix apply(rangeMatrices(e),c->join(toSequence entries c));
+     D:=(entries transpose syz(A||B||C))_0;
+     matrix apply(r+1,i->apply(n+1,j->D_((n+1)*i+j))))
+
+dotProduct=(A,B)->sum(r+1,i->sum(n+1,j->A_(i,j)*B_(i,j)))
+
+--end
+peskineSzpiro=(r,n)->apply(n+r+1,k->matrix apply(r+1,i->apply(n+1,j->
+	       (if k<r then 1 else (-1)^(k-r))*(-1)^(n-j)*
+	       binomial(n+r-k-i-j+n-1,n-1)
+	       --lift(product(n-1,c->(n+r-k-i-j+n-1-c)/(c+1)),ZZ)
+	       --n+r-k-i-j
+	       )))
+
+numericalComplex=A->(AA:=A;apply(n+r+1,i->(
+	       ss:=if i<=r then AA_(r-i,n) else AA_(0,n-i+r);
+	       AA=AA-ss*PS_i;
+	       ss)))
+
+flipEquation=(A)->(aa:=numericalComplex(A);
+     apply(n+r+1,c->A-sum(c,i->aa_(i)*PS_(i))))
+upperEquation=(A)->(L:=flipEquation(A);L_(#L-1))
+
+middleComplex=(d,e)->(t:=1;
+     L:=apply(n+1,i->(t=t*if d_i==e_i then 1 else -1 ));
+     apply(n+1,c->if L_c==1 then e_c else d_c))
+end
+
+
+
+restart
+r=8
+n=6
+load "BScomplex.m2"
+PS=peskineSzpiro(r,n)
+#PS
+d={4,5,7,8,9,10,13}
+e={5,6,7,8,9,10,13}
+de=middleComplex(d,e)
+
+R=sum(rangeMatrices(e))+sum(rangeMatrices(d))+sum(rangeMatrices(de))
+(A=supportingEquation(d,e);B=bettiMatrix(de);)
+A=if dotProduct(A,B)>0 then A else -A
+Aminus=upperEquation(A)
+A-Aminus
+ss=numericalComplex(A)
+A
+R
+D=bettiMatrix(d)
+f={1,2,3,8,9,11,14}
+X=bettiMatrix(f)
+dotProduct(A,X)
+dotProduct(Aminus,X)
+f={4,7,8,9,11,13,14}
+
+restart
+--2 regular data
+r=6
+n=6
+load "BScomplex.m2"
+PS=peskineSzpiro(r,n)
+#PS
+ds=apply(n+2,i->join(apply(i,j->j+r-3),apply(n+1-i,j->j+i+r-2)))
+data=apply(n,i->(d:=ds_(i+2);e:=ds_i;
+     de:=middleComplex(d,e);
+     R:=sum(rangeMatrices(e))+sum(rangeMatrices(d))+sum(rangeMatrices(de));
+     (A:=supportingEquation(d,e);B=bettiMatrix(de););
+     A=if dotProduct(A,B)>0 then A else -A;
+     Aminus:=upperEquation(A);
+     ss:=numericalComplex(A);
+     (R,A,Aminus,ss)))
+
+data_0
+data_1
+data_2
+data_3
+
+
+

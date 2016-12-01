@@ -1,0 +1,25 @@
+restart
+needsPackage "Schubert2"
+--viewHelp Schubert2
+p=4
+q=4
+
+G = flagBundle({p,q},VariableNames=>{,"c"})
+(S,Q) = G.Bundles
+T = G.TangentBundle
+L=exteriorPower(q,Q)
+L' = (dual L)
+chern(L' ++ T**L') 
+integral chern(dim G,L' ++ T**L')
+
+restart
+needsPackage "Schubert2"
+
+time map(QQ^4, QQ^4, (p,q) ->(
+G = flagBundle{p,q};
+(S,Q) = G.Bundles;
+T = G.TangentBundle;
+L=exteriorPower(q,Q);
+L' = (dual L);
+integral chern(dim G, L' ++ T**L')
+))

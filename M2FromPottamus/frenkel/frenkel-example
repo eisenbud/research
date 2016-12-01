@@ -1,0 +1,71 @@
+From frenkel@math.berkeley.edu Thu Feb 19 11:12:29 1998
+Received: from msri.org by chern.msri.org (8.8.2/HUB)
+	id LAA04658; Thu, 19 Feb 1998 11:12:28 -0800 (PST)
+Received: (from smap@localhost) by msri.org (8.8.2/8.7.2) id LAA26705 for <de@msri.org>; Thu, 19 Feb 1998 11:11:58 -0800 (PST)
+Received: from math.berkeley.edu(128.32.183.94) by hill.msri.org via smap (V1.3)
+	id sma026703; Thu Feb 19 11:11:29 1998
+Received: from carnation.berkeley.edu (carnation.Berkeley.EDU [128.32.183.52])
+	by math.berkeley.edu (8.8.7/8.8.7) with ESMTP id LAA18560
+	for <de@msri.org>; Thu, 19 Feb 1998 11:11:29 -0800 (PST)
+Received: from localhost (frenkel@localhost) by carnation.berkeley.edu (8.8.5/8.6.4) with SMTP id LAA09783 for <de@msri.org>; Thu, 19 Feb 1998 11:11:25 -0800 (PST)
+X-Authentication-Warning: carnation.berkeley.edu: frenkel owned process doing -bs
+Date: Thu, 19 Feb 1998 11:11:25 -0800 (PST)
+From: Edward Frenkel <frenkel@math.berkeley.edu>
+To: de@msri.org
+Subject: nilpotents
+Message-ID: <Pine.GSO.3.96.980219104549.9762A-100000@carnation.berkeley.edu>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Status: RO
+X-Status: A
+Content-Length: 1632
+Lines: 47
+
+Dear David,
+
+I think we had a very good discussion yesterday. I am sorry I had to
+leave. It seems that the problem is more complicated than we hoped. But I
+think it's not hopeless. One of the issues is whether there are nilpotents
+in the infinite jet scheme of a nodal curve. The calculations yesterday
+appear to suggest that there are. However, there is something interesting
+going on.
+
+We start with the curve defined by the equation
+
+y^2 = x^2 + x^3.
+
+The next equation is
+
+2 y y_1 = 2 x x_1 + 3 x^2 x_1.
+
+Now if we take the square of the second equation, and substitute y^2 from
+the first equation, we obtain:
+
+x^2 (4y_1^2(1 + x) - (2x_1 + 3 x x_1)^2) = 0.
+
+This suggests that
+
+x (4y_1^2(1 + x) - (2x_1 + 3 x x_1)^2)
+
+is a nilpotent element in ring of functions on the 1-jet scheme. Does it
+survive in the limit? Well, the same equation also suggests that
+
+x^2  and  (4y_1^2(1 + x) - (2x_1 + 3 x x_1)^2)
+
+are divisors of 0 in the ring of function on the reduced part of the 1-jet
+scheme (in other words, it is a divisor of 0 modulo the radical of the
+ideal of the 1-jet scheme). But we know that in the limit there are no
+divisors of 0 (if we take the radical of our ideal). This means that the
+power of one of these divisors of 0 should become an element of the ideal
+when we go to infinity. It is hard to believe that x^n could lie in the
+ideal. But if it doesn't, then the power of the second does. Of course, it
+could be a large power, but in any case it would be very interesting to
+see what is going on. 
+
+What do you think about this?
+
+I think it would be good to meet again, perhaps, next week?
+
+Best regards,       Ed
+
+

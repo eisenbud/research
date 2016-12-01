@@ -1,0 +1,12 @@
+S=kk[a,b,c,d]
+i=ideal(a^2+b*c,c^2)
+m=gens i
+
+quadricsToMatrix= m->(
+n:=rank source m;
+T:=kk[x_1..x_n];
+ST:=S**T;
+mm:=substitute (m, ST);
+xx:=substitute(vars T, ST);
+aa:=substitute(vars S, ST);
+substitute(contract(aa,transpose contract(aa,Q)),T)

@@ -1,0 +1,58 @@
+incr-set prlevel 1
+if #0=3 START
+incr-set prlevel -1
+;;; Usage:
+;;; 	<random_aut r aut inv
+;;;
+;;;	r ring, aut automorphism, inv invers,
+;;;     creates a random automorphism of r
+;;;	Warning: a limited number of attemps for this is build in!
+;;;
+incr-set prlevel 1
+jump END
+;;; Parameters:
+;;;
+;;; Output values:
+;;;
+;;; there are only 10 attemps. For small characteristic the chance 
+;;; that all fail is higher.
+;;;
+;;; Caveats:
+;;;
+; created ...
+START:
+int @a 0
+ncols #1 @n
+<random_mat 1 @n #1 @aut
+copy #1 @r
+copy @aut @m
+concat @m @r
+set autocalc 1
+set autodegree 1
+res @m @fm 2
+submat @fm.2 @mm
+1..@n
+1..@n
+mult @r @mm @inv
+smult @inv -1 @inv
+ev @inv @aut @rr
+subtract @r @rr @null
+std @null @null
+ncols @null @null
+if @null=0 OK
+int @a @a+1
+if @a>10 END1
+jump START
+END1:
+shout type @null
+jump END
+OK:
+copy @aut #2
+copy @inv #3
+kill @null @mm @m @fm @aut @n @r @inv
+set autodegree 0
+set autocalc -1
+END:
+incr-set prlevel -1
+
+$;;;;;;;; EXAMPLE SECTION ;;;;;;;;;;;;;;;;;;;;;;;;;

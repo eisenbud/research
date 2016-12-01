@@ -1,0 +1,346 @@
+--Versal deformation of the extension of direct sum of line bundles on P1
+--For O(a1)+O(a2)+...+O(ad), 1<=a1<=...<=ad.
+--
+sylvesterMatrix=(n,x,y)->(R:=ring x;
+     matrix(apply(n+1,i->apply(n,j->if i==j then x else 
+		    if i==j+1 then y else 0_R))))
+
+extensionMatrix=(a,b,LL)->(
+     -- extension block with entries L
+     matrix apply(a+1,i->apply(b,j->if i==0 and j<b-a-1 then LL_j else 0_S)))
+
+setupDef=(L,kk)->(
+-- input:
+-- 	  L = list of twist 0 <L_0<=L_1<=...<=L_(k-1)
+--        kk ground field     
+-- creates:
+--        the base ring A=kk[a's] for the versal deformation
+--        O(L_0)+O(L_1)+...+O(L_(k-1)) on P^1,
+--        the symmetric algebra S=A[x_0,x_1],
+--        the extrerior E=A[e_0,e_1],
+-- 	  xx=matrix{{x_0,x_1}}, ee=matrix{{e_0,e_1}}
+-- output:
+--        returns a presentation matrix of the versal deformation.
+     k=#L;
+     as:=toList join toSequence apply(k,i->join(
+	       toSequence apply(i,j->apply(L_i-L_j-1,t->a_(j,i,t)))));
+     degas:=toList join toSequence apply(k,i->join(
+	       toSequence apply(i,j->L_i-L_j-1:{2*(i-j),0})));    
+     A=kk[as,Degrees=>degas];
+     degas1:=toList join(toSequence degas,(2:{1,1}));
+     E=kk[join(as,{e_0,e_1}),Degrees=>degas1,SkewCommutative=>true];
+     S=kk[join(as,{x_0,x_1}),Degrees=>degas1];
+     ee=matrix{{e_0,e_1}};
+     xx=matrix{{x_0,x_1}};
+     M:=sylvesterMatrix(L_0,x_0,x_1);
+     use S;LL={};NN:=matrix{{0_S}};
+     apply(1..#L-1,i->(LL=toList apply(L_i-L_0-1,t->x_1*a_(0,i,t));
+	 M=M|extensionMatrix(L_0,L_i,LL)));
+     apply(1..#L-1,j->(
+	       NN=map(S^(L_j+1), S^(sum(0..j-1,t->L_t)),0);
+	       NN=NN|sylvesterMatrix(L_j,x_0,x_1);
+	       apply(j+1..#L-1,i->(LL=toList apply(L_i-L_j-1,t->x_1*a_(j,i,t));
+	NN=NN|extensionMatrix(L_j,L_i,LL)));
+     	M=M||NN));
+        da:=toList join toSequence apply(k,i->L_i+1:{-2*i,0}); 
+     	db:=toList join toSequence apply(k,i->L_i:{-2*i-1,-1});
+	map(S^da,S^db,M)
+	-- Berkeley, 19.12.2004, Frank Schreyer
+	)
+end 
+restart   
+load "computingRpi_star.m2"
+load "vectorBundlesOnPP1.m2"
+L={1,7}
+kk=ZZ/101
+M=setupDef(L,kk)
+N=symmetricToExteriorOverA(M,ee,xx)
+fN=res(coker N,LengthLimit=>7)
+transpose fN.dd_5
+transpose fN.dd_4
+transpose fN.dd_3
+transpose fN.dd_2
+bettiT dual fN
+
+Rpis1=apply(-d+1..-2,i-> degreeZeroPart(fN[-i]**E^{{0,-i+1}},A))
+Rpis=apply(Rpis1,c->chainComplex(c.dd_(-1),c.dd_0,c.dd_1)[2])
+ms=apply(Rpis,c->c.dd_0)
+B=kk[r_0..r_(d-3),s_0..s_(d-3),t_0..t_(d-3)]
+ms1=apply(ms,c->substitute(c,vars B))
+#ms1
+rs2={2,2,2,2,2,2}
+determinantal=(rs,ms)->(f:=#rs;ideal mingens  sum(f,i->minors(rs#i,ms#i)))
+rs3={3,3,4,5,3,4}
+rs3b={3,3,3,4,5,6}
+betti(I=determinantal(rs3b,ms1))
+binomial(12,3)
+binomial(
+bettiT dual fN
+diags=apply(3..7,i->(
+	  T=fN**E^{{0,i}};
+	  Rpi=degreeZeroPart(T,A);
+	  Rpi.dd_(i-1)))
+apply(diags,d->bettiT chainComplex(d))	  
+diags_2
+----- special case O(6,0,0)
+restart
+load "computingRpi_star.m2"
+load "vectorBundlesOnPP1.m2"
+L={1,1,7}
+kk=ZZ/101
+M=setupDef(L,kk)
+N=symmetricToExteriorOverA(M,ee,xx)
+fN=res(coker N,LengthLimit=>7)
+bettiT dual fN
+--   index: -7 -6 -5 -4 -3 -2 -1 0
+--      -2: 15 12 10  8  6  4  2 .
+--      -1:  .  1  2  3  4  5  6 9
+Rpis1=apply(-6..-2,i-> degreeZeroPart(fN[-i]**E^{{0,-i+1}},A))
+Bs1=apply(Rpis1,c->c.dd_0)
+
+B=kk[a_0..a_4,b_0..b_4]
+Bs=apply(Bs1,m->substitute(m,vars B))
+J=apply(2..4,i->ideal mingens minors(i,Bs#3))
+apply(J,j->(dim j,codim j, degree j,betti res j))
+betti J#1
+J1b=J#1:minors(2,Bs#4)
+betti res J1b
+minors(3,Bs#2)==J1b 
+intersect(minors(3,Bs#2),minors(2,Bs#4))==minors(3,Bs#3)
+minors(2,Bs#3)==minors(2,Bs#2)
+minors(2,Bs#3)==minors(2,Bs#1)
+betti (J420=ideal mingens (minors(3,Bs#2)+minors(2,Bs#4)))
+betti res J420
+degree J420
+J510=minors(2,Bs#1)
+J411=minors(3,Bs#2)
+J330=minors(2,Bs#4)
+J321=minors(4,Bs#3)
+strata={J321,J330,J411,minors(3,Bs#3),J420,J510}
+apply(strata,s->(dim s, codim s, degree s))
+--decompose minors(3,Bs#3)
+R=kk[u_0..u_2,v_0..v_2,s_0..s_2,t_0..t_2]
+uu=matrix{apply(5,i->sum(2,j->s_j^i*t_j^(4-i)*u_j))}
+vv=matrix{apply(5,i->sum(2,j->s_j^i*t_j^(4-i)*v_j))}
+phi=map(R,B,uu|vv)
+J=ker phi
+
+(dim J, degree J, betti res J)
+-- => Sec(S(4,4)=minors(3,B_{3,3})
+uu=matrix{apply(5,i->sum(3,j->s_j^i*t_j^(4-i)*u_j))}
+vv=matrix{apply(5,i->sum(3,j->s_j^i*t_j^(4-i)*v_j))}
+-- betti syz(substitute(gens (ideal vars B)^4,uu|vv),DegreeLimit=>20)
+
+phi=map(R,B,uu|vv)
+--time J=ker phi--,DegreeLimit=>20)
+dphi=jacobian (uu|vv)
+betti syz dphi
+ syz transpose dphi
+--(dim J, degree J, betti res ideal mingens J)
+--=> sec^3(S(4,4) is a hypersurface
+M=matrix apply(2,i-> apply(4,j-> uu_(i+j)_0))||matrix apply(2,i-> apply(4,j-> vv_(i+j)_0))
+sM= syz M
+-- => I_sec^3(S(4,4) \subset det B_{4,2} => sec^3(S(4,4)=V(det B_{4.2})
+sMt= syz transpose M
+betti res ideal sM
+betti res ideal sMt
+syz transpose sMt
+-- the special square
+restart
+load "computingRpi_star.m2"
+load "vectorBundlesOnPP1.m2"
+L={1,3,5}
+kk=ZZ/101
+M=setupDef(L,kk)
+N=symmetricToExteriorOverA(M,ee,xx)
+fN=res(coker N,LengthLimit=>7)
+bettiT dual f
+--   index: -7 -6 -5 -4 -3 -2 -1 0
+--      -2: 15 12  9  6  4  2  1 .
+--      -1:  .  .  .  1  2  4  6 9
+Rpis1=apply(-4..-2,i-> degreeZeroPart(fN[-i]**E^{{0,-i+1}},A))
+Bs1=apply(Rpis1,c->c.dd_0)
+----- special case O(9,0,0,0)
+restart
+load "computingRpi_star.m2"
+load "vectorBundlesOnPP1.m2"
+L={1,1,10}
+kk=ZZ/101
+M=setupDef(L,kk)
+N=symmetricToExteriorOverA(M,ee,xx);
+fN=res(coker N,LengthLimit=>10)
+bettiT dual fN
+--   index: -10 -9 -8 -7 -6 -5 -4 -3 -2 -1  0
+--      -2:  21 18 16 14 12 10  8  6  4  2  .
+--      -1:   .  1  2  3  4  5  6  7  8  9 12
+
+
+Rpis1=apply(-9..-2,i-> degreeZeroPart(fN[-i]**E^{{0,-i+1}},A))
+Bs1=apply(Rpis1,c->c.dd_0)
+
+B=kk[a_0..a_7,b_0..b_7]
+Bs=apply(Bs1,m->substitute(m,vars B))
+
+J=apply(2..4,i->ideal mingens minors(i,Bs#3))
+apply(J,j->(dim j,codim j, degree j,betti res j))
+betti J#1
+J1b=J#1:minors(2,Bs#4)
+betti res J1b
+minors(3,Bs#2)==J1b 
+intersect(minors(3,Bs#2),minors(2,Bs#4))==minors(3,Bs#3)
+minors(2,Bs#3)==minors(2,Bs#2)
+minors(2,Bs#3)==minors(2,Bs#1)
+betti (J420=ideal mingens (minors(3,Bs#2)+minors(2,Bs#4)))
+betti res J420
+degree J420
+J510=minors(2,Bs#1)
+J411=minors(3,Bs#2)
+J330=minors(2,Bs#4)
+J321=minors(4,Bs#3)
+strata={J321,J330,J411,minors(3,Bs#3),J420,J510}
+apply(strata,s->(dim s, codim s, degree s))
+--decompose minors(3,Bs#3)
+R=kk[u_0..u_2,v_0..v_2,s_0..s_2,t_0..t_2]
+uu=matrix{apply(5,i->sum(2,j->s_j^i*t_j^(4-i)*u_j))}
+vv=matrix{apply(5,i->sum(2,j->s_j^i*t_j^(4-i)*v_j))}
+phi=map(R,B,uu|vv)
+J=ker phi
+
+(dim J, degree J, betti res J)
+-- => Sec(S(4,4)=minors(3,B_{3,3})
+uu=matrix{apply(5,i->sum(3,j->s_j^i*t_j^(4-i)*u_j))}
+vv=matrix{apply(5,i->sum(3,j->s_j^i*t_j^(4-i)*v_j))}
+-- betti syz(substitute(gens (ideal vars B)^4,uu|vv),DegreeLimit=>20)
+
+phi=map(R,B,uu|vv)
+--time J=ker phi--,DegreeLimit=>20)
+dphi=jacobian (uu|vv)
+betti syz dphi
+ syz transpose dphi
+--(dim J, degree J, betti res ideal mingens J)
+--=> sec^3(S(4,4) is a hypersurface
+M=matrix apply(2,i-> apply(4,j-> uu_(i+j)_0))||matrix apply(2,i-> apply(4,j-> vv_(i+j)_0))
+sM= syz M
+-- => I_sec^3(S(4,4) \subset det B_{4,2} => sec^3(S(4,4)=V(det B_{4.2})
+sMt= syz transpose M
+betti res ideal sM
+betti res ideal sMt
+syz transpose sMt
+-- the special square
+restart
+load "computingRpi_star.m2"
+load "vectorBundlesOnPP1.m2"
+L={1,3,5}
+kk=ZZ/101
+M=setupDef(L,kk)
+N=symmetricToExteriorOverA(M,ee,xx)
+fN=res(coker N,LengthLimit=>7)
+bettiT dual f
+--   index: -7 -6 -5 -4 -3 -2 -1 0
+--      -2: 15 12  9  6  4  2  1 .
+--      -1:  .  .  .  1  2  4  6 9
+Rpis1=apply(-4..-2,i-> degreeZeroPart(fN[-i]**E^{{0,-i+1}},A))
+Bs1=apply(Rpis1,c->c.dd_0)
+------------------- 7,0,0
+restart
+load "computingRpi_star.m2"
+load "vectorBundlesOnPP1.m2"
+L={1,1,8}
+kk=ZZ/101
+M=setupDef(L,kk)
+N=symmetricToExteriorOverA(M,ee,xx)
+fN=res(coker N,LengthLimit=>7)
+bettiT dual fN
+--index: -7 -6 -5 -4 -3 -2 -1  0
+--       -2: 14 12 10  8  6  4  2  .
+--       -1:  1  2  3  4  5  6  7 10
+Rpis1=apply(-8..-2,i-> degreeZeroPart(fN[-i]**E^{{0,-i+1}},A))
+Bs1=apply(Rpis1,c->c.dd_0)
+J5xx=minors(3,Bs1#3);
+JJ=minors(3,Bs1#4);
+betti mingens JJ
+betti mingens J5xx
+minors(3,Bs1#5)==intersect(minors(2,Bs1#6),minors(3,Bs1#4))
+minors(3,Bs1#5)==minors(3,Bs1#4)
+dim minors(3,Bs1#5)
+apply({minors(3,Bs1#5),minors(2,Bs1#6),minors(3,Bs1#4),minors(2,Bs1#6)+minors(3,Bs1#4)},c->(dim c,degree c))
+------------------- 8,0,0,0
+restart
+load "computingRpi_star.m2"
+load "vectorBundlesOnPP1.m2"
+L={1,1,1,9}
+kk=ZZ/101
+M=setupDef(L,kk)
+time N=symmetricToExteriorOverA(M,ee,xx);
+time fN=res(coker N,LengthLimit=>8)
+bettiT dual fN
+--    index: -8 -7 -6 -5 -4 -3 -2 -1  0
+--       -2: 24 21 18 15 12  9  6  3  .
+--       -1:  1  2  3  4  5  6  7  8 12
+Rpis1=apply(-9..-2,i-> degreeZeroPart(fN[-i]**E^{{0,-i+1}},A))
+R=kk[x_0..x_6,y_0..y_6,z_0..z_6]
+Bs=apply(Rpis1,c->substitute(c.dd_0,vars R))
+strata={
+J3221=minors(6,Bs#6),
+J3311=minors(5,Bs#6),
+J4211=minors(5,Bs#5),
+J3320=minors(3,Bs#7),
+J4220=minors(5,Bs#5)+minors(3,Bs#7),
+J4310=minors(5,Bs#5)+minors(4,Bs#6)+minors(3,Bs#7),
+J5111=minors(4,Bs#4),
+J5210=minors(4,Bs#4)+minors(3,Bs#7),
+J4400=minors(2,Bs#7),
+J6110=minors(3,Bs#3)+minors(3,Bs#7),
+J5300=minors(4,Bs#4)+minors(2,Bs#7),
+J6200=minors(3,Bs#3)+minors(2,Bs#7),
+J7100=minors(2,Bs#2),
+J8000=minors(1,Bs#1)};
+apply(strata,c->(dim c, degree c))
+minors(4,Bs#5)==intersect(J4400,J5111)
+minors(3,Bs#6)==intersect(J6110,J4400)
+time minors(4,Bs#6)==intersect(J5111,J4310)
+apply(strata,c->(codim c, betti mingens c))
+         codim J8000==21
+	 codim J7100==17
+	 codim J6200==15
+codim J6110==13 and codim J5300==13              
+       codim J5210==10 and codim J4400==12
+codim J5111==9 and codim J4310==8
+                   codim J4220==7
+codim J4211==5 and codim J3320==5
+         codim J3311==4
+         codim J3221==1
+---------------O(0,0,9)--------
+restart
+load "computingRpi_star.m2"
+load "vectorBundlesOnPP1.m2"
+L={1,1,10}
+kk=ZZ/101
+M=setupDef(L,kk)
+time N=symmetricToExteriorOverA(M,ee,xx);
+time fN=res(coker N,LengthLimit=>9)
+bettiT dual fN
+--index: -9 -8 -7 -6 -5 -4 -3 -2 -1  0
+--       -2: 18 16 14 12 10  8  6  4  2  .
+--       -1:  1  2  3  4  5  6  7  8  9 12
+Rpis1=apply(-10..-2,i-> degreeZeroPart(fN[-i]**E^{{0,-i+1}},A))
+R=kk[x_0..x_7,y_0..y_7]
+Bs=apply(Rpis1,c->substitute(c.dd_0,vars R))
+strata={
+J900=minors(1,Bs#1),
+J810=minors(2,Bs#2),
+J720=minors(3,Bs#3)+minors(2,Bs#8),
+J711=minors(3,Bs#3),
+            J630=minors(4,Bs#4)+minors(2,Bs#8),
+J621=minors(4,Bs#4),
+            J540=minors(2,Bs#8),
+J531=minors(5,Bs#5)+minors(4,Bs#7),
+J522=minors(5,Bs#5),
+     	    J441=minors(4,Bs#7),
+J432=minors(6,Bs#6),
+J333=ideal 0_R};
+
+apply(strata,c->(dim c, degree c))
+minors(5,Bs#6)==intersect(J522,J441)
+minors(3,Bs#4)==minors(3,Bs#3)
+ 

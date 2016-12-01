@@ -1,0 +1,65 @@
+incr-set prlevel 1
+if #0=6 START
+incr-set prlevel -1
+;;; Usage:
+;;; 	<few_smooth x i sing a b n 
+;;;
+;;;     x = ring, i = ideal , sing = ideal of the singularities
+;;;	of V(i) [i c sing!] , a = numbers of generators of i in one degree
+;;;	b = number of generators in the second degree, n = number of
+;;;	minors to take from the jacobian of i
+;;;		(brief description)
+;;;
+incr-set prlevel 1
+jump END
+;;; Parameters:
+;;;
+;;; Output values:
+;;;
+;;; (discussion)
+;;;
+;;; Caveats:
+;;;
+; created 4/92 FOS
+START:
+copy #2 @i
+copy @i @sing
+concat @sing #3
+submat @i @ia
+1
+1..#4
+submat @i @ib
+1
+#4+1..#4+#5
+codim #2 @cd
+jacob @ia @dia
+jacob @ib @dib
+betti @dib
+ncols #1 @r
+int @count 0
+LOOP:
+random @cd #4 @rd1
+random @r @cd @rd2
+mult @rd1 @dia @m
+mult @m @rd2 @n
+wedge @n @cd @m
+concat @sing @m
+random @cd #5 @rd1
+random @r @cd @rd2
+mult @rd1 @dib @m
+mult @m @rd2 @n
+wedge @n @cd @m
+concat @sing @m
+int @count @count+1
+if @count<=#6 LOOP
+set verbose 1
+set showpairs 1
+set timer 1
+incr-set prlevel -1
+std @sing #3
+incr-set prlevel 1
+kill @i @ia @ib @dia @dib @rd1 @r @rd2 @cd @n @m @count @sing
+END:
+incr-set prlevel -1
+
+$;;;;;;;; EXAMPLE SECTION ;;;;;;;;;;;;;;;;;;;;;;;;;

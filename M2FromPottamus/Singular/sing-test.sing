@@ -1,0 +1,9 @@
+ ring r;
+ ring r = 101, (a,b,c,d,e,f,g,h,i), dp;
+ LIB "PrimDec.lib";
+matrix m [3][3] = a,b,c,d,e,f,g,h,i;
+ideal I;
+I=minor(m,2);
+primdecGTZ(I^2);
+primdecSY(I^2);
+

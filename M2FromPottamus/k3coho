@@ -1,0 +1,17 @@
+restart
+kk=ZZ/32003
+S=kk[a,b,c,d]
+f=a^4+b^4+c^4+d^4
+col2= transpose diff(vars S, a^4+b^4+c^4+d^4)
+col1= transpose vars S
+R=S^1/ideal f
+tanpres=map(R^4,S^{-1,-3},col1 | col2)
+cotan = Hom(coker tanpres, R)
+E=kk[a,b,c,d,SkewCommutative=>true]
+j=3
+time betti sheafCohomology(presentation exteriorPower(j,cotan),E,1)
+time basis(0, HH^0(exteriorPower(j,sheaf cotan)))
+time basis(0, HH^1(exteriorPower(j,sheaf cotan)))
+time basis(0, HH^2(exteriorPower(j,sheaf cotan)))
+
+

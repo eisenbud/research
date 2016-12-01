@@ -224,6 +224,7 @@ degrees F_1
 h0(0,2)
 degrees F_2
 ///
+
 homotopyRanks = (g,cliff) ->(
 (F,h0) := canonicalHomotopies(g,cliff);
 print betti F;
@@ -362,6 +363,34 @@ doc ///
    SeeAlso
     carpet
 ///
+doc ///
+   Key
+    canonicalHomotopies
+   Headline
+    resolution and homotopies of the canonical carpet
+   Usage
+    
+   Inputs
+   Outputs
+   Consequences
+    Item
+   Description
+    Text
+    Code
+    Pre
+    Example
+    CannedExample
+   Subnodes
+   Caveat
+   SeeAlso
+///
+
+canonicalHomotopies = method(Options=>{Characteristic=>32003,FineGrading=>false})
+--note: returns the pair: the resolution F of the canonical Carpet
+--and the function that used to be called h0 such that h0(i,j) is the j-th homotopy 
+--with source F_j that corresponds
+--to the i-th quadric.
+
 doc ///
    Key
     FineGrading
