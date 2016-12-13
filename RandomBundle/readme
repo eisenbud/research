@@ -1,0 +1,14 @@
+RandomBundle contains several packages for the construction of random curves.
+
+To install the packages type 
+
+installPackage("RandomObjects",RerunExamples=>true,RemakeAllDocumentation=>true); 
+installPackage("RandomPlaneCurves",RerunExamples=>true,RemakeAllDocumentation=>true);     
+installPackage("RandomSpaceCurves",RerunExamples=>true,RemakeAllDocumentation=>true);
+installPackage("RandomGenus14Curves",RerunExamples=>true,RemakeAllDocumentation=>true);
+installPackage("RandomCanonicalCurves",RerunExamples=>true,RemakeAllDocumentation=>true);
+installPackage("RandomCurves",RerunExamples=>true,RemakeAllDocumentation=>true);
+
+To load all packages type
+
+loadPackage"RandomCurves"

@@ -17,12 +17,13 @@ export {
     "fixedSyzygyScheme",
     "canonicalHomotopies",
     "FineGrading",
+    "Scrolls",
     "carpet1",
     "gorensteinDouble"
     }
 
 
-carpet = method(Options =>{Characteristic => 32003,FineGrading=>false})
+carpet = method(Options =>{Characteristic => 32003,FineGrading=>false,Scrolls =>false})
 
 carpet(ZZ,ZZ,Matrix) := opts -> (a1,a2,m) ->(
     --matrix m should be 2 x (a1+a2)
@@ -118,7 +119,7 @@ carpet(ZZ,ZZ) := opts -> (a1,a2) ->(
     	a = 2);
 
     	mat := xmat|ymat;
-	carpet(a,b,mat)
+	if opts.Scrolls == false then return carpet(a,b,mat) else (carpet(a,b,mat),xmat,ymat)
 	)        
 
 ///
@@ -147,9 +148,9 @@ mat
 ///
 
 --A different indexing, by genus and Clifford index (Cliff <= (g-1)//2))
-canonicalCarpet = method(Options=>{Characteristic=>32003,FineGrading => false})
+canonicalCarpet = method(Options=>{Characteristic=>32003,FineGrading => false,Scrolls=>false})
 canonicalCarpet(ZZ,ZZ) := opts -> (gen,cliff) -> 
-     carpet(gen-cliff-1, cliff,Characteristic => opts.Characteristic, FineGrading => opts.FineGrading)
+     carpet(gen-cliff-1, cliff,Characteristic => opts.Characteristic, FineGrading => opts.FineGrading,Scrolls=>opts.Scrolls)
 
 --Here's a structural approach that instead takes the kernel of the unique map of mainimal degree
 --from the ideal of the scroll to the canonical module of the scroll. This code produces
@@ -223,10 +224,12 @@ loadPackage "K3Carpets"
 degrees F_1
 h0(0,2)
 degrees F_2
+homotopyRanks(7,3,Characteristic=>2)
 ///
-
-homotopyRanks = (g,cliff) ->(
-(F,h0) := canonicalHomotopies(g,cliff);
+homotopyRanks = method(Options=>{Characteristic=>32003})
+homotopyRanks (ZZ,ZZ) := opts-> (g,cliff) ->(
+(F,h0) := canonicalHomotopies(g,cliff,
+    Characteristic =>opts.Characteristic);
 print betti F;
 ff := F.dd_1;
 netList apply(numcols ff , i->{ff_i, apply(g-2, m->(rank h0(i,m+1)))})
@@ -234,6 +237,12 @@ netList apply(numcols ff , i->{ff_i, apply(g-2, m->(rank h0(i,m+1)))})
 
 
 beginDocumentation()
+///
+restart
+uninstallPackage"K3Carpets"
+installPackage"K3Carpets"
+viewHelp K3Carpets
+///
 
 doc ///
 Key
@@ -241,18 +250,55 @@ Key
 Headline
  The unique Gorenstein double structure on a surface scroll
 Description
-
   Text
    There is a unique surjection from the ideal of a 2-dimensional rational normal scroll (other than the cone
-   over a rational normal curve) onto the canonical module of the scroll (see *****), and the kernel
+   over a rational normal curve) onto the canonical module of the scroll 
+   and the kernel
    of the this map is the ideal of a scheme that looks numerically like a K3 surface: a "K3 carpet".
-   This package contains two routines for constructing this ideal: "carpet" uses a knowledge of the generators
-   (see ****) while "carpet1" calls "gorensteinDouble", computing the ideal from first principles. The first
+   (Theorem 1.3 of "Degenerations of K3 surfaces in projective space",
+   by Francisco Gallego and B.P. Purnaprajna,
+   Trans. Amer. Math. Soc. 349 (1997), no. 6, 2477–2492.)
+
+   The carpet lies on the intersection of the cones over two rational normal curves Ca and Cb
+   of degrees a<=b. We write the ideal of Ca as the minors of a 2xa matrix X with entries x_i, i= 0..a,
+   and similarly for Cb, with  a 2 x b matrix Y with entries y_j. We write Xi for the ith column of X, and
+   similarly for Y.
+   
+   In the general case, where a,b are both >=2, the additional generators of the ideal of the Carpet are then given by the differences
+   det(Xi,Yj)-det(X(i+1),Y(j-1)), or equivalently, by the minors of (Xi+Yj,X(i+1)+Y(j-1), 
+       
+   (In the case a=1=b the ideal is the square of the determinant of X|Y; if a=1, b>1 then for the mixed minors we replace the 1-column matrix
+   by the symmetric quadratic matrix with entries x^2,xy,y^2.
+
+   This package contains two routines for constructing this ideal: "carpet" uses the knowledge of the generators, as above
+   (see ????) while "carpet1" calls "gorensteinDouble", computing the ideal from first principles. The first
    is much more efficient. 
    
    The hyperplane section of a K3 carpet is a "canonical ribbon" indexing by genus and clifford index
    of the hyperplane is done in the routine "canonicalCarpet", which calls "carpet".
-  Example
+///
+
+doc ///
+   Key
+    fixedSyzygyScheme
+    (fixedSyzygyScheme,ChainComplex,ZZ,Matrix)
+   Headline
+    corrected code for 
+   Usage
+    I = fixedSyzygyScheme(F,n,M)
+   Inputs
+    F:ChainComplex
+    n:ZZ
+    M:Matrix
+     map to F_n
+   Outputs
+    I:Ideal
+     ideal of the syzygyScheme of the syzygies in the image of M
+   Description
+    Text
+     see the built-in function syzygyScheme, which gives an error message when run on certain inputs.
+   SeeAlso
+    syzygyScheme
 ///
 
 doc ///
@@ -262,11 +308,13 @@ doc ///
     (carpet, ZZ, ZZ, Matrix)    
     [carpet, Characteristic]
     [carpet, FineGrading]    
+    [carpet, Scrolls]
    Headline
     Ideal of the unique Gorenstein double structure on a 2-dimensional scroll
    Usage
     I = carpet(a1,a2)
     I = carpet(a1,a2,m)    
+    (I,xmat,ymat) = carpet(a1,a2,Scrolls=>true)
    Inputs
     a1:ZZ
     a2:ZZ
@@ -282,7 +330,8 @@ doc ///
      The characteristic is given by the option, defaulting to 32003.
      If the option FineGrading is set to true, then the ideal is returned with the natural ZZ^4 grading
      (the default is FineGrading => false). This last may not work unless the matrix is of scroll type (or
-     not given!)
+     not given!) If Scrolls=>true, then a sequence of three items is returned, the second
+     and third being the smaller and larger scroll matrices.
    Description
     Text
      The routine carpet(a1,a2,m) sets a = min(a1,a2), b = max(a1,a2), and forms
@@ -343,10 +392,12 @@ doc ///
     (canonicalCarpet, ZZ, ZZ)
     [canonicalCarpet, Characteristic]
     [canonicalCarpet, FineGrading]    
+    [canonicalCarpet, Scrolls]
    Headline
     Carpet of given genus and Clifford index
    Usage
     I = canonicalCarpet(g,cliff)
+    (I,xmat,ymat) = canonicalCarpet(g,cliff,Scrolls=>true)
    Inputs
     g:ZZ
      desired genus
@@ -366,30 +417,57 @@ doc ///
 doc ///
    Key
     canonicalHomotopies
+    (canonicalHomotopies, ZZ,ZZ)
+    [canonicalHomotopies, Characteristic]
+    [canonicalHomotopies, FineGrading]
    Headline
     resolution and homotopies of the canonical carpet
    Usage
-    
+    (F,h) = canonicalHomotopies(gen,cliff)    
    Inputs
+    gen:ZZ
+     genus of the Carpet
+    cliff:ZZ
+     Clifford index of the carpet
    Outputs
-   Consequences
-    Item
+    F:ChainComplex
+     Resolution of the Carpet
+    h:Function
+     values are the homotopies corresponding to the quadrics
    Description
     Text
-    Code
-    Pre
+     h0(i,j) is the homotopy for the i-th quadric acting on F_j,
+     the j-th free module in the resolution of the scroll.
     Example
-    CannedExample
-   Subnodes
-   Caveat
-   SeeAlso
+     (F,h) = canonicalHomotopies(6,2)
+///
+doc ///
+   Key
+    homotopyRanks
+    (homotopyRanks, ZZ, ZZ)
+    [homotopyRanks, Characteristic]
+   Headline
+    compute the ranks of the quadratic homotopies on a carpet
+   Usage
+    L = homotopyRanks(g,cliff)
+   Inputs
+    g:ZZ
+     genus of the carpet
+    cliff:ZZ
+     Clifford index of the carpet
+   Outputs
+    L:Net
+     netList showing the ranks
+   Description
+    Text
+     Prints the Betti table of the canonical carpet
+     and a list of pairs, with first element a quadric and second element
+     the sequence of ranks of the homotopies for that quadric on F_i, for i = 1..g-2.
+    Example
+     homotopyRanks(7,3)
+     homotopyRanks(7,3, Characteristic => 2)     
 ///
 
-canonicalHomotopies = method(Options=>{Characteristic=>32003,FineGrading=>false})
---note: returns the pair: the resolution F of the canonical Carpet
---and the function that used to be called h0 such that h0(i,j) is the j-th homotopy 
---with source F_j that corresponds
---to the i-th quadric.
 
 doc ///
    Key
@@ -402,6 +480,17 @@ doc ///
      ideal returned has the natural ZZ^4 grading, where x_i has degree \{1,0,i,a-i\}\ and 
      y_i has degree \{0,1,i,b-i\}. 
      (Note that after the call carpet(a1,a2) we have a = min(a1,a2), b = max(a1,a2).)
+///
+doc ///
+   Key
+    Scrolls
+   Headline
+    Option for carpet, canonicalCarpet
+   Description
+    Text
+     The default is Scrolls => false. If the option Scrolls=>true is given, then 
+     a triple is returned, with the ideal first followed by xmat and ymat, the smaller
+     and larger of the scrolls containing the carpet.
 ///
 doc ///
    Key
@@ -536,11 +625,27 @@ homotopyRanks(9,4)
 --homotopyRanks(10,4) -- slow.
 
 --the following is too slow to use!
-loadPackage"kGonalNodalCurves"
-g = 6; cliff = 3
-I = idealOfNodalCurve(cliff,g,1000)
+installPackage"kGonalNodalCurves"
+g = 8; gonality = 2
+I = idealOfNodalCurve(2+gonality,g,1000)
 betti (F =res I)
+
+h= makeHomotopies1(F.dd_1,F,1);
+keys h
+
 ff = F.dd_1;
 H = makeHomotopies1(ff,F,1);
 netList apply(numcols ff, i->{ff_i, apply(g-2, m->(rank h0(i,m+1)))})
 
+viewHelp carpet
+(I,xmat,ymat) = carpet(2,3,Scrolls=>true)
+betti res I
+J = minors(2,xmat|ymat)
+K = minors(2,xmat)+minors(2,ymat)
+betti res J
+betti res I
+betti res K
+betti res canonicalCarpet(8,2)
+S = ZZ/101[x_(1,1)..x_(2,5)]
+betti res minors(2, genericMatrix(S,x_(1,1),2,5))
+viewHelp makeHomotopies1

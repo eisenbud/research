@@ -1311,6 +1311,7 @@ prune oo
 
 restart
 load "ci-experiments.m2"
+kk = ZZ/101
 n= 3
 d=2
 S = kk[x_0..x_(n-1)]
@@ -1654,6 +1655,19 @@ ff = matrix{apply(n, i->(S_i)^d)}
 betti res coker ff
 
 R = setupRings  ff
+N0 = coker vars R_3
+F = res N0;
+N1 = coker F.dd_2
+N2 = coker F.dd_3
+N3 = coker F.dd_4
+--viewHelp setupModules
+(MM1,kk,p) = setupModules(R,N1)
+(MM2,kk,p) = setupModules(R,N2)
+(MM3,kk,p) = setupModules(R,N3)
+betti res MM1_0
+betti res MM2_0
+betti res MM3_0
+
 use R_3
 M = module ideal(x_0^2+x_1^2)
 
@@ -1827,7 +1841,7 @@ numgens source presentation R4
 
 
 --BRanks: {{4, 4}, {5, 7}, {3, 7}}
-M =coker random(R4^2, R4^{4:-3})
+M =coker random(R_4^2, R_4^{4:-3})
 
 M =coker random(R_n^2, R_n^{4:-3})
 --n = 4,d = 2:
@@ -1838,18 +1852,17 @@ M =coker random(R_n^2, R_n^{4:-3})
 --BRanks for high syz of M and its dual, NOT equal:
 --o89 = {{18, 18}, {6, 18}, {4, 18}}
 --o91 = {{18, 18}, {12, 18}, {10, 18}}
-M =coker random(R_n^{, R_n^{3:-2})
 M =coker random(R_n^3, R_n^{4:-3})
 
 --(MM,kk,p) = setupModules(R,M);
-debugLevel = 5
+debugLevel = 0
 MF = matrixFactorization(ff,syzygyModule(1,highSyzygy M));
 BRanks MF
 MFd = matrixFactorization(ff,highSyzygy Hom(M,R_n));
 BRanks MFd
 
-betti res(highSyzygy M, LengthLimit => 6)
-betti res (highSyzygy Hom(M,R_n), LengthLimit =>6)
+betti res(highSyzygy M, LengthLimit => 10)
+betti res (highSyzygy Hom(M,R_n), LengthLimit =>10)
 
 restart
 n=4;d=2;
@@ -2153,21 +2166,3 @@ mf = matrixFactorization(ff2,M)
 makeFiniteResolutionCodim2(mf,ff2)
 BRanks mf
 ---
-restart
-needsPackage "K3Carpets"
-needsPackage "CompleteIntersectionResolutions"
---codimension 2 example with homotopies
-    kk=ZZ/101
-     S = kk[a,b]
-     ff = matrix"a4,b4"
-     R = S/ideal ff
-     N = R^1/ideal"a2, ab, b3"
-     N = coker vars R
-     M = highSyzygy N
-betti res N
-     MS = pushForward(map(R,S),M)
-betti res MS
-     mf = matrixFactorization(ff, M)
-     G = makeFiniteResolutionCodim2(mf, ff)
-     F = G#"resolution"
---
