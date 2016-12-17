@@ -2018,10 +2018,16 @@ netList apply(4,i-> (
 	))
 
 betti res( N_2, LengthLimit =>11)
-m = 2
+betti res(pushForward(p,N_2))
+
+m = 3
 layeredResolution(ff, N_m, 5) -- minimal for m>= 2, even though there's no HMF for m=2
 betti res(N_m, LengthLimit=>5)
-matrixFactorization(ff*random(source ff, source ff), N_m)
+MF = matrixFactorization(ff*random(source ff, source ff), N_m)
+BRanks MF
+--for m=3, {{4, 4}, {3, 5}, {3, 6}} 
+--(if there is a matrix factorization for m=2, it can't be computed by our method.)
+
 
 
 T = prune exteriorTorModule(ff,prune pushForward(p,N_m));
@@ -2127,7 +2133,9 @@ code methods makeFiniteResolutionCodim2
      
 restart     
 notify=true
-loadPackage "CompleteIntersectionResolutions"
+uninstallPackage "CompleteIntersectionResolutions"
+installPackage "CompleteIntersectionResolutions"
+viewHelp CompleteIntersectionResolutions
  kk=ZZ/101
   kk=QQ
  S= kk[a,b]

@@ -629,23 +629,9 @@ installPackage"kGonalNodalCurves"
 g = 8; gonality = 2
 I = idealOfNodalCurve(2+gonality,g,1000)
 betti (F =res I)
-
 h= makeHomotopies1(F.dd_1,F,1);
-keys h
+kk = (ring F)/(ideal gens ring F)
+netList apply(15, j->rank(kk**h#{j,1}))
+netList apply(numcols ff, i->{ff_i, apply(g-2, m->(rank ((coker vars ring F)**h0(i,m+1)))}))
 
-ff = F.dd_1;
-H = makeHomotopies1(ff,F,1);
-netList apply(numcols ff, i->{ff_i, apply(g-2, m->(rank h0(i,m+1)))})
 
-viewHelp carpet
-(I,xmat,ymat) = carpet(2,3,Scrolls=>true)
-betti res I
-J = minors(2,xmat|ymat)
-K = minors(2,xmat)+minors(2,ymat)
-betti res J
-betti res I
-betti res K
-betti res canonicalCarpet(8,2)
-S = ZZ/101[x_(1,1)..x_(2,5)]
-betti res minors(2, genericMatrix(S,x_(1,1),2,5))
-viewHelp makeHomotopies1
