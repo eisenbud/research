@@ -1999,16 +1999,14 @@ betti res syzygyModule(4,k)
 
 ------------------Simplest example for intro of Tor paper, corrected
 restart
---uninstallPackage"CompleteIntersectionResolutions"
---installPackage"CompleteIntersectionResolutions"
-viewHelp "CompleteIntersectionResolutions"
+uninstallPackage"CompleteIntersectionResolutions"
+installPackage"CompleteIntersectionResolutions"
 needsPackage"BGG"
-needsPackage "CompleteIntersectionResolutions"
+--viewHelp "CompleteIntersectionResolutions"
+--needsPackage "CompleteIntersectionResolutions"
+
 S = ZZ/101[x_0..x_2]
 ff = matrix{{x_0^3,x_1^3, x_2^3}}
---ff = ff*random(source ff,source ff)
-ff = matrix{{x_0^3,x_1^3,x_2^3}}
-
 R = S/ideal ff
 N = apply(6,i-> syzygyModule(i, coker vars R));
 p = map(R,S);
@@ -2020,8 +2018,11 @@ netList apply(4,i-> (
 betti res( N_2, LengthLimit =>11)
 betti res(pushForward(p,N_2))
 
-m = 3
-layeredResolution(ff, N_m, 5) -- minimal for m>= 2, even though there's no HMF for m=2
+m = 2
+--viewHelp layeredResolution
+layeredResolution(ff, pushForward(p, N_m), Verbose=>true) -- minimal for m>= 2, even though there's no HMF for m=2
+--for m=2 the BRanks are {{4,4},{3,1},{3,1}}, as the Verbose option shows.
+
 betti res(N_m, LengthLimit=>5)
 MF = matrixFactorization(ff*random(source ff, source ff), N_m)
 BRanks MF

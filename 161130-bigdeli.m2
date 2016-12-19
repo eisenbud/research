@@ -281,4 +281,5 @@ numgens I10
 betti res I10
 
 
->>>>>>> 5dd3aa221f40c1805b32c6b3e223d73da2b0701c
+------
+--For producing squaree-free ideals with lots of linear syzygies, why not start with the syzygy ideal of some syzygies in the res of the maximal square-free ideal?

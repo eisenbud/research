@@ -158,9 +158,9 @@ Shamash(Ring, ChainComplex,ZZ) := (Rbar, F, len) ->(
     P FF
 )    
 
-layeredResolution = method()
+layeredResolution = method(Options =>{Verbose=>false})
 --version that produces the finite layered resolution
-layeredResolution(Matrix, Module) := (ff, M) ->(
+layeredResolution(Matrix, Module) := opts ->(ff, M) ->(
     --ff is a 1 x c matrix over a Gorenstein ring S
     --M is an S-module annihilated by I = ideal ff.
     --returns a pair (L,aug), where aug: L_0 \to M is the augmentation.
@@ -168,7 +168,10 @@ layeredResolution(Matrix, Module) := (ff, M) ->(
     --MCM approximation of M over R' = S/(ideal ff'), and ff' = ff_{0..(c-2)}.
     L := null;
     cod := numcols ff;
-    if cod <=1 then return (L = res M, map(M,L_0,id_(L_0)));
+    if cod <=1 then (
+	L = res M;
+    	<<{rank L_0, rank L_1} << " in codimension "<< cod<<endl;	
+        return (L, map(M,L_0,id_(L_0))));
     S := ring ff;
     R := S/(ideal ff);
     ff' := ff_{0..cod-2};
@@ -196,10 +199,11 @@ layeredResolution(Matrix, Module) := (ff, M) ->(
     bS := substitute(b,S);
     B0S := target bS;
     B1S := source bS;    
+    if opts.Verbose === true then << {rank B1S, rank B0S} << " in codimension " << cod<<endl;
     KK := koszul(ff');
     B := chainComplex{bS};
     
-    (L',aug') := layeredResolution(ff', M'S);
+    (L',aug') := layeredResolution(ff', M'S, Verbose => opts.Verbose);
     assert(target aug' == M'S);
     psiS0 := map(M'S, B1S, sub(matrix psi,S));
     psiS := psiS0//aug';
