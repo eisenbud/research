@@ -104,14 +104,16 @@ torTest = (n,E) ->(
 	R := S/I;
 	Fbar := (map(R,S))F;
 	b := if #D ==1 then (n+1)//2 else n+1;
-        cokdegs := apply(b-1, i-> degree coker Fbar.dd_(i+1)); -- note shift in numbering!
+        cokdegs := apply(b, i-> degree coker Fbar.dd_(i));
+	print cokdegs;
 	--substituting the following line makes things slower (*5) but could be used more generally
 --        cokdegs := apply(b-1, i-> degree ((S^1/I)**coker F.dd_(i+1))); -- note shift in numbering!
-	df := cokdegs_0*f;
+	df := cokdegs_1*f;
 	if #D>1 then cokdegs = cokdegs|{df_n} else cokdegs = cokdegs|{degree coker Fbar.dd_b};
-	ttd := {cokdegs_0}|apply(b-1,j->(
+	ttd := {cokdegs_1}|apply(b-1,j->(
 		i:=j+1;
-		cokdegs_(i)+cokdegs_(i-1)-df_(i-1)));
+		cokdegs_(i+1)+cokdegs_(i)-df_(i-1)));
+	print ttd;
 	if b<n+1 and n%2 !=0  then ttd = ttd|reverse ttd;
 	if b<n+1 and n%2 ==0 then ttd = ttd|{(-1)^(n//2+1)*2*sum(length ttd, i-> (-1)^i*ttd_i)}|reverse ttd;
 	L := apply(n+1, i->ttd_i-ttd_0*binomial(n,i));
@@ -119,14 +121,69 @@ torTest = (n,E) ->(
 	<<ttd<<endl;
 	<<L<<endl;
 	{n,ttd,L})
-time torTest(7,3)
+time torTest(5,3) -- correct
+time torTest(6,3)--correct
+time torTest(7,{2,2,3}) -- wrong??
+I = genGor(7,{2,2,3});
+betti (F=res I)
+S = ring I
+degree (I^2) - 8*degree I
+
+R = S/I
+degree R
+Fbar = (map(R,S))(F)
+(degree coker (Fbar.dd_2))-6*degree R
+
+--much faster for Tor_1:
+testTor1 = (n,D)->(
+I := genGor(n,D);
+d2 := degree (I^2);
+d1 := degree (I);
+d2 -(n+1)*d1)
+
+testTorn =  (n,D)
+
+apply(4,m ->(
+	n:=m+3;
+	time torTest(n,{2,3})
+	)
+)
+apply(5,m ->(
+	n:=m+3;
+	time torTest(n,{2,2,2})
+	)
+)--difference -1 in cases n=6,7
+torTest(8,{2,2,2}) -- for n=8, last difference is -3
+apply(5,m ->(
+	n:=m+3;
+	time torTest(n,{2,2,3})
+	)
+)
+apply(8, m->(m+3,testTor1(m+3,{2,2,3})))
+--gives increasingly negative values in 8,9,10 vars.
+
+testTor1(7,{2,2,3})
+I = genGor(8,{2,2,3});
+betti (F=res I)
+S = ring I
+degree coker((map(S/I,S))(F.dd_2))
+7*degree(S/I)
+torTest(7,{2,2,3})
+
+apply(5,m ->(
+	n:=m+3;
+	time torTest(n,{2,3,3})
+	)
+)
+apply(8, m->(m+3,testTor1(m+3,{2,3,3})))
 
 
 apply(4,m ->(
 	n:=m+3;
-	time torTest(n,6)
+	time torTest(n,{3,3})
 	)
 )
+
 
 {*Data for n = 3..7, and socle degrees {2,2}.
 o35 = {{3, {6, 19, 20, 7}, {0, 1, 2, 1}}, {4, {7, 29, 46, 32, 8}, {0, 1, 4, 4, 1}}, {5, {8, 48, 104, 101, 46,
