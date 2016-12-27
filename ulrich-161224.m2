@@ -1,4 +1,167 @@
+genSocle = method()
+genSocle(ZZ,ZZ):= (n,d) -> genSocle(n,{d})
+genSocle(ZZ,List):= (n,D) -> (
+    x := symbol x;    
+    S := ZZ/101[x_1..x_n];
+    f := random(S^1, S^(-D));
+    ideal fromDual f
+    )
+
+torTest = (n,E) ->(
+    if  class E === List then D = E else D = {E};
+    I = genSocle(n,D);
+	S := ring I;
+	F := res (S^1/I);
+	f := apply(1+length F, i->rank F_i);
+	R := S/I;
+	Fbar := (map(R,S))F;
+	b := if #D ==1 then (n+1)//2 else n+1;
+        cokdegs := apply(b, i-> degree coker Fbar.dd_(i));
+	--substituting the following line makes things slower (*5) but could be used more generally
+--        cokdegs := apply(b-1, i-> degree ((S^1/I)**coker F.dd_(i+1))); -- note shift in numbering!
+	df := cokdegs_1*f;
+	if #D>1 then cokdegs = cokdegs|{df_n} else cokdegs = cokdegs|{degree coker Fbar.dd_b};
+	ttd := {cokdegs_1}|apply(b-1,j->(
+		i:=j+1;
+		cokdegs_(i+1)+cokdegs_(i)-df_(i-1)));
+	if b<n+1 and n%2 !=0  then ttd = ttd|reverse ttd;
+	if b<n+1 and n%2 ==0 then ttd = ttd|{(-1)^(n//2+1)*2*sum(length ttd, i-> (-1)^i*ttd_i)}|reverse ttd;
+	L := apply(n+1, i->ttd_i-ttd_0*binomial(n,i));
+	<<n<<endl;
+	<<ttd<<endl;
+	<<L<<endl;
+	{n,ttd,L})
+testTornOld =  (n,D) ->(
+    I := genSocle(n,D);
+    F := res I;
+    G1 := dual (F_(n-1));
+    G0 := dual(F_n);
+    m := dual (F.dd_n);
+    T := coker map(G0**G0, G0**G1++G1**G0, (G0**m) | (m**G0));
+    degree T - degree I)
+
+testTorn = method()
+
+{*
+testTorn(ZZ,List) := (n,D) ->(
+    I := genSocle(n,D);
+    S := ring I;
+    p := 1+max D;
+    mp := ideal apply(numgens S, i-> S_i^p);
+    Ep := S^1/mp;
+    omega := (0_S*Ep):I;
+    degree (omega**omega)-degree I
+    )
+*}
+genOmega=(n,D)->(
+    I := genSocle(n,D);
+    S := ring I;
+    p := 1+max D;
+    mp := ideal apply(numgens S, i-> S_i^p);
+    Ep := S^1/mp;
+    (0_S*Ep):I)
+
+testTorn(ZZ,List) := (n,D) ->(
+    omega := genOmega(n,D);
+    degree (omega**omega)-degree omega)
+
+testTorn(Matrix) := soc ->(
+    I := ideal fromDual soc;
+    S := ring I;
+    p := 1+max flatten((flatten entries soc)/degree);
+    mp := ideal apply(numgens S, i-> S_i^p);
+    Ep := S^1/mp;
+    omega := (0_S*Ep):I;
+    degree (omega**omega)-degree I
+    )
+testTorn(Ideal, ZZ) := (I,e) ->(
+    --e is an upper bound for the degree of a socle element
+    S := ring I;
+        p := 1+e;
+    mp := ideal apply(numgens S, i-> S_i^p);
+    Ep := S^1/mp;
+    omega := (0_S*Ep):I;
+    degree (omega**omega)-degree I
+    )
+
+testTor1 = (n,D)->(
+I := genSocle(n,D);
+d2 := degree (I^2);
+d1 := degree (I);
+d2 -(n+1)*d1)
+
+
+///
 restart
+load "ulrich-161224.m2"
+
+D = toList(11:2)
+n = 5
+I = genSocle(n,D);
+betti res I
+om = genOmega(n,D);
+ann (om**om)
+
+scan(5,m->(flush;
+n:= m+2;
+omega := genOmega(n,D);
+S := ring omega;
+mm := ideal vars S;
+<<n<<" "<< betti res omega<<endl))
+--ann (symmetricPower(2,omega)) == mm <<" "<<ann(exteriorPower(2,omega))== mm<<endl))
+
+n = 6; D = {2,2,2};
+time testTorn(6,D)
+
+S = ZZ/101[a..f]
+soc = matrix"ab,cd,ef"
+soc = random(S^1, S^{-2,-2,-2})
+betti res (I =ideal fromDual soc)
+omega = Ext^6(S^1/I,S)
+betti res prune(omega**omega)
+time testTorn soc
+time testTorn(12,{2,2,2,2,2})
+
+om = genOmega(7,{2,2,2});
+--in the case n= 7, D = {2,2,2}, 
+--the 25 dimensional space of quadrics corresponding to the {2,2,2} somehow
+--distinguishes a linear form, seen from the resolution of omega**omega
+betti res om
+betti res prune (om**om)
+///
+end--
+--Summary of results:
+--We found some examples where T1 = Tor_1^S(S/I,S/I) is too small, ie degree T1 < codim I*degree S/I,
+--and some examples where I/I^2 =  Tn = Tor_n^S(S/I,S/I) is too small, ie degree Tn < degree I.
+--Note that Tn is the omega dual of omega**omega; so it has the same degree as omega**omega.
+--Notation: n = numgens S; D = list of socle degrees. We always considered GENERIC socle generators.
+
+--T1 examples:
+--n = 6, D = {3} (but not other values up to 14 (and the positive values are increasing..).
+--note for n = 5 the discrepancy is 0 and we don't know why (it's not licci).
+--note also that the lengths are symmetric, as are the discrepancies, so Tor^S_5 is also too small.
+--n = 7 and 8, D = {2,2,3} (but not n = 9)
+--n = 11,12,13, D = {3,3} (but not n<11 and not n = 14).
+
+--Tn examples:
+--Socle all in degree 2, and large enough n relative to the length of the socle always seems to
+--do it. We write D = toList(s:2).
+--The first case is s = 3, starting with n = 6. For even n, Tn is a vector space (ann by the max ideal),
+--while for s= 3 and odd n it has a generator in degree 1 less (in fact \wedge^2(omega) is a vector
+--space for any n, while the symmetric square has the "extra" socle element when n is odd. In fact,
+--\wedge^2 omega seems to be a vector space for all n and all s>=1.
+--for s>3, it seems that Tn is always a vector space (any n) and thus of degree s^2, while degree I = 1+n+s,
+--and thus Tn is "too small" when n >= s^2-s.
+--In these cases D = {2,2,...}, the resolution of omega is "natural", which given the Hilbert function
+--tells you for example that the presentation matrix of omega is linear, and of size
+--s x (s(n-1)) in the cases we have observed. 
+--
+restart
+load "ulrich-161224.m2"
+
+
+--Study of ideal of the form mm^d + half the forms of degree d-1, where mm is the max ideal in n vars.
+--find list of pairs, n,d such that the ideal is unsmoothable for dimension reasons:
 L = {}
 for n from 3 to 5 do (
     for d from 2 to 6 do(
@@ -9,6 +172,7 @@ for n from 3 to 5 do (
 
 netList L
 
+--create the ideals themselves corresponding to the pair n,d
 unsmooth = (n,d) ->(
     S = ZZ/101[a_1..a_n];
     mmd := ideal basis(d,S^1);
@@ -17,6 +181,8 @@ unsmooth = (n,d) ->(
     I := trim (mmd+ideal(h*random(source h, S^{nforms:(-d+1)})))
     )
 
+
+--check whether I/I^2< (codim)*S/I in length
 scan(L, p ->(
 I = unsmooth(p_0,p_1);
 differs= degree (I^2)-(p_0+1)*degree I;
@@ -24,6 +190,11 @@ differs= degree (I^2)-(p_0+1)*degree I;
 )
 )
 
+--and also whether Tor_n has length >= degree I
+I = unsmooth(4,5);
+--note that omega will have so many generators that omega**omega will have more generators than deg I.
+
+--try replacing I with I^2
 scan(L, p ->(
 I = unsmooth(p_0,p_1);
 differs= degree (I^4)-(p_0+1)*degree (I^2);
@@ -31,11 +202,9 @@ differs= degree (I^4)-(p_0+1)*degree (I^2);
 )
 )
 
-S = ZZ/101[a,b,c]
-I = ideal fromDual matrix{{a^2-b*c}}
-(degree I^4)-4*degree(I^2)
 ----
 restart
+--try taking a number of forms a bit more than 1/2
 L = {}
 for n from 3 to 5 do (
     for d from 2 to 5 do(
@@ -48,6 +217,7 @@ for n from 3 to 5 do (
 
 netList L
 
+--make the ideals
 unsmooth = (n,d,e) ->(
     S = ZZ/101[a_1..a_n];
     mmd := ideal basis(d,S^1);
@@ -55,6 +225,7 @@ unsmooth = (n,d,e) ->(
     I := trim (mmd+ideal(h*random(source h, S^{e:(-d+1)})))
     )
 
+--compare degrees
 scan(L, p ->(
 I = unsmooth(p_0,p_1,p_2);
 differs= degree (I^2)-(p_0+1)*degree I;
@@ -70,61 +241,11 @@ differs= degree (I^2)-(p_0+1)*degree I;
 {{4, {10, 40},{0, 0}}, {5, {12, 60},{0, 0}}, {6, {14, 76, 210},{0, -8, 0}}, {7, {16, 112, 365},{0, 0, 29}}}
 
 restart
-genGor = method()
-genGor(ZZ,ZZ):= (n,d) -> (
-    S := ZZ/101[x_1..x_n];
-    f := random(S^1, S^{-d});
-    ideal fromDual f
-    )
-genGor(ZZ,List):= (n,D) -> (
-    S := ZZ/101[x_1..x_n];
-    f := random(S^1, S^(-D));
-    ideal fromDual f
-    )
 
-betti res genGor(4,{3,4})
-
-torTest-old = (n,D) ->(
-    I = genGor(n,D);
-	S := ring I;
-	tt := apply(n+1, i-> Tor_i(S^1/I,S^1/I));
-	ttd := tt/degree;
-	L := apply(n+1, i->ttd_i-ttd_0*binomial(n,i));
-	<<n<<endl;
-	<<ttd<<endl;
-	<<L<<endl;
-	{n,ttd})
-
-torTest = (n,E) ->(
-    if  class E === List then D = E else D = {E};
-    I = genGor(n,D);
-	S := ring I;
-	F := res (S^1/I);
-	f := apply(1+length F, i->rank F_i);
-	R := S/I;
-	Fbar := (map(R,S))F;
-	b := if #D ==1 then (n+1)//2 else n+1;
-        cokdegs := apply(b, i-> degree coker Fbar.dd_(i));
-	print cokdegs;
-	--substituting the following line makes things slower (*5) but could be used more generally
---        cokdegs := apply(b-1, i-> degree ((S^1/I)**coker F.dd_(i+1))); -- note shift in numbering!
-	df := cokdegs_1*f;
-	if #D>1 then cokdegs = cokdegs|{df_n} else cokdegs = cokdegs|{degree coker Fbar.dd_b};
-	ttd := {cokdegs_1}|apply(b-1,j->(
-		i:=j+1;
-		cokdegs_(i+1)+cokdegs_(i)-df_(i-1)));
-	print ttd;
-	if b<n+1 and n%2 !=0  then ttd = ttd|reverse ttd;
-	if b<n+1 and n%2 ==0 then ttd = ttd|{(-1)^(n//2+1)*2*sum(length ttd, i-> (-1)^i*ttd_i)}|reverse ttd;
-	L := apply(n+1, i->ttd_i-ttd_0*binomial(n,i));
-	<<n<<endl;
-	<<ttd<<endl;
-	<<L<<endl;
-	{n,ttd,L})
 time torTest(5,3) -- correct
 time torTest(6,3)--correct
 time torTest(7,{2,2,3}) -- wrong??
-I = genGor(7,{2,2,3});
+I = genSocle(7,{2,2,3});
 betti (F=res I)
 S = ring I
 degree (I^2) - 8*degree I
@@ -134,14 +255,26 @@ degree R
 Fbar = (map(R,S))(F)
 (degree coker (Fbar.dd_2))-6*degree R
 
+I = genSocle(8,{2,2,2});
+betti(F= res I)
+m = F.dd_8
+degree(ker (((ring m)^1/I)**m))
 --much faster for Tor_1:
-testTor1 = (n,D)->(
-I := genGor(n,D);
-d2 := degree (I^2);
-d1 := degree (I);
-d2 -(n+1)*d1)
 
-testTorn =  (n,D)
+time testTorn(8,{2,2,2})
+
+time testTorn(10,{2,2,2,2})    
+
+I = genSocle(12,{2,2,2,2});
+
+time F = res(I, DegreeLimit => 2)
+
+
+scan(5,m->time <<n<<" "<<testTorn(m+3,{2,2,2,2,2,2}))
+
+--testTorn(n,{2,2,2,2}) seems to return 11-n; anyway true n=6..10.
+
+scan(7, m -> <<m+5<<testTorn(m+5,{2,2,2})<<endl)
 
 apply(4,m ->(
 	n:=m+3;
@@ -153,6 +286,8 @@ apply(5,m ->(
 	time torTest(n,{2,2,2})
 	)
 )--difference -1 in cases n=6,7
+testTorn(6,{2,2,2})
+
 torTest(8,{2,2,2}) -- for n=8, last difference is -3
 apply(5,m ->(
 	n:=m+3;
@@ -163,7 +298,7 @@ apply(8, m->(m+3,testTor1(m+3,{2,2,3})))
 --gives increasingly negative values in 8,9,10 vars.
 
 testTor1(7,{2,2,3})
-I = genGor(8,{2,2,3});
+I = genSocle(8,{2,2,3});
 betti (F=res I)
 S = ring I
 degree coker((map(S/I,S))(F.dd_2))
@@ -183,7 +318,26 @@ apply(4,m ->(
 	time torTest(n,{3,3})
 	)
 )
+scan(8, m->(flush;
+	<<m+3<<endl;
+	<< testTor1(m+3,{3,3}) <<endl <<endl
+	)
+)
+testTor1(11,{3,3}) -- got -46
+testTor1(12,{3,3}) -- got -28
+testTor1(13,{3,3}) -- got -2
+testTor1(14,{3,3}) -- got 
 
+
+scan(12, m->(flush;
+	<<m+3<<endl;
+	<< testTor1(m+3,{3}) <<endl <<endl
+	)
+)
+
+restart
+load "ulrich-161224.m2"
+scan(8,m->time <<m+3<<" "<<testTorn(m+3,{3,3,3,3})<<endl)
 
 {*Data for n = 3..7, and socle degrees {2,2}.
 o35 = {{3, {6, 19, 20, 7}, {0, 1, 2, 1}}, {4, {7, 29, 46, 32, 8}, {0, 1, 4, 4, 1}}, {5, {8, 48, 104, 101, 46,
@@ -199,7 +353,7 @@ time torTest(8,{3})
 
 apply(4, m->(
 	n := m+4;
-	I := genGor(n,3);
+	I := genSocle(n,3);
 	S := ring I;
 	tt := apply((n-1)//2, i-> Tor_i(S^1/I,S^1/I));
 	ttd := tt/degree;
@@ -210,7 +364,7 @@ apply(4, m->(
 	{n,ttd})
 )
 n=8
-	I = genGor(n,3);
+	I = genSocle(n,3);
 	S = ring I;
 tt0 = degree (S^1/I)
 
@@ -265,3 +419,10 @@ degree (module K/module(K^2)) -- 84
 K6 = (map(S6,ring K,(vars S6)|random(S6^1,S6^{2:-1}))) K;
 degree(K6^2)
 
+----
+S=ZZ/101[x,y]
+mm= ideal vars S
+N = module(mm^2)/(module mm^4)
+M = Ext^2(N,S^1)
+degree N
+degree(Tor_2(N,N))
