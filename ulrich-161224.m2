@@ -59,8 +59,10 @@ genOmega=(n,D)->(
     p := 1+max D;
     mp := ideal apply(numgens S, i-> S_i^p);
     Ep := S^1/mp;
-    (0_S*Ep):I)
-
+    S^{n*(p-1)}**((0_S*Ep):I))
+///
+betti res prune genOmega(4,{2,2,2,2})
+///
 testTorn(ZZ,List) := (n,D) ->(
     omega := genOmega(n,D);
     degree (omega**omega)-degree omega)
@@ -154,12 +156,43 @@ end--
 --and thus Tn is "too small" when n >= s^2-s.
 --In these cases D = {2,2,...}, the resolution of omega is "natural", which given the Hilbert function
 --tells you for example that the presentation matrix of omega is linear, and of size
---s x (s(n-1)) in the cases we have observed. 
+--s x (s-1)n) in the cases we have observed. 
 --
 restart
 load "ulrich-161224.m2"
 
+S = ZZ/101[a,b,c];n= 3
+matrix"ab,ac,bc"
+S = ZZ/101[a,b];n= 2
+matrix"ab,a2,b2"
+S = ZZ/101[a,b,c,d];n= 4
+matrix"ab,bc,cd"
+I = ideal fromDual oo
+betti res I
+om = Ext^n(S^1/I, S)
 
+betti res (om**om)
+
+scan(5, i->(flush;
+om := genOmega(i+2,{2,2,2});
+<<i+2<<" "<<betti res prune (om)<<endl;
+<<i+2<<" "<<betti res prune (om**om)<<endl<<endl
+<<i+2<<" "<<betti res prune (om**om)<<endl<<endl
+))
+
+genOmega(4,{2,2,2,2})
+betti (F = res prune oo)
+toString F.dd_1
+
+scan(5, i->(flush;
+	I = genSocle(i+2, {2,2,2,2});
+<<i+2<<" "<<betti res I<<endl;
+<<i+2<<" "<<betti res (I^2)<<endl<<endl))
+
+S = ZZ/101[a,b,c,d]
+m = random(S^4, S^{12:-1})
+betti res coker m
+betti res ((coker m)**coker m)
 --Study of ideal of the form mm^d + half the forms of degree d-1, where mm is the max ideal in n vars.
 --find list of pairs, n,d such that the ideal is unsmoothable for dimension reasons:
 L = {}
@@ -426,3 +459,49 @@ N = module(mm^2)/(module mm^4)
 M = Ext^2(N,S^1)
 degree N
 degree(Tor_2(N,N))
+
+
+--------
+--is there a nice degeneration of an ideal with socle type {2,2...} that has natural resolution?
+try:
+restart
+s = 4; p = 2;
+n = p*s;
+S = ZZ/101[x_0..x_(n-1)]
+Q = map(S^1, S^{s:-2}, {apply(s,i->sum(toList(i*p..(i+1)*p-1), j-> x_j^2))})
+I = ideal fromDual Q
+betti res I
+submatrixByDegrees(gens I, {0},{2})
+
+---pencils of quadrics
+restart
+n=8
+S = ZZ/101[x_0..x_(n-1)]
+Qi = i-> sum(i, j->S_j^2)
+
+apply(n-1, r -> (
+Q = matrix{{Qi(n-r-1)}} |random(S^1, S^{-2});
+I = ideal fromDual Q;
+print betti res I)
+)
+
+
+Q = matrix{{Qi(7),Qi(7)+2*x_(n-2)*S_(n-1)}}
+I = ideal fromDual Q;
+print betti res I
+
+Q = matrix{{Qi(7),Qi(7)+sum(n-1,p-> (2*S_(p)*S_(n-1)))}}
+I = ideal fromDual Q;
+print betti res I
+
+n=8
+S = ZZ/101[x_0..x_(n-1)]
+Q = matrix{{Qi(n)}}| vars(S)*diagonalMatrix{1,1,1,2,3,4,5,6}*transpose vars S
+I = ideal fromDual Q;
+print betti res I
+
+diagonalMatrix 
+toList flatten(3:1|2:2|5,6,7)
+toList(3:1)
+
+--------------

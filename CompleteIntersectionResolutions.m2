@@ -1,12 +1,12 @@
 newPackage(
               "CompleteIntersectionResolutions",
-              Version => "1.0", 
-              Date => "April 7, 2016",
+              Version => "1.1", 
+              Date => "December 30, 2016",
               Authors => {{Name => "David Eisenbud", 
                         Email => "de@msri.org", 
                         HomePage => "http://www.msri.org/~de"}},
               Headline => "Analyzing Resolutions over a Complete Intersection",
-              DebuggingMode => false, --should be false when submitted
+              DebuggingMode => true, --should be false when submitted
 	      PackageExports => {"MCMApproximations","BGG"} 
 	      )
 	  export{
@@ -221,7 +221,7 @@ layeredResolution(Matrix, Module) := opts ->(ff, M) ->(
 
 
 
-layeredResolution(Matrix, Module, ZZ) := (ff, M, len) ->(
+layeredResolution(Matrix, Module, ZZ) := opts -> (ff, M, len) ->(
     --ff is a 1 x c matrix over a Gorenstein ring S and ff' = ff_{0..(c-2)}, ff'' = ff_{c-1}.
     --R = S/ideal ff
     --R' = S/ideal ff'
@@ -263,7 +263,6 @@ layeredResolution(Matrix, Module, ZZ) := (ff, M, len) ->(
     psib :=  inducedMap(M' ++ B0, BB1)*(B1.cache.pruningMap);
     psi := psib^[0];
     b := psib^[1];
---error();
 (L',aug') := layeredResolution(ff',M',len);
 --L' := res(M', LengthLimit=> len);
 --    aug' = map(M', L'_0, id_(L'_0));
@@ -3982,6 +3981,7 @@ doc ///
     layeredResolution
     (layeredResolution, Matrix, Module)
     (layeredResolution, Matrix, Module, ZZ)    
+    [layeredResolution,Verbose]
    Headline
     layered finite and infinite layered resolutions of CM modules
    Usage
@@ -4001,6 +4001,9 @@ doc ///
     Text
      The resolutions computed are those described in the paper "Layered Resolutions of Cohen-Macaulay modules"
      by Eisenbud and Peeva. They are both minimal when M is a suffiently high syzygy of a module N.
+     If the option Verbose=>true is set, then (in the case of the resolution over S) the ranks of the 
+     modules B_s in the resolution are output.
+     
      Here is an example computing 5 terms of an infinite resolution:
     Example
      S = ZZ/101[a,b,c]
@@ -4017,6 +4020,7 @@ doc ///
     Example
      MS = pushForward(map(R,S), M);
      (GG, aug) = layeredResolution(ff,MS)
+     (GG, aug) = layeredResolution(ff,MS, Verbose =>true)
      betti GG
      betti res MS
      C = chainComplex flatten {{aug} |apply(length GG -1, i-> GG.dd_(i+1))}    
@@ -4501,9 +4505,10 @@ assert(ring Eo === U)
 
 end--
 
-notify=true
 uninstallPackage "CompleteIntersectionResolutions"
 restart
+notify=true
+loadPackage("CompleteIntersectionResolutions", Reload =>true)
 installPackage "CompleteIntersectionResolutions"
 check "CompleteIntersectionResolutions"
 
