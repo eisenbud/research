@@ -1,3 +1,119 @@
+--Summary of results:
+--We found some examples where T1 = Tor_1^S(S/I,S/I) is too small, ie degree T1 < codim I*degree S/I,
+--and some examples where I/I^2 =  Tn = Tor_n^S(S/I,S/I) is too small, ie degree Tn < degree I.
+--Note that Tn is the omega dual of omega**omega; so it has the same degree as omega**omega.
+--Notation: n = numgens S; D = list of socle degrees. We always considered GENERIC socle generators.
+
+--T1 examples:
+--n = 6, D = {3} (but not other values up to 14 (and the positive values are increasing..).
+--note for n = 5 the discrepancy is 0 and we don't know why (it's not licci).
+--note also that the lengths are symmetric, as are the discrepancies, so Tor^S_5 is also too small.
+--n = 7 and 8, D = {2,2,3} (but not n = 9)
+--n = 11,12,13, D = {3,3} (but not n<11 and not n = 14).
+
+--Tn examples:
+--Socle all in degree 2, and large enough n relative to the length of the socle always seems to
+--do it. We write D = toList(s:2).
+--The first case is s = 3, starting with n = 6. For even n, Tn is a vector space (ann by the max ideal),
+--while for s= 3 and odd n it has a generator in degree 1 less (in fact \wedge^2(omega) is a vector
+--space for any n, while the symmetric square has the "extra" socle element when n is odd. In fact,
+--\wedge^2 omega seems to be a vector space for all n and all s>=1.
+--for s>3, it seems that Tn is always a vector space (any n) and thus of degree s^2, while degree I = 1+n+s,
+--and thus Tn is "too small" when n >= s^2-s.
+--In these cases D = {2,2,...}, the resolution of omega is "natural", which given the Hilbert function
+--tells you for example that the presentation matrix of omega is linear, and of size
+--s x (s-1)n) in the cases we have observed. 
+--
+
+
+genSocle = method()
+
+genSocle(Ring,List) := (S,D) ->(
+    f := random(S^1, S^(-D));
+    ideal fromDual f
+    )
+genSocle(ZZ,List):= (n,D) -> (
+    x := symbol x;    
+    S := ZZ/101[x_1..x_n];
+    genSocle(S,D)
+    )
+genSocle(Ring,ZZ) := (S,d) -> genSocle(S,{d})
+genSocle(ZZ,ZZ):= (n,d) -> genSocle(n,{d})
+    
+
+torTest = (n,E) ->(
+    if  class E === List then D = E else D = {E};
+    I = genSocle(n,D);
+	S := ring I;
+	F := res (S^1/I);
+	f := apply(1+length F, i->rank F_i);
+	R := S/I;
+	Fbar := (map(R,S))F;
+	b := if #D ==1 then (n+1)//2 else n+1;
+        cokdegs := apply(b, i-> degree coker Fbar.dd_(i));
+	--substituting the following line makes things slower (*5) but could be used more generally
+--        cokdegs := apply(b-1, i-> degree ((S^1/I)**coker F.dd_(i+1))); -- note shift in numbering!
+	df := cokdegs_1*f;
+	if #D>1 then cokdegs = cokdegs|{df_n} else cokdegs = cokdegs|{degree coker Fbar.dd_b};
+	ttd := {cokdegs_1}|apply(b-1,j->(
+		i:=j+1;
+		cokdegs_(i+1)+cokdegs_(i)-df_(i-1)));
+	if b<n+1 and n%2 !=0  then ttd = ttd|reverse ttd;
+	if b<n+1 and n%2 ==0 then ttd = ttd|{(-1)^(n//2+1)*2*sum(length ttd, i-> (-1)^i*ttd_i)}|reverse ttd;
+	L := apply(n+1, i->ttd_i-ttd_0*binomial(n,i));
+	<<n<<endl;
+	<<ttd<<endl;
+	<<L<<endl;
+	{n,ttd,L})
+testTornOld =  (n,D) ->(
+    I := genSocle(n,D);
+    F := res I;
+    G1 := dual (F_(n-1));
+    G0 := dual(F_n);
+    m := dual (F.dd_n);
+    T := coker map(G0**G0, G0**G1++G1**G0, (G0**m) | (m**G0));
+    degree T - degree I)
+
+testTorn = method()
+
+genOmega=(n,D)->(
+    I := genSocle(n,D);
+    S := ring I;
+    p := 1+max D;
+    mp := ideal apply(numgens S, i-> S_i^p);
+    Ep := S^1/mp;
+    S^{n*(p-1)}**((0_S*Ep):I))
+
+testTorn(ZZ,List) := (n,D) ->(
+    omega := genOmega(n,D);
+    degree (omega**omega)-degree omega)
+
+testTorn(Matrix) := soc ->(
+    I := ideal fromDual soc;
+    S := ring I;
+    p := 1+max flatten((flatten entries soc)/degree);
+    mp := ideal apply(numgens S, i-> S_i^p);
+    Ep := S^1/mp;
+    omega := (0_S*Ep):I;
+    degree (omega**omega)-degree I
+    )
+testTorn(Ideal, ZZ) := (I,e) ->(
+    --e is an upper bound for the degree of a socle element
+    S := ring I;
+        p := 1+e;
+    mp := ideal apply(numgens S, i-> S_i^p);
+    Ep := S^1/mp;
+    omega := (0_S*Ep):I;
+    degree (omega**omega)-degree I
+    )
+
+testTor1 = (n,D)->(
+I := genSocle(n,D);
+d2 := degree (I^2);
+d1 := degree (I);
+d2 -(n+1)*d1)
+
+
 multiQuadric = (S,L) ->(
     trailing = numgens S -sum L;
     if trailing<0 then error("too many specified");
@@ -95,12 +211,40 @@ fromDual(matrix{{toDividedPowers Q}})
 fromDual(matrix{{Q}})
 toDividedPowers matrix{{S_0^2, S_1^2}}
 ///
+
 end--
---watch out for small random numbers!
+
+
+restart
+load "quadraticSocle.m2"
 restart
 load "quadraticPencils.m2"
 
+om = prune genOmega(4,{2,2,2})
+betti res (om**om)
+S = ring om
+phi01 = map(om,S^{2:2},S**matrix{{1,0},{0,1},{0,0}})
+p01 = (presentation image phi01)_{0..2}
+phi02 = map(om,S^{2:2},S**matrix{{1,0},{0,0},{0,1}})
+p02 = (presentation image phi02)_{0..2}
 
+ins = map(S^{2},S^{3:1}, 0)
+q1 = p01^{0}||p01^{1}||ins
+q2 = p02^{0}||ins||p02^{1}
+q =q1|q2
+z = map(S^3,S^6,0)
+A0 = q||z
+A1 = z^{0}||q^{0}||z^{0}||q^{1,2}||z^{0}
+A2 = z^{0,1}||q^{0}||z^{0}||q^{1,2}
+A = map(S^6,,A0|A1|A2)
+B = transpose((syz A)_{0})
+A
+
+betti presentation prune symmetricPower(2,coker q)
+m = presentation om
+
+betti res (om**om)
+betti res om
 n=10
 S = ZZ/32003[x_0..x_(n-1)]
 
@@ -115,18 +259,7 @@ L1 = {2,2};L2 = {4}
 
 --The main formula:
 testQuadPencil(S,L1)+testQuadPencil(S,L2) ==testQuadPencil(S,L1|L2)
-
-
-S = QQ[a,b,c,d]
-Q1 = sum(numgens S,i->S_i^2)
-Q2 = multiQuadric(S,{2})
-Q2 = c^2+2*d^2
-
-Q = matrix{{Q1,Q2}}
-I = ideal fromDual Q;
-F = res I
-betti F
-F.dd_4
+------------------
 
 ---------------------------------
 --non-generic net of quadrics:
@@ -223,10 +356,28 @@ I5 == 0
 ---------------------------
 ---------------------------------
 --non-generic net of quadrics:
---6 variables
+--7 variables
 restart
-load "quadraticPencils.m2"
+load "quadraticSocle.m2"
 n=7
 S = ZZ/32003[x_0..x_(n-1)]
 mm = ideal vars S
-I = genSocle(S,3)
+I = genSocle(S,{2,2,2})
+betti (F = res I)
+om = coker transpose F.dd_n
+degree (om**om)
+degree(S^1/I)
+
+------------------------
+----Type 4-------------
+----------------------
+restart
+load "quadraticSocle.m2"
+n=3
+S = ZZ/32003[x_0..x_(n-1)]
+mm = ideal vars S
+I = genSocle(S,{2,2,2,2})
+betti (F = res I)
+om = coker transpose F.dd_n
+degree (om**om)
+degree(S^1/I)

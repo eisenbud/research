@@ -14,7 +14,7 @@ export {
     "carpet",
     "canonicalCarpet",
     "homotopyRanks",
-    "fixedSyzygyScheme",
+--    "fixedSyzygyScheme",
     "canonicalHomotopies",
     "FineGrading",
     "Scrolls",
@@ -137,6 +137,7 @@ carpet1(ZZ,ZZ) := opts -> (a1,a2) ->(
     gorensteinDouble I
     )
 
+{*
 nonMinRes = method()
 nonMinRes Matrix := m->(
 F' := res image m;
@@ -156,7 +157,7 @@ fixedSyzygyScheme(ChainComplex,ZZ,Matrix) := (C,i,v) -> (
            g := extend(nonMinRes transpose (C.dd_i * v), dual C[-i], transpose v);
            minimalPresentation cokernel (C.dd_1  * transpose g_(i-1)))
 
-
+*}
 canonicalHomotopies = method(Options=>{Characteristic=>32003,FineGrading=>false})
 --note: returns the pair: the resolution F of the canonical Carpet
 --and the function that used to be called h0 such that h0(i,j) is the j-th homotopy 
@@ -237,28 +238,6 @@ Description
    of the hyperplane is done in the routine "canonicalCarpet", which calls "carpet".
 ///
 
-doc ///
-   Key
-    fixedSyzygyScheme
-    (fixedSyzygyScheme,ChainComplex,ZZ,Matrix)
-   Headline
-    corrected code for 
-   Usage
-    I = fixedSyzygyScheme(F,n,M)
-   Inputs
-    F:ChainComplex
-    n:ZZ
-    M:Matrix
-     map to F_n
-   Outputs
-    I:Ideal
-     ideal of the syzygyScheme of the syzygies in the image of M
-   Description
-    Text
-     see the built-in function syzygyScheme, which gives an error message when run on certain inputs.
-   SeeAlso
-    syzygyScheme
-///
 
 doc ///
    Key
@@ -520,3 +499,27 @@ viewHelp K3Carpets
 viewHelp syzygyScheme
 code syzygyScheme
 
+
+---Jetsam:
+doc ///
+   Key
+    fixedSyzygyScheme
+    (fixedSyzygyScheme,ChainComplex,ZZ,Matrix)
+   Headline
+    corrected code for 
+   Usage
+    I = fixedSyzygyScheme(F,n,M)
+   Inputs
+    F:ChainComplex
+    n:ZZ
+    M:Matrix
+     map to F_n
+   Outputs
+    I:Ideal
+     ideal of the syzygyScheme of the syzygies in the image of M
+   Description
+    Text
+     see the built-in function syzygyScheme, which gives an error message when run on certain inputs.
+   SeeAlso
+    syzygyScheme
+///
