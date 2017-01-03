@@ -118,29 +118,6 @@ testWalker = M ->(F:=res M;
     sumbetti := sum(for i from min F to max F list rank F_i);
     (2^(codim M)*degree M + sum toList (excess M)) == (degree M)*sumbetti)
 
-///
-
---installPackage"Chi2"
-restart
-loadPackage("Chi2", Reload=>true)
-S = ZZ/101[a,b,c]
-mm = ideal vars S
-excess(S^1/(mm^2))
-
-M = S^1/mm^2
-testWalker M
-sum toList excess(S^1/mm^2)
-
-e = eulerCharacteristic F
-eulerCharacteristic (F**F)
-evenHomologyLength(F**F)
-oddHomologyLength(F**F)
-eulerCharacteristic (F**F)
-eulerCharacteristic (wedge2 F)
-eulerCharacteristic (sym2 F)
-apply(length (F**F), i->degree HH_i(F**F))
-chi2 F
-///
 
 beginDocumentation()
        doc ///
@@ -429,48 +406,3 @@ viewHelp Chi2
 --(2^(codim M)*degree M + 2*(oddHomologyLength sym2 F + evenHomologyLength wedge2 F) = 
 --sum(for i from min F**F to max F**F i-> degree HH_i(F**F)) <= (degree M)*sum(for i from min F to max F list rank F_i)
 
-----
-viewHelp Points
-restart
-loadPackage "Chi2"
-loadPackage("Points", Reload=>true)
-r = 3
-I = randomPoints(r,8)
-betti (F =  res I)
-apply(r+1//2,p-> ann HH_(2*p+1)(sym2 F))
-apply(r+1//2,p-> ann HH_(2*p)(wedge2 F))
-ann HH_2 wedge2 F
-S = ring I
-phi =map(S,S,apply(numgens S, i->S_i^2))
-J = phi I
-F = res J
-ann HH_2 wedge2 F
-
-r=3
-S = kk[x_0..x_r]
-M = random(S^2, S^{4:-2})
-I = minors (2,M)
-betti(F= res I)
-apply(r+1//2,p-> ann HH_(2*p+1)(sym2 F))
-apply(r+1//2,p-> ann HH_(2*p)(wedge2 F))
-H = prune HH_2 wedge2 F;
-ann H
-betti res H
-
-
-r=5
-S = kk[a_0..a_r]
-I = monomialCurveIdeal(S,{4,5,6,7})
-betti (F =  res I)
-apply(r+1//2,p-> ann HH_(2*p+1)(sym2 F))
-apply(r+1//2,p-> ann HH_(2*p)(wedge2 F))
-T = Tor_2(S^1/I, S^1/I)
-betti res T
-H = prune HH_2 wedge2 F
-
-r=3
-S = kk[a_0..a_r]
-I = (ideal vars S)^3
-betti (F =  res I)
-apply(r+1//2,p-> ann HH_(2*p+1)(sym2 F))
-apply(r+1//2,p-> ann HH_(2*p)(wedge2 F))

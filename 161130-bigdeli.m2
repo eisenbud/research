@@ -158,8 +158,8 @@ betti res monomialIdeal inlist)
 time tally apply(100,i->(
 Sd = squareFree(S,d);
 (inlist, outlist) = inOut(Sd,m);
-res monomialIdeal inlist)
-);
+betti res monomialIdeal inlist)
+)
 
 -----------------------
 restart
@@ -168,13 +168,13 @@ n= 10;
 S = ZZ/2[x_1..x_n];
 d = 5; --n//2;
 binomial(n,d)
-m = 150 ;
-N = 1000
+m = 100 ;
+N = 100
 L = makeLinearExamples(S,d,m,N);
-
+L_0_0
 #L -- if this is N, all the examples were linear -- not very interesting
 L/dim
-# unique apply(L, I -> betti res I)
+netList unique apply(L, I -> betti res (I_0))
 
 Sd = squareFree(S,d);
 
@@ -283,3 +283,18 @@ betti res I10
 
 ------
 --For producing squaree-free ideals with lots of linear syzygies, why not start with the syzygy ideal of some syzygies in the res of the maximal square-free ideal?
+restart
+
+isComponentwiseLinear = I ->(
+L = flatten entries gens trim I;
+D = unique flatten(L/degree);
+J = apply(D,d->select(L, m -> (degree m)_0 <= d));
+K = J/ideal;
+all(#K, i -> D_i == regularity truncate(D_i,K_i))
+)
+
+S = ZZ[a..h]
+I = ideal"ab, bc, cd
+isComponentwiseLinear I
+
+
