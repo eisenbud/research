@@ -1,23 +1,23 @@
        newPackage(
                "Chi2",
                Version => "0.1", 
-               Date => "Dec 24, 2016",
+               Date => "Jan 2, 2017",
                Authors => {{Name => "David Eisenbud", 
                          Email => "de@msri.org"}},
-               Headline => "Implement Chi2",
-               DebuggingMode => true
+               Headline => "Implements sym2,wedge2, Chi2 of a ChainComplex",
+               DebuggingMode => false
                )
 
        export {
 	   "eulerCharacteristic",
-	   "evenEulerCharacteristic",
-	   "oddEulerCharacteristic",	   	   
+	   "evenHomologyLength",
+	   "oddHomologyLength",	   	   
 	   "reverseFactors",
 	   "sym2",
 	   "wedge2",
 	   "chi2",
 	   "excess",
-	   "Walker"
+	   "testWalker"
 	   }
 ///
 restart
@@ -26,8 +26,6 @@ installPackage"Chi2"
 check "Chi2"
 viewHelp Chi2
 ///
-
-
 
 reverseFactors = method()
 reverseFactors(Module, Module, ZZ,ZZ) := (P,Q,s,t) ->(
@@ -73,49 +71,70 @@ wedge2 ChainComplex := F ->(
     GGs := chainComplex(for i from min Gs+1 to max Gs list prune Gs.dd_i);
     GGs[-min G])
 
-evenEulerCharacteristic = F ->  sum for i from min F to max F list if even i then degree HH_i F else 0
-oddEulerCharacteristic = F ->  sum for i from min F to max F list if odd i then  degree HH_i F else 0
-eulerCharacteristic = F ->  sum for i from min F to max F list (-1)^i* degree HH_i F
+evenHomologyLength = method()
+evenHomologyLength ChainComplex := F ->  (
+    len := 0;
+    L := for i from min F to max F list(
+	if even i then len = length(HH_i F)  else len = 0;
+	if len == infinity then error"length of even homology not finite";
+	len);
+    sum L)
 
-chi2 = F -> eulerCharacteristic sym2 F - eulerCharacteristic wedge2 F
+oddHomologyLength = method()
+oddHomologyLength ChainComplex := F ->  (
+    len := 0;
+    L := for i from min F to max F list(
+	if odd i then len = length(HH_i F)  else len = 0;
+	if len == infinity then error"length of odd homology not finite";
+	len);
+    sum L)
+
+eulerCharacteristic = method()
+eulerCharacteristic ChainComplex := F -> (
+    len := 0;
+    L := for i from min F to max F list(
+	len = length(HH_i F);
+	if len == infinity then error"length of homology not finite";
+	len);
+    sum L)
+
+chi2 = method()
+chi2 ChainComplex := F -> eulerCharacteristic sym2 F - eulerCharacteristic wedge2 F
 
 excess = method()
 excess ChainComplex := F ->(
-    excess1a := 2*oddEulerCharacteristic sym2 F;
-    excess1b := 2*evenEulerCharacteristic wedge2 F;
+    excess1a := 2*oddHomologyLength sym2 F;
+    excess1b := 2*evenHomologyLength wedge2 F;
     G := F**F;
     excess2 := -sum(for i from min G to max G list degree HH_i(G)) +
-         (degree HH_0 F)*sum(for i from min F to max F list rank F_i);
+         (length HH_0 F)*sum(for i from min F to max F list rank F_i);
     (excess1a, excess1b,excess2))
+
 excess Module := M ->(
     F := res M;
     excess F)
 
-Walker = M ->(F:=res M; 
-    sumbetti = sum(for i from min F to max F list rank F_i);
+testWalker = M ->(F:=res M; 
+    sumbetti := sum(for i from min F to max F list rank F_i);
     (2^(codim M)*degree M + sum toList (excess M)) == (degree M)*sumbetti)
 
 ///
 
 --installPackage"Chi2"
-viewHelp Chi2
-
 restart
 loadPackage("Chi2", Reload=>true)
 S = ZZ/101[a,b,c]
 mm = ideal vars S
 excess(S^1/(mm^2))
-F = res(mm^2)
-
 
 M = S^1/mm^2
-Walker M
+testWalker M
 sum toList excess(S^1/mm^2)
 
 e = eulerCharacteristic F
 eulerCharacteristic (F**F)
-evenEulerCharacteristic(F**F)
-oddEulerCharacteristic(F**F)
+evenHomologyLength(F**F)
+oddHomologyLength(F**F)
 eulerCharacteristic (F**F)
 eulerCharacteristic (wedge2 F)
 eulerCharacteristic (sym2 F)
@@ -131,13 +150,19 @@ beginDocumentation()
          Symmetric and exterior squares of a complex
        Description
          Text
-	  Used in Walker's proof of Buchsbaum-Eisenbud-Horrocks
-	  conjecture that the sum of the betti numbers is exponential
+	  This package implements the constructions
+	  used in Walker's proof of Buchsbaum-Eisenbud-Horrocks
+	  conjecture that the sum of the betti numbers is exponential.
+
+          The main new (to me) tool is the function chi2, whence the name of the package.
+	  If F is a ChainComplex with finite length homology, then
+	  chi2 F is the Euler characteristic of sym2 F minus that of wedge2 F.
+	  The function chi2 should be regarded as the Euler characteristic of the 2nd Adams operation,
+	  applied to F. Like the Euler characteristic of F, chi2 F is additive on
+	  short exact sequences of complexes, and moreover, for a regular local ring
+	  of dimension d with residue field k we have chi2 res k = 2^d.
        ///
-       TEST ///
-       -- test code and assertions here
-       -- may have as many TEST sections as needed
-       ///
+
 doc ///
    Key
     reverseFactors
@@ -160,9 +185,8 @@ doc ///
      to G**F from F**G
    Description
     Text
-     maps F_(n-i)**G_i \to G_i**F_(n-i) changing the basis order and putting in sign (-1)^(i*(n-i)).
-     In the case of modules, p and q specify the homological degrees of M and N respectively. This is
-     used to construct the map of complexes, the general case.
+     maps F_{n-i}**G_i \to G_i**F_{n-i} changing the basis order and putting in sign (-1)^{i*(n-i)}.
+     In reverseFactors(M,N,p,q) the integers p and q specify the homological degrees of M and N respectively. 
     Example
      S = ZZ/101[a,b]
      F = chainComplex{map(S^1,S^{-1},a)}
@@ -178,14 +202,204 @@ doc ///
      apply(length (F**G), i -> (rank phi_i) == rank ((F**G)_i))
 ///
      
+doc ///
+   Key
+    oddHomologyLength
+    (oddHomologyLength, ChainComplex)
+   Headline
+    sum of the lengths of the odd degree homology groups
+   Usage
+    m = oddHomologyLength F
+   Inputs
+    F:ChainComplex
+   Outputs
+    m:ZZ
+   Caveat
+    Returns an error if any homology has infinite length
+///
+doc ///
+   Key
+    evenHomologyLength
+    (evenHomologyLength, ChainComplex)
+   Headline
+    sum of the lengths of the even degree homology groups
+   Usage
+    m = evenHomologyLength F
+   Inputs
+    F:ChainComplex
+   Outputs
+    m:ZZ
+   Caveat
+    Returns an error if any homology has infinite length
+///
+doc ///
+   Key
+    eulerCharacteristic
+    (eulerCharacteristic, ChainComplex)
+   Headline
+    sum of the lengths of the even degree homology minus the odd degree homology groups
+   Usage
+    m = eulerCharacteristic F
+   Inputs
+    F:ChainComplex
+   Outputs
+    m:ZZ
+   Caveat
+    Returns an error if any homology has infinite length
+///
+doc ///
+   Key
+    excess
+    (excess, ChainComplex)
+    (excess, Module)
+   Headline
+    Difference between the sum of the lengths of Tor_i(M,M) and the Walker bound 2^d*length(M)
+   Usage
+    exs = excess F
+    exs = excess M
+   Inputs
+    F:ChainComplex
+     with finite length homology
+    M:Module
+     of finite length
+   Outputs
+    exs:Sequence
+     (excess1a, excess1b, excess2)
+   Description
+    Text
+     The three positive summands that make up the difference (sum Betti numbers M) and 2^{codim M}
+     in Walker's proof of the weak Buchsbaum-Eisenbud-Horrocks conjecture:
+
+     excess1a = 2*oddHomologyLength sym2 F;
+
+     excess1b = 2*evenHomologyLength wedge2 F;
+
+     The difference between the sum of the lengths of Tor(M,M) and chi2 F
+     is excess1a+excess1b.
+
+     excess2 = (sum of the betti numbers of M)*length M - sum(length Tor_i(M,M))
+    Example
+     S = ZZ/101[a,b,c]
+     mm = ideal vars S
+     M = S^1/(mm^2)
+     F = res M
+     
+     sumBetti = sum(4,i->rank F_i)          
+     sumTor = sum(4,i->length(Tor_i(M,M)))
+     chi2 F == eulerCharacteristic sym2 F-eulerCharacteristic wedge2 F
+     
+     2^(codim M)*(length M) == chi2 F
+     sumTor - chi2 F
+     sumBetti*(length M) - sumTor
+     excess M
+   Caveat
+    Returns an error if any homology has infinite length
+///
+doc ///
+   Key
+    sym2
+    (sym2, ChainComplex)
+   Headline
+    symmetric square of a chain complex
+   Usage
+    G = sym2 F
+   Inputs
+    F:ChainComplex
+   Outputs
+    G:ChainComplex
+   Description
+    Text
+     If tau: F**F \to F**F is the chain map reversing the factors, with appropriate signs, then
+     sym2 F = image(1+tau) = ker(1-tau) = coker(1-tau)
+
+///
+doc ///
+   Key
+    wedge2
+    (wedge2, ChainComplex)
+   Headline
+    exterior square of a chain complex
+   Usage
+    G = wedge2 F
+   Inputs
+    F:ChainComplex
+   Outputs
+    G:ChainComplex
+   Description
+    Text
+     If tau: F**F \to F**F is the chain map reversing the factors, with appropriate signs, then
+     wedge2 F = image(1-tau) = ker(1+tau) = coker(1+tau)
+///
+doc ///
+   Key
+    chi2
+    (chi2, ChainComplex)
+   Headline
+    Euler characteristic of the 2nd Adams operation applied to a complex
+   Usage
+    m = chi2 F    
+   Inputs
+    F:ChainComplex
+   Outputs
+    m:ZZ
+   Description
+    Text
+     The definition:
+     
+     chi2 F :=  eulerCharacteristic sym2 F - eulerCharacteristic wedge2 F.
+     
+     Walker's proof that the sum of the Betti numbers is at least 2^{codim M),
+     illustrated:
+    Example
+     S = ZZ/101[a,b,c]
+     mm = ideal vars S
+     M = S^1/(mm^2)
+     F = res M
+     
+     sumBetti = sum(4,i->rank F_i)          
+     sumTor = sum(4,i->length(Tor_i(M,M)))
+     chi2 F == eulerCharacteristic sym2 F-eulerCharacteristic wedge2 F
+     
+     2^(codim M)*(length M) == chi2 F
+     chi2 F <= sumTor
+     sumTor <= sumBetti*(length M)
+   Caveat
+    Returns an error if any homology has infinite length
+///
+doc ///
+   Key
+    testWalker
+   Headline
+    tests Walker's formula
+   Usage
+    t = testWalker M
+   Inputs
+    M:Module
+     of finite length
+   Outputs
+    t:Boolean
+   Description
+    Text
+     Verifies Walker's Theorem for a finite length graded module over a polynomial ring of char not 2:
+         (2^(codim M)*length M + sum toList (excess M)) == (sum of the betti numbers of M)*(length M)
+   Caveat
+    Returns an error if any homology has infinite length
+///
+
 TEST///
 S = ZZ/101[a]
 P= S^{0,1}
 Q = S^{3,5}
 s = 1;t=1
-ta = tau(P,Q,s,t)
+ta = reverseFactors(P,Q,s,t)
 assert isHomogeneous ta
-assert (tau(P,Q,s,t)*tau(Q,P,s,t) == id_(Q**P))
+assert (reverseFactors(P,Q,s,t)*reverseFactors(Q,P,s,t) == id_(Q**P))
+///
+
+TEST///
+S = ZZ/101[a,b,c]
+F = chainComplex{map(S^1,S^1,0)}
+assert (try eulerCharacteristic F then "finite" else "undefined" == "undefined")
 ///
 
 TEST///
@@ -212,7 +426,51 @@ viewHelp Chi2
 
 --Walker's inequality:
 --If F is  a resolution of a module M of finite length, then
---(2^(codim M)*degree M + 2*(oddEulerCharacteristic sym2 F + evenEulerCharacteristic wedge2 F) = 
+--(2^(codim M)*degree M + 2*(oddHomologyLength sym2 F + evenHomologyLength wedge2 F) = 
 --sum(for i from min F**F to max F**F i-> degree HH_i(F**F)) <= (degree M)*sum(for i from min F to max F list rank F_i)
 
-M = 
+----
+viewHelp Points
+restart
+loadPackage "Chi2"
+loadPackage("Points", Reload=>true)
+r = 3
+I = randomPoints(r,8)
+betti (F =  res I)
+apply(r+1//2,p-> ann HH_(2*p+1)(sym2 F))
+apply(r+1//2,p-> ann HH_(2*p)(wedge2 F))
+ann HH_2 wedge2 F
+S = ring I
+phi =map(S,S,apply(numgens S, i->S_i^2))
+J = phi I
+F = res J
+ann HH_2 wedge2 F
+
+r=3
+S = kk[x_0..x_r]
+M = random(S^2, S^{4:-2})
+I = minors (2,M)
+betti(F= res I)
+apply(r+1//2,p-> ann HH_(2*p+1)(sym2 F))
+apply(r+1//2,p-> ann HH_(2*p)(wedge2 F))
+H = prune HH_2 wedge2 F;
+ann H
+betti res H
+
+
+r=5
+S = kk[a_0..a_r]
+I = monomialCurveIdeal(S,{4,5,6,7})
+betti (F =  res I)
+apply(r+1//2,p-> ann HH_(2*p+1)(sym2 F))
+apply(r+1//2,p-> ann HH_(2*p)(wedge2 F))
+T = Tor_2(S^1/I, S^1/I)
+betti res T
+H = prune HH_2 wedge2 F
+
+r=3
+S = kk[a_0..a_r]
+I = (ideal vars S)^3
+betti (F =  res I)
+apply(r+1//2,p-> ann HH_(2*p+1)(sym2 F))
+apply(r+1//2,p-> ann HH_(2*p)(wedge2 F))
