@@ -122,22 +122,32 @@ testWalker = M ->(F:=res M;
 beginDocumentation()
        doc ///
        Key
-         Chi2
+         ChainComplexTensorPowers
        Headline
-         Symmetric and exterior squares of a complex
+         Symmetric and exterior squares of a complex and the 2nd Adams operation
        Description
          Text
 	  This package implements the constructions
-	  used in Walker's proof of Buchsbaum-Eisenbud-Horrocks
-	  conjecture that the sum of the betti numbers is exponential.
-
-          The main new (to me) tool is the function chi2, whence the name of the package.
-	  If F is a ChainComplex with finite length homology, then
+	  used in Mark Walker's November 2016 proof of the (weak) Buchsbaum-Eisenbud-Horrocks
+	  conjecture, which states that the sum of the betti numbers is exponential. The proof
+	  works for rings where 2 is invertible, and in this package we work over a field
+	  of characteristic $\neq 2$.
+	  
+	  The main new (to Eisenbud) tool in Walker's proof was the function chi2. Explicitly,
+	  if F is a ChainComplex with finite length homology, then
 	  chi2 F is the Euler characteristic of sym2 F minus that of wedge2 F.
 	  The function chi2 should be regarded as the Euler characteristic of the 2nd Adams operation,
 	  applied to F. Like the Euler characteristic of F, chi2 F is additive on
 	  short exact sequences of complexes, and moreover, for a regular local ring
 	  of dimension d with residue field k we have chi2 res k = 2^d.
+
+          Chi2 should be regarded as the Euler characteristic of
+	  the second Adams operation, applied to a free Chain complex. 
+	  It would be good to have the whole decomposition
+	  of tensor powers of a module or complex under the action of the symmetric group
+	  available (and thus also the Adams operations). Stillman and Eisenbud have discussed
+	  implementing this in the future, and anyone wishing to help with this project is
+	  welcome to join (or replace!) us.
        ///
 
 doc ///
