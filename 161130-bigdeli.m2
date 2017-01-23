@@ -1,4 +1,3 @@
-
 squareFree = (S,d) ->(
     --List the square-free monomials of degree d in S
     n := numgens S;
@@ -8,7 +7,7 @@ squareFree = (S,d) ->(
 
 inOut = (Sd,m) ->(
     --choose "outlist", a random subset of m elemeent of Sd, and its complement "inlist"
-    --returns (outlist, inlist)
+    --returns (inlist, outlist)
     u := #Sd;
     --diminish the automorpshisms a little by insisting that 0 and 1 is on the list:
     --0 by symmetry, and 1 because to get a linear relation with Sd_0 you must have
@@ -16,16 +15,19 @@ inOut = (Sd,m) ->(
     rnd0 := {0,1};
     rnd :=unique(rnd0| apply(m-2, i->random u));
     while #rnd<m do rnd = unique({random u}|rnd);
-    outlist = Sd_rnd;
-    inlist = toList ((set Sd)-outlist);
+    outlist := Sd_rnd;
+    inlist := toList ((set Sd)-outlist);
     (inlist, outlist)
     )
 
 makeLinearExamples = (S,d,m,N) ->(
     --linear monomial ideals that are not 0-dimensional
-    prodvars = product(numgens S, i->S_i);
-    egList = {};
+    prodvars := product(numgens S, i->S_i);
+    egList := {};
+    inlist := {};
+    outlist := {};    
     Sd := squareFree(S,d);
+    I := ideal 0_S;
     apply(N,i->(
 	    (inlist, outlist) = inOut(Sd,m);
 	    if lcm inlist == prodvars then(
@@ -34,24 +36,93 @@ makeLinearExamples = (S,d,m,N) ->(
 	    	    	    )));
     egList)
 
+-----------------
+ind = I -> (
+    --compute the Green Lazarsfeld index of an ideal
+    deg0 := flatten degrees I;
+    d := max deg0;
+    if d =!= min deg0 then error"only applies to and ideal generated in one degree";
+    F := res I;
+    j := 1;
+    while F_(j+1)!=0 and max flatten degrees F_(j+1) == d+j do j = j+1;
+    if j < length F then return j else return infinity)
 
-///
-restart
-load"161130-bigdeli.m2"
-n= 6
-d = n//2
-S = ZZ/101[x_1..x_n]
-m = 2*(binomial(n,d))//3
+indLB = (I,i) ->(
+    --check that the index of I is at least i
+    deg0 := flatten degrees I;
+    d := max deg0;
+    if d =!= min deg0 then error"only applies to and ideal generated in one degree";
+    F := res(I, LengthLimit => i);
+    max flatten degrees(F_i) == d+i-1)
 
-time (L = makeLinearExamples(S,d,m,1000));
+indUB = (I,i) ->(
+    --check that the index of I is at most i
+    deg0 := flatten degrees I;
+    d := max deg0;
+    if d =!= min deg0 then error"only applies to and ideal generated in one degree";
+    F := res(I, LengthLimit => i+1);
+    max flatten degrees(F_(i+1)) > d+i)
 
-tally apply(L, I -> betti res I_0)
-tally apply(L, I->codim I_0)
-Sd = squareFree(S,d)
-///
+------------------
+isMinimal = I ->(
+    --given an ideal I, returns a list of those generators g such that
+    --removing g from I does not decrease the index of I.
+    i := ind I;
+    G := flatten entries gens I;
+    m := length G;
+    II := apply(m, j->ideal(drop(G,{j,j})));
+    L := {};
+    scan(m, j-> if ind II_j >= i then L = L|{G_j});
+    L)
 
---look at the syzygies of Sd/ideal inlist, and see if any are purely linear:
-makeExample = (inlist,outlist) ->(
+----------------
+isMaximal = method()
+isMaximal(Ideal, List) := (I, M) ->(
+    --given an ideal I and a list of monomials M, return the monomials m \in M
+    --such that the index (I,m) >= index I.
+    i := ind I;
+    L :={};
+    scan(M, m-> if ind (I=ideal m) >= i then L = L|{m});
+    L)
+
+isMaximal(List, List) := (Ilist, M) ->(
+    --given an ideal I = ideal Ilist 
+    --and a list of monomials M, return the monomials m \in M
+    --such that the index (I,m) >= index I.
+    I := ideal Ilist;
+    isMaximal(I, M))
+
+isMaximal Ideal := I ->(
+    --given a monomial ideal I return the monomials m \notin I of the same degree
+    --such that the index (I,m) >= index I.
+    d := max flatten degrees I;
+    G := flatten entries gens I;
+    M := toList(set(flatten entries basis(d,ring I)) - G);
+    isMaximal(I,M))
+-------------------
+
+isMaximalSquareFree = method()
+isMaximalSquareFree Ideal := I ->(
+    --given a monomial ideal I return the square-free
+    --monomials m \notin I of the same degree
+    --such that the index (I,m) >= index I.
+    d := max flatten degrees I;
+    G := flatten entries gens I;
+    M := toList(set squareFree(ring I,d) - G);
+    isMaximal(I,M))
+
+isMaximalSquareFree List := L ->(
+    --given a list of monomials L, return the square-free
+    --monomials m \notin I := ideal L of the same degree
+    --such that the index (I,m) >= index I.
+    I:= ideal L;
+    isMaximalSquareFree I)
+
+    
+--look at the syzygies of the module Sd/(ideal inlist), and see if any are purely linear, indicating a monomial one could add
+--to get another linear ideal. Returns the list of potential monomials to add.
+--this is a special case of "isMaximalSquareFree"
+makeExample1 = (inlist,outlist) ->(
 	    I := monomialIdeal inlist;
     	    J := monomialIdeal outlist;
 	    M := presentation prune (module(I+J)/module I);
@@ -64,6 +135,7 @@ makeExample = (inlist,outlist) ->(
 			return)));
     	    out)
 
+{*
 makeExample = method()
 makeExample(List, List, List) := (inlist,outlist,Sd) ->(
     	    I := monomialIdeal inlist;
@@ -78,9 +150,108 @@ testExample =  (I,Sd) ->(
     outlist := flatten entries compress((matrix{Sd})%I);
     makeExample(I, outlist, Sd)
     )
-///
+*}
+
+firstPrimes = N ->(
+    p:=2;
+    P1 := apply(N-1, i->(
+	p = nextPrime(p+1);
+	p));
+    {2}|P1
+    )
+
+testlin = (pp,I) ->(
+P := firstPrimes pp;
+scan(P, p->(
+kk := (ZZ/p) ;
+x := symbol x;
+Sp := kk[x_1..x_n];
+Spd := squareFree(Sp,d);
+Ip := (map(Sp,ring I,vars Sp))I;
+print regularity I;
+print ({} ==testExample(I,Sd)
+    ))))
+
+findMaximal = (N,m,d) ->(
+    --N random examples of degree d in m variables
+    S := ZZ/101[x_1..x_m];
+    Sd:= flatten entries basis(d,S);
+    b := binomial(m+d-1,d);
+       rnd0 := {0};
+       rnd := rnd0;
+       I := ideal 0_S;
+       M := {};
+       r := 0;
+ L := apply(N, i->(
+    r = 4+random(b-4);
+    rnd = unique(rnd0| apply(r-1, i->random b));
+--    print r;
+    while #rnd<r do rnd = unique({random b}|rnd);
+    I = ideal Sd_rnd;
+    if indLB(I,2) then(
+    outlist := toList(set(0..b-1) - rnd);
+    (I,Sd_outlist)) else null));
+
+    L = select(L, ell -> ell =!= null);
+    scan(L, J-> (
+--	    print (J_1);
+	    M = isMaximal(J_0,J_1);
+--	    print(I, M);
+	    if #M == 0 then 
+	       print (J_0,J_1)));
+    L
+    )
+
+findMinimal = (N,m,d) ->(
+    --N random examples of degree d in m variables
+    S := ZZ/101[x_1..x_m];
+    Sd:= flatten entries basis(d,S);
+    b := binomial(m+d-1,d);
+       rnd0 := {0};
+       rnd := rnd0;
+       I := ideal 0_S;
+       M := {};
+       r := 0;
+ L := apply(N, i->(
+    r = 4+random(b-4);
+    rnd = unique(rnd0| apply(r-1, i->random b));
+--    print r;
+    while #rnd<r do rnd = unique({random b}|rnd);
+    I = ideal Sd_rnd;
+    if indLB(I,2) then I else null));
+
+    L = select(L, ell -> ell =!= null);
+    
+    scan(L, J-> (
+--	    print (J_1);
+	    M = isMinimal J;
+--	    print(I, M);
+--print J;
+	    if #M == 0 then 
+	       print J));
+    L
+    )
+
+minmax = (N,m,d) ->(
+print "looking for maximal";
+time Lmax := findMaximal(N, m, d);
+print (#Lmax);
+--Lmax/(i->ind i_0)
+print "looking for minimal";
+time Lmin = findMinimal(N, m, d);
+print (#Lmin);
+--Lmin/(i->ind i)
+)
+
+end--
+
 restart
 load"161130-bigdeli.m2"
+
+
+setRandomSeed 0
+minmax (100,4,4)
+
 n= 10
 S = ZZ/2[x_1..x_n]
 d = n//2
@@ -119,29 +290,6 @@ time apply(100, i->(
 tally makeLinearExamples(S,2,4,100)
 
 ///
-
-firstPrimes = N ->(
-    p:=2;
-    P1 := apply(N-1, i->(
-	p = nextPrime(p+1);
-	p));
-    {2}|P1
-    )
-
-testlin = (pp,I) ->(
-P := firstPrimes pp;
-scan(P, p->(
-kk = (ZZ/p) ;
-x = symbol x;
-Sp = kk[x_1..x_n];
-Spd = squareFree(Sp,d);
---error();
-Ip = (map(Sp,ring I,vars Sp))I;
-print regularity I;
-print ({} ==testExample(I,Sd)
-    ))))
-
-end--
 
 restart
 load"161130-bigdeli.m2"
