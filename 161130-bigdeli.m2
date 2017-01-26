@@ -100,7 +100,6 @@ isMaximal Ideal := I ->(
     M := toList(set(flatten entries basis(d,ring I)) - G);
     isMaximal(I,M))
 -------------------
-
 isMaximalSquareFree = method()
 isMaximalSquareFree Ideal := I ->(
     --given a monomial ideal I return the square-free
@@ -442,7 +441,64 @@ all(#K, i -> D_i == regularity truncate(D_i,K_i))
 )
 
 S = ZZ[a..h]
-I = ideal"ab, bc, cd
+I = ideal"ab, bc, cd"
 isComponentwiseLinear I
 
 
+----
+restart
+load "161130-bigdeli.m2"
+
+methods isMaximalSquareFree
+S = ZZ/101[a..q]
+I=ideal(a)*ideal(f,g,h,i,j,k,l,m,n,o,p,q)
+J=I+ideal(b)*ideal(g,h,i,j,k,l,m,n,o,p,q)
+
+L0 = ideal (a*f, a*g, a*h, a*i, a*j, a*k, a*l, a*m, a*n, a*o, a*p, a*q, b*g,
+     --------------------------------------------------------------------------
+     b*h, b*i, b*j, b*k, b*l, b*m, b*n, b*o, b*p, b*q, c*e, c*g, c*h, c*i, c*j,
+     --------------------------------------------------------------------------
+     c*k, c*l, c*m, c*n, c*o, c*p, c*q, d*g, d*h, d*i, d*j, d*k, d*l, d*m, d*n,
+     --------------------------------------------------------------------------
+     d*o, d*p, d*q, e*i, e*j, e*l, e*m, e*n, e*o, e*p, e*q, f*g, f*h, f*i, f*j,
+     --------------------------------------------------------------------------
+     f*k, f*l, f*m, f*n, f*o, f*p, f*q, g*m, g*n, g*o, g*p, g*q, h*j, h*k, h*m,
+     --------------------------------------------------------------------------
+     h*n, h*o, h*p, h*q, i*k, i*m, i*n, i*o, i*p, i*q, j*m, j*n, j*o, j*p, j*q,
+     --------------------------------------------------------------------------
+     k*o, l*m, l*n, l*o, l*p, l*q, m*q, k*o, c*e, k*o, h*k)
+--monomials left out of L0 to make L
+ideal (k*o, i*k, h*k, c*e)
+L=J+
+ideal(c)*ideal(g,h,i,j,k,l,m,n,o,p,q)+
+ideal(d)*ideal(g,h,i,j,k,l,m,n, o,p,q)+
+ideal(e)*ideal(i,j,l,m,n,o,p,q)+
+ideal(f)*ideal(g,h,i,j,k,l,m,n,o,p,q)+
+ideal(g)*ideal(m,n,o,p,q)+
+ideal(h)*ideal(j,m,n,o,p,q)+
+ideal(i)*ideal(m,n,o,p,q)+
+ideal(j)*ideal(m,n,o,p,q)+
+ideal(l)*ideal(m,n,o,p,q)+
+ideal(m*q)
+
+
+time (M = isMaximalSquareFree L)
+L1 = L+ideal M
+betti res L1 -- linear!
+
+time(M1 = isMaximalSquareFree L1)
+basis(2,S)
+betti(F =  res L)
+D = F.dd_2;
+submatrixByDegrees(D,{2},{4})
+isMaximal
+
+toString L1
+ideal(a*f,a*g,a*h,a*i,a*j,a*k,a*l,a*m,a*n,a*o,a*p,a*q,b*g,b*h,b*i,b*j,b*k
+      ,b*l,b*m,b*n,b*o,b*p,b*q,c*g,c*h,c*i,c*j,c*k,c*l,c*m,c*n,c*o,c*p,c*q,d*g,
+      d*h,d*i,d*j,d*k,d*l,d*m,d*n,d*o,d*p,d*q,e*i,e*j,e*l,e*m,e*n,e*o,e*p,e*q,f
+      *g,f*h,f*i,f*j,f*k,f*l,f*m,f*n,f*o,f*p,f*q,g*m,g*n,g*o,g*p,g*q,h*j,h*m,h*
+      n,h*o,h*p,h*q,i*m,i*n,i*o,i*p,i*q,j*m,j*n,j*o,j*p,j*q,l*m,l*n,l*o,l*p,l*q
+      ,m*q,g*h,m*o,e*f,n*p,o*p,m*n,h*l,a*e,g*l,c*e,g*j,k*o,k*n,c*f,a*c,j*l,p*q,
+      h*i,d*e,b*e,d*f,g*i,h*k,e*h,b*f,m*p,i*l,a*d,g*k,a*b,e*g,c*d,k*q,i*j,k*l,j
+      *k,b*c,n*o,k*p,k*m,i*k,b*d,o*q,n*q,e*k)
