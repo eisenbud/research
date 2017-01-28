@@ -270,7 +270,8 @@ findMaximalSquareFree(ZZ,ZZ,ZZ) := (N,numberOfVars,degreeOfGens) ->(
 ///
 restart
 load"161130-bigdeli.m2"
-time L = findMaximalSquareFree(3000, 5, 2);
+time L = findMaximalSquareFree(100, 5, 2);
+time L = findMaximalSquareFree(1000, 7, 2, {7,7});
 #L
 tally apply(L, ell-> ind ell_0)
 L2 = select(L, ell -> ind ell_0 == 2)
