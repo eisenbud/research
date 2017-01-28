@@ -78,20 +78,22 @@ isMinimal = I ->(
 ----------------
 isMaximal = method()
 isMaximal(Ideal, List) := (I, M) ->(
-    --given an ideal I and a list of monomials M, return the monomials m \in M
+    --given a linearly presented ideal I and a list of monomials M, return the monomials m \in M
     --such that the index (I,m) >= index I.
-    i := ind I;
+    d := max (degsI = flatten degrees I);
+    if d != min degsI then error"ideal not generated in one degree";
+    if d+1 != max flatten degrees source syz gens I then error"ideal not linearly presented";
     L :={};
-    scan(M, m-> if ind (I=ideal m) >= i then L = L|{m});
+    scan(M, m-> if max flatten degrees (I: m) == 1 then L = L|{m});
     L)
 
-isMaximal(List, List) := (Ilist, M) ->(
+{*isMaximal(List, List) := (Ilist, M) ->(
     --given an ideal I = ideal Ilist 
     --and a list of monomials M, return the monomials m \in M
     --such that the index (I,m) >= index I.
     I := ideal Ilist;
     isMaximal(I, M))
-
+*}
 isMaximal Ideal := I ->(
     --given a monomial ideal I return the monomials m \notin I of the same degree
     --such that the index (I,m) >= index I.
@@ -200,6 +202,81 @@ findMaximal = (N,m,d) ->(
 	       print (J_0,J_1)));
     L
     )
+findMaximalSquareFree = method()
+findMaximalSquareFree(ZZ,ZZ,ZZ,List) := (N,numberOfVars,degreeOfGens,Bnds) ->(
+    --N random linearly presented examples of degree d in m variables
+    --all examples are in the range Bnds = {minnum,maxnum}
+    minnum := Bnds_0;
+    maxnum := Bnds_1;
+    S := ZZ/101[x_1..x_numberOfVars];
+    Sd := squareFree(S,degreeOfGens);
+    b := #Sd;
+       rnd := {};
+       I := ideal 0_S;
+       M := {};
+       r := 0;
+ L := apply(N, i->(
+    r = minnum+random(maxnum-minnum+1);
+    rnd = unique(apply(r, i->random b));
+--    print r;
+--    while #rnd<r do rnd = unique({random b}|rnd);
+
+    I = ideal(Sd_rnd);
+    if indLB(I,2) then(
+    outlist := toList(set(0..b-1) - rnd);
+    (I,Sd_outlist)) else null));
+
+    L = select(L, ell -> ell =!= null);
+
+    scan(L, J-> (
+--	    print (J_1);
+	    M = isMaximal(J_0,J_1);
+--	    print(I, M);
+	    if #M == 0 then 
+	       print (J_0,J_1)));
+    L
+    )
+findMaximalSquareFree(ZZ,ZZ,ZZ) := (N,numberOfVars,degreeOfGens) ->(
+    --N random linearly presented examples of degree d in m variables
+    --all examples are in the range Bnds = {minnum,maxnum}
+    S := ZZ/101[x_1..x_numberOfVars];
+    Sd := squareFree(S,degreeOfGens);
+    b := #Sd;
+       rnd := {};
+       I := ideal 0_S;
+       M := {};
+       r := 0;
+ L := apply(N, i->(
+    r = 3+random(b-5);
+    rnd = unique(apply(r, i->random b));
+--    print r;
+--    while #rnd<r do rnd = unique({random b}|rnd);
+
+    I = ideal(Sd_rnd);
+    if indLB(I,2) then(
+    outlist := toList(set(0..b-1) - rnd);
+    (I,Sd_outlist)) else null));
+
+    L = select(L, ell -> ell =!= null);
+
+    scan(L, J-> (
+--	    print (J_1);
+	    M = isMaximal(J_0,J_1);
+--	    print(I, M);
+	    if #M == 0 then 
+	       print (J_0,J_1)));
+    L
+    )
+///
+restart
+load"161130-bigdeli.m2"
+time L = findMaximalSquareFree(3000, 5, 2);
+#L
+tally apply(L, ell-> ind ell_0)
+L2 = select(L, ell -> ind ell_0 == 2)
+tally apply(L2, ell-> betti res ell_0)
+
+///
 
 findMinimal = (N,m,d) ->(
     --N random examples of degree d in m variables
@@ -449,26 +526,10 @@ isComponentwiseLinear I
 restart
 load "161130-bigdeli.m2"
 
-methods isMaximalSquareFree
 S = ZZ/101[a..q]
 I=ideal(a)*ideal(f,g,h,i,j,k,l,m,n,o,p,q)
 J=I+ideal(b)*ideal(g,h,i,j,k,l,m,n,o,p,q)
 
-L0 = ideal (a*f, a*g, a*h, a*i, a*j, a*k, a*l, a*m, a*n, a*o, a*p, a*q, b*g,
-     --------------------------------------------------------------------------
-     b*h, b*i, b*j, b*k, b*l, b*m, b*n, b*o, b*p, b*q, c*e, c*g, c*h, c*i, c*j,
-     --------------------------------------------------------------------------
-     c*k, c*l, c*m, c*n, c*o, c*p, c*q, d*g, d*h, d*i, d*j, d*k, d*l, d*m, d*n,
-     --------------------------------------------------------------------------
-     d*o, d*p, d*q, e*i, e*j, e*l, e*m, e*n, e*o, e*p, e*q, f*g, f*h, f*i, f*j,
-     --------------------------------------------------------------------------
-     f*k, f*l, f*m, f*n, f*o, f*p, f*q, g*m, g*n, g*o, g*p, g*q, h*j, h*k, h*m,
-     --------------------------------------------------------------------------
-     h*n, h*o, h*p, h*q, i*k, i*m, i*n, i*o, i*p, i*q, j*m, j*n, j*o, j*p, j*q,
-     --------------------------------------------------------------------------
-     k*o, l*m, l*n, l*o, l*p, l*q, m*q, k*o, c*e, k*o, h*k)
---monomials left out of L0 to make L
-ideal (k*o, i*k, h*k, c*e)
 L=J+
 ideal(c)*ideal(g,h,i,j,k,l,m,n,o,p,q)+
 ideal(d)*ideal(g,h,i,j,k,l,m,n, o,p,q)+
@@ -482,23 +543,18 @@ ideal(l)*ideal(m,n,o,p,q)+
 ideal(m*q)
 
 
-time (M = isMaximalSquareFree L)
+time (M = isMaximalSquareFree L) -- 134 sec.
 L1 = L+ideal M
-betti res L1 -- linear!
+numgens L1
+betti res L1 
+betti res L
 
 time(M1 = isMaximalSquareFree L1)
-basis(2,S)
-betti(F =  res L)
-D = F.dd_2;
-submatrixByDegrees(D,{2},{4})
-isMaximal
+L2 = ideal(M1) + L1
+numgens L2
+betti res L2
+Sd = squareFree(S,2)
+matrix{Sd}%L2
+--L2 is missing only gk
 
-toString L1
-ideal(a*f,a*g,a*h,a*i,a*j,a*k,a*l,a*m,a*n,a*o,a*p,a*q,b*g,b*h,b*i,b*j,b*k
-      ,b*l,b*m,b*n,b*o,b*p,b*q,c*g,c*h,c*i,c*j,c*k,c*l,c*m,c*n,c*o,c*p,c*q,d*g,
-      d*h,d*i,d*j,d*k,d*l,d*m,d*n,d*o,d*p,d*q,e*i,e*j,e*l,e*m,e*n,e*o,e*p,e*q,f
-      *g,f*h,f*i,f*j,f*k,f*l,f*m,f*n,f*o,f*p,f*q,g*m,g*n,g*o,g*p,g*q,h*j,h*m,h*
-      n,h*o,h*p,h*q,i*m,i*n,i*o,i*p,i*q,j*m,j*n,j*o,j*p,j*q,l*m,l*n,l*o,l*p,l*q
-      ,m*q,g*h,m*o,e*f,n*p,o*p,m*n,h*l,a*e,g*l,c*e,g*j,k*o,k*n,c*f,a*c,j*l,p*q,
-      h*i,d*e,b*e,d*f,g*i,h*k,e*h,b*f,m*p,i*l,a*d,g*k,a*b,e*g,c*d,k*q,i*j,k*l,j
-      *k,b*c,n*o,k*p,k*m,i*k,b*d,o*q,n*q,e*k)
+
