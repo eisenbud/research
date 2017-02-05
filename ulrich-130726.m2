@@ -45,7 +45,6 @@ N
 codim minors (6,matrix N)
 
 
-
 specialMat = (R,s,w) ->(
 M1 = map(R^(s-1), R^{s-1:-1}, (i,j) -> 
     if i>=j and i-j< w then R_(i-j) else 0_R);
@@ -92,31 +91,76 @@ codim minors (4,M)
 
 
 restart
+Example 6.1 in the 2017 version of the paper
+--A 5-residual intersection
 macaulayMat= (R,s)->(
      map(R^(s), R^{2*s-1:-1}, (i,j) -> 
     if i<=j and i>=j-s+1 then R_(j-i) else 0_R)
 )
 
-s = 5;w = 2;
+g=2; s = 4; v=1; w = v+2; t=s-g; --(t-1)/2 <=v<=t in the theorem
+kk = ZZ/101
 R = kk[x_0..x_(s-1)]
-M = mutableMatrix macaulayMat(R,s)
-M_(s-w-1,w+2) = 0
-M_(s-w-1,0) = R_w 
---M_(s-w-1,2*s-2)= 3*R_(w)
-M_(s-w-1,2*s-3)= R_(w)
-M
-codim minors(5,matrix M))
-N = (matrix M)_{1..4}
-for j from 1 to 4 do print codim minors(j,N)
+M' = mutableMatrix (M= macaulayMat(R,s))
+N' = M'_(toList(1..s-1))
+N'_(s-w,s-2) = 0
+N = matrix N'
+M'_(s-w,s-1) = 0
+M'_(s-w,0) = R_(s-w) 
+M'_(s-w,2*s-w) = R_(s-w) 
+M' = matrix M'
+--assert(codim minors(s,M') == s)
+I = minors(s-1,N) 
+assert (codim I ==2)
 
+codims = apply(s-1, j -> codim minors(s-1-j,N))
+genericCodims = toList(2..s)
+codims - genericCodims
+assert(min positions(codims-genericCodims, i-> i<0) == w-2)
+-- this proves: I is codim 2 does not satisfy G_{w}, does satify G_(w-1)
+colList = {0}|toList(s..2*s-2)
+P = M'_colList
+J = ideal(transpose(syz transpose N)*P)
+Ns = gens minors(s-1,N)
+J = ideal(Ns*random(source Ns, R^{s:-s} ));
+assert(codim(K = (J:I)) == s)
 
+{* 
+the hypothesis of theorem 2.6 are satisfied EXCEPT for G_(w).
+*}
+
+for u from t-v to 1+v do(
+    <<u<<" "<<s-1-u<<endl;
+    << betti res prune(I^u/(J*I^(u-1)))<<endl<<endl;
+    << betti res prune (I^(s-1-u)/(J*I^(s-2-u)))<<endl<<endl<<endl;
+	)
+
+{*In case s=5,w=2,  item (2) fails for u=2 because I^2/JI is NOT self-dual, as seen from the
+resolution.
+*}
+
+--general J, with I computed above for s=5, w=2
+J = ideal(gens I*random(source gens I, R^{s:-5}))
+codim(J:I)
 for j from 1 to (s-1)//2 do(
     <<j<<" "<<s-1-j<<endl;
     << betti res prune(I^j/(J*I^(j-1)))<<endl<<endl;
     << betti res prune (I^(s-1-j)/(J*I^(s-2-j)))<<endl<<endl<<endl;
 	)
-
-
+    
+--general J, s=6
+s=6
+J = ideal(gens I*random(source gens I, R^{s:-5}));
+codim(K=(J:I));
+for j from 1 to (s-1)//2 do(
+    <<j<<" "<<s-1-j<<endl;
+    << betti res prune(I^j/(J*I^(j-1)))<<endl<<endl;
+    << betti res prune (I^(s-1-j)/(J*I^(s-2-j)))<<endl<<endl<<endl;
+	)
+    
+codim K
+numgens ring I
+    
 S = kk[a,b,c,d,e]
 m = matrix"a,b,c,d;
 b,c,d,e"

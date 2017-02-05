@@ -248,9 +248,9 @@ end--
 restart
 load"161130-bigdeli.m2"
 
-
 setRandomSeed 0
-minmax (100,4,4)
+minmax (500000,4,4)
+
 
 n= 10
 S = ZZ/2[x_1..x_n]

@@ -160,6 +160,13 @@ end--
 --
 restart
 load "ulrich-161224.m2"
+I = genSocle(6,3)
+betti res I
+M = module(I)/module(I^2);
+degree M
+mm = ideal vars ring M
+hilbertFunction(4, M)
+betti res M
 
 S = ZZ/101[a,b,c];n= 3
 matrix"ab,ac,bc"
