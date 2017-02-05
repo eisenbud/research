@@ -78,20 +78,22 @@ isMinimal = I ->(
 ----------------
 isMaximal = method()
 isMaximal(Ideal, List) := (I, M) ->(
-    --given an ideal I and a list of monomials M, return the monomials m \in M
+    --given a linearly presented ideal I and a list of monomials M, return the monomials m \in M
     --such that the index (I,m) >= index I.
-    i := ind I;
+    d := max (degsI = flatten degrees I);
+    if d != min degsI then error"ideal not generated in one degree";
+    if d+1 != max flatten degrees source syz gens I then error"ideal not linearly presented";
     L :={};
-    scan(M, m-> if ind (I=ideal m) >= i then L = L|{m});
+    scan(M, m-> if max flatten degrees (I: m) == 1 then L = L|{m});
     L)
 
-isMaximal(List, List) := (Ilist, M) ->(
+{*isMaximal(List, List) := (Ilist, M) ->(
     --given an ideal I = ideal Ilist 
     --and a list of monomials M, return the monomials m \in M
     --such that the index (I,m) >= index I.
     I := ideal Ilist;
     isMaximal(I, M))
-
+*}
 isMaximal Ideal := I ->(
     --given a monomial ideal I return the monomials m \notin I of the same degree
     --such that the index (I,m) >= index I.
@@ -100,7 +102,6 @@ isMaximal Ideal := I ->(
     M := toList(set(flatten entries basis(d,ring I)) - G);
     isMaximal(I,M))
 -------------------
-
 isMaximalSquareFree = method()
 isMaximalSquareFree Ideal := I ->(
     --given a monomial ideal I return the square-free
@@ -201,6 +202,82 @@ findMaximal = (N,m,d) ->(
 	       print (J_0,J_1)));
     L
     )
+findMaximalSquareFree = method()
+findMaximalSquareFree(ZZ,ZZ,ZZ,List) := (N,numberOfVars,degreeOfGens,Bnds) ->(
+    --N random linearly presented examples of degree d in m variables
+    --all examples are in the range Bnds = {minnum,maxnum}
+    minnum := Bnds_0;
+    maxnum := Bnds_1;
+    S := ZZ/101[x_1..x_numberOfVars];
+    Sd := squareFree(S,degreeOfGens);
+    b := #Sd;
+       rnd := {};
+       I := ideal 0_S;
+       M := {};
+       r := 0;
+ L := apply(N, i->(
+    r = minnum+random(maxnum-minnum+1);
+    rnd = unique(apply(r, i->random b));
+--    print r;
+--    while #rnd<r do rnd = unique({random b}|rnd);
+
+    I = ideal(Sd_rnd);
+    if indLB(I,2) then(
+    outlist := toList(set(0..b-1) - rnd);
+    (I,Sd_outlist)) else null));
+
+    L = select(L, ell -> ell =!= null);
+
+    scan(L, J-> (
+--	    print (J_1);
+	    M = isMaximal(J_0,J_1);
+--	    print(I, M);
+	    if #M == 0 then 
+	       print (J_0,J_1)));
+    L
+    )
+findMaximalSquareFree(ZZ,ZZ,ZZ) := (N,numberOfVars,degreeOfGens) ->(
+    --N random linearly presented examples of degree d in m variables
+    --all examples are in the range Bnds = {minnum,maxnum}
+    S := ZZ/101[x_1..x_numberOfVars];
+    Sd := squareFree(S,degreeOfGens);
+    b := #Sd;
+       rnd := {};
+       I := ideal 0_S;
+       M := {};
+       r := 0;
+ L := apply(N, i->(
+    r = 3+random(b-5);
+    rnd = unique(apply(r, i->random b));
+--    print r;
+--    while #rnd<r do rnd = unique({random b}|rnd);
+
+    I = ideal(Sd_rnd);
+    if indLB(I,2) then(
+    outlist := toList(set(0..b-1) - rnd);
+    (I,Sd_outlist)) else null));
+
+    L = select(L, ell -> ell =!= null);
+
+    scan(L, J-> (
+--	    print (J_1);
+	    M = isMaximal(J_0,J_1);
+--	    print(I, M);
+	    if #M == 0 then 
+	       print (J_0,J_1)));
+    L
+    )
+///
+restart
+load"161130-bigdeli.m2"
+time L = findMaximalSquareFree(100, 5, 2);
+time L = findMaximalSquareFree(1000, 7, 2, {7,7});
+#L
+tally apply(L, ell-> ind ell_0)
+L2 = select(L, ell -> ind ell_0 == 2)
+tally apply(L2, ell-> betti res ell_0)
+
+///
 
 findMinimal = (N,m,d) ->(
     --N random examples of degree d in m variables
@@ -442,7 +519,43 @@ all(#K, i -> D_i == regularity truncate(D_i,K_i))
 )
 
 S = ZZ[a..h]
-I = ideal"ab, bc, cd
+I = ideal"ab, bc, cd"
 isComponentwiseLinear I
+
+
+----
+restart
+load "161130-bigdeli.m2"
+
+S = ZZ/101[a..q]
+I=ideal(a)*ideal(f,g,h,i,j,k,l,m,n,o,p,q)
+J=I+ideal(b)*ideal(g,h,i,j,k,l,m,n,o,p,q)
+
+L=J+
+ideal(c)*ideal(g,h,i,j,k,l,m,n,o,p,q)+
+ideal(d)*ideal(g,h,i,j,k,l,m,n, o,p,q)+
+ideal(e)*ideal(i,j,l,m,n,o,p,q)+
+ideal(f)*ideal(g,h,i,j,k,l,m,n,o,p,q)+
+ideal(g)*ideal(m,n,o,p,q)+
+ideal(h)*ideal(j,m,n,o,p,q)+
+ideal(i)*ideal(m,n,o,p,q)+
+ideal(j)*ideal(m,n,o,p,q)+
+ideal(l)*ideal(m,n,o,p,q)+
+ideal(m*q)
+
+
+time (M = isMaximalSquareFree L) -- 134 sec.
+L1 = L+ideal M
+numgens L1
+betti res L1 
+betti res L
+
+time(M1 = isMaximalSquareFree L1)
+L2 = ideal(M1) + L1
+numgens L2
+betti res L2
+Sd = squareFree(S,2)
+matrix{Sd}%L2
+--L2 is missing only gk
 
 
