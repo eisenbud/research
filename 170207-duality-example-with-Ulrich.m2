@@ -117,19 +117,20 @@ testDuality = (I,J,s,w) ->(
     t=s-2;v=w-2;
     for u from max(1,t-v) to min(1+v,(s-1)//2) do(
     <<"----------"<<"(u, s-1-u) =  "<< (u,s-1-u)<<"------------"<<endl;	
-    if u<s-1-u then 
-    <<time minimalBetti(I^u/(J*I^(u-1)), LengthLimit =>1)<<endl<<endl;
-    if u<=s-1-u then 
-    << time minimalBetti(I^(s-1-u)/(J*I^(s-2-u)))<<endl<<endl<<endl;
+    if u<s-1-u then (
+    <<"----------"<<"presentation of I^u/JI^(u-1) "<<"------------"<<endl;	
+    <<time minimalBetti(I^u/(J*I^(u-1)), LengthLimit =>1)<<endl<<endl);
+    if u<=s-1-u then (
+        <<"----------"<<"Betti table of I^(s-1-u)/JI^(s-2-u) "<<"------------"<<endl;	
+    << time minimalBetti(I^(s-1-u)/(J*I^(s-2-u)))<<endl<<endl<<endl);
 	))
 
 end--
 restart
 
-
 load "170207-duality-example-with-Ulrich.m2"
 
-time for s from 7 to 7 do(
+time for s from 5 to 7 do(
 for w from max(3, ceiling((s+1)/2)) to s do(
     <<"==========="<<"s and w: " << (s,w)<<"==========="<<endl;
     (I,J) = makeIJ(s,w);
