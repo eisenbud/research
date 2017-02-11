@@ -178,13 +178,27 @@ torus = (p,q)->(
 	     x_(i,j)*ideal(x_((i+1)%p,j), x_(i,(j+1)%q),x_((i+1)%p,(j+1)%q))));
     IGbar = ideal(matrix{S2}%IG);
     (IGbar, IG)
-    )     
+    )
+
+projPlane = (p,q) -> (
+    S = ZZ/101[x_(0,0)..x_(p-1,q-1)];
+    S2 = squareFree(S,2);
+    IG1 = sum flatten apply(p, i->apply(q-1, j->
+	     x_(i,j)*ideal(x_((i+1)%p,j), x_(i,(j+1)%q),x_((i+1)%p,(j+1)%q))));
+    IG2 = sum apply(p, i->(
+	    x_(i,q-1)*ideal(x_((i+1)%p,q-1), x_((-i)%p,0),x_((-(i+1))%p,0))));
+    IG = IG1+IG2;
+    IGbar = ideal(matrix{S2}%IG);
+    (IGbar, IG)
+    )
 
 ///
 restart
+--debug = true
 load"161130-bigdeli-b.m2"
 (p,q) = (5,5); --(5,5) is the first one where we get lin pres
 (IGbar,IG) = torus(p,q);
+(IGbar,IG) = projPlane(p,q);
 isMaximalSquareFree IGbar
 time betti res (IGbar, LengthLimit =>3)
 
