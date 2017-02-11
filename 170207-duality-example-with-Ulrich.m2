@@ -23,6 +23,7 @@ macaulayMat= (R,s)->(
     if i<=j and i>=j-s+1 then R_(j-i) else 0_R)
 )
 
+{*
 test = (s,v) ->(
 w = v+2;t=s-2;
 --make an s x (s-1) matrix N whose 
@@ -77,6 +78,7 @@ for u from max(1,t-v) to min(1+v,(s-1)//2) do(
     << betti prune (I^(s-1-u)/(J*I^(s-2-u)))<<endl<<endl<<endl;
 	)
 )
+*}
 
 makeIJ = (s,w) ->(
 v = w-2;t=s-2;
@@ -122,7 +124,7 @@ testDuality = (I,J,s,w) ->(
 
 end--
 restart
-
+--GC_INITIAL_HEAP_SIZE=14G (before M2
 load "170207-duality-example-with-Ulrich.m2"
 
 time for s from 5 to 7 do(
@@ -132,16 +134,8 @@ for w from max(3, ceiling((s+1)/2)) to s do(
     testDuality(I,J,s,w))
     )
 
-viewHelp minimalBetti
-(I,J) = makeIJ(6,4);
-testDuality(I,J,5,3)
+--the cases where we're currently stuck:
+(I,J) = makeIJ(7,5);
+testDuality(I,J,7,5)
 
-
-s=5;
-time for v from max(1,ceiling ((s-3)/2)) to s-2 do(
-	test(s,v))
-
-s=6;
-for v from max(1,ceiling ((s-3)/2)) to s-2 do(
-	time test(s,v))
 
