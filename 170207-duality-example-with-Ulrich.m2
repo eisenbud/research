@@ -16,11 +16,6 @@
 --w = v+2; t=s-g; 
 --note that this would be empty if s<5;
 
--- we claim to have checked this for all admissible values 
--- of v and s<=7. The computation of the residual intersection becomes
--- very slow from s=7, w=4 on (that is, all the cases s=7 (we allow w=4,5,6).
--- we have checked that it's an s-residual int up to the case 7,4, not the others.
--- Better to only do the cases s<=6 for the moment.
 -- We start from the Macaulay matrix, whose minors are a power of the max ideal.
 
 macaulayMat= (R,s)->(
