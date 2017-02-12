@@ -328,7 +328,7 @@ torus = (p,q)->(
     (IGbar, IG)
     )
 
-projPlane = (p,q) -> (
+kleinBottle = (p,q) -> (
     S = ZZ/101[x_(0,0)..x_(p-1,q-1)];
     S2 = squareFree(S,2);
     IG1 = sum flatten apply(p, i->apply(q-1, j->
@@ -348,7 +348,7 @@ load"161130-bigdeli.m2"
 (IGbar,IG) = torus(p,q);
 isMaximalSquareFree IGbar
 (p,q) = (5,5); --(5,5) is the first one where we get lin pres
-(IGbar,IG) = projPlane(p,q);
+(IGbar,IG) = kleinBottle(p,q);
 isMaximalSquareFree IGbar
 time betti res (IGbar, LengthLimit =>3)
 
@@ -596,3 +596,17 @@ matrix{Sd}%L2
 --L2 is missing only gk
 
 
+
+----
+restart
+load"161130-bigdeli.m2"
+(IG,IGbar) = torus(4,4);
+
+time betti res IGbar
+time betti res IG
+
+time betti res monomialIdeal IGbar
+time betti res monomialIdeal IG
+
+time minimalBetti IGbar -- slow
+time minimalBetti IG -- slow
