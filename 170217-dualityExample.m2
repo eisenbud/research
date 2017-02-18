@@ -161,8 +161,8 @@ restart
 load "170217-dualityExample.m2"
 --GC_INITIAL_HEAP_SIZE=14G (before M2
 
-time for s from 5 to 6  do(
-for w from 3 to s-2 do(
+time for s from 8 to 8  do(
+for w from 3 to (s+1)//2 do(
     <<"==========="<<"s and w: " << (s,w)<<"==========="<<endl;
     (I,J) = makeIJ(s,w);
     testDuality(I,J,s,w)
