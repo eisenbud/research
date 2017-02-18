@@ -110,32 +110,69 @@ apply(numgens R, i-> assert ((gens(R_i^s*I))%J == 0));
 (I,J)
 )
 
-testDuality = (I,J,s,w) ->(
-    t=s-2;v=w-2;
-    for u from max(1,t-v) to min(1+v,(s-1)//2) do(
+totalBetti = method()
+
+totalBetti(ZZ,BettiTally) := (j,B) ->(
+     Bj := select(keys B, k->k_0==j);
+    sum(Bj, k->B#k))
+
+totalBetti(ZZ,Module) := (j,M) -> (
+    totalBetti(j, minimalBetti M))
+
+totalBetti BettiTally := B->(
+    len = max apply(keys B, k->k_0);
+    apply(len+1, j -> totalBetti(j,B)))
+
+totalBetti Module := M ->(
+    totalBetti minimalBetti M)
+
+totalBetti Ideal := I -> totalBetti minimalBetti I
+totalBetti (ZZ,Ideal) := (j,I) -> totalBetti (j, minimalBetti I)
+
+testDuality0 = (I,J,s,w) ->(
+    u := s-w; --note s-1-u = w-1, need this also >=1
+    if u<1 or w<2 then error "t-v = s-w not positive or s-1-u not positive";
     <<"----------"<<"(u, s-1-u) =  "<< (u,s-1-u)<<"------------"<<endl;	
-    if u<s-1-u then (
+    if u<s-1-u then (  --in this case we need two resolutions
     <<"----------"<<"presentation of I^u/JI^(u-1) "<<"------------"<<endl;	
-    <<time minimalBetti(I^u/(J*I^(u-1)), LengthLimit =>1)<<endl<<endl);
+    Bu := minimalBetti(I^u/(J*I^(u-1)), LengthLimit =>1);
+    <<totalBetti Bu<<endl<<endl);
     if u<=s-1-u then (
         <<"----------"<<"Betti table of I^(s-1-u)/JI^(s-2-u) "<<"------------"<<endl;	
-    << time minimalBetti(I^(s-1-u)/(J*I^(s-2-u)))<<endl<<endl<<endl);
-	))
+    << time totalBetti(I^(s-1-u)/(J*I^(s-2-u)))<<endl<<endl<<endl);
+)
+
+testDuality = (I,J,s,w) ->(
+    u := min (s-w,w-1); --note s-1-u = w-1, need this also >=1
+    if u<1 then error "t-v = s-w not positive or s-1-u not positive";
+    <<"----------"<<"(u, s-1-u) =  "<< (u,s-1-u)<<"------------"<<endl;	
+    <<"---------- totalBetti(I^(s-1-u)/(J*I^(s-2-u)))---------"<<endl;
+    << time totalBetti(I^(s-1-u)/(J*I^(s-2-u))) <<endl;
+    if u<s-1-u then (  --in this case we need two resolutions
+    <<"----------"<<"presentation of I^u/JI^(u-1) "<<"------------"<<endl;	
+    Bu := minimalBetti(I^u/(J*I^(u-1)), LengthLimit =>1);
+    <<totalBetti Bu<<endl<<endl;
+    )
+    <<endl<<endl<<endl;
+)
 
 end--
 restart
+load "170217-dualityExample.m2"
 --GC_INITIAL_HEAP_SIZE=14G (before M2
-load "170207-duality-example-with-Ulrich.m2"
 
-time for s from 5 to 7 do(
-for w from max(3, ceiling((s+1)/2)) to s do(
+time for s from 5 to 6  do(
+for w from 3 to s-2 do(
     <<"==========="<<"s and w: " << (s,w)<<"==========="<<endl;
     (I,J) = makeIJ(s,w);
-    testDuality(I,J,s,w))
-    )
+    testDuality(I,J,s,w)
+    ))
 
---the cases where we're currently stuck:
-(I,J) = makeIJ(7,5);
-testDuality(I,J,7,5)
+(s,w,u) = (6,3,2)
+(I,J) = makeIJ(s,w);
+totalBetti(I^u/(J*I^(u-1)))
+totalBetti(I^(s-1-u)/(J*I^(s-1-u-1)))
+
+testDuality(I,J,s,w)
 
 
