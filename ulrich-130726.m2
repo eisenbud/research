@@ -596,3 +596,41 @@ I = II_0^2 + II_1^2
 J = (gens I) *random(source gens I, R^{3:-7});
 D = det jacobian J;
 D % gens(I^2)
+
+----
+--Example 6.5 of the 170305 version: Duality not given by multiplication.
+
+restart
+S = ZZ/101[x,y,z]
+I = (ideal(x,y))^2
+Jm= (gens I)*random(source gens I, S^{3:-3});
+J = J3 = ideal Jm;
+J1 = ideal J_0
+J2 = ideal(Jm_{0,1});
+K1 = J1:I 
+assert (K1 == J1)
+K2 = J2:I
+K3 = J3:I
+
+--the following assertions check the hypotheses of Thm 4.1
+assert(codim K2 == 2)
+assert(codim K3 == 3)
+assert(codim((K1+ideal(J_1)):I) == 2)
+assert(codim((K2+ideal(J_2)):I) == 3)
+assert(codim(I + K2) ==2)
+assert(codim(I+K3) == 3)
+
+--
+apply(toList(-3..1), i->hilbertFunction(i+5, I^2/(J*I)))
+apply(toList(-3..1), i->hilbertFunction(i, Ext^3(S^1/K3, S^{-3})))
+
+-- What is the map defined by 4.1??
+--u = 3.
+betti res(S^1/K2)
+R2 = S/K2
+a2bar = sub(J_2, R2)
+Ibar = sub(I,R2)
+L2 = (ideal a2bar): Ibar
+K3bar = sub(K3,R2)
+gens(K3bar) % L2
+compress ((gens L2)%K3bar) -- a principal ideal of S/K3 defines R2/(a2bar:Ibar)

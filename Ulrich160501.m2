@@ -253,3 +253,147 @@ netList for n from 8 to 20 list expectedBetti(4,n)
 S = ZZ/101[a..d]
 I = points (S**matrix apply (4, i -> apply(7, j->((j+1)^i))))
 betti res I
+
+---
+--Veronese surface--this is G_\infty, and lci away from the max ideal,
+--so it satisfies the ell(I_P) < codim P for 3 = g <codim P < m
+restart
+r = 6
+S = ZZ/101[x_0..x_(r-1)]
+M = genericSymmetricMatrix(S,x_0,3)
+I = trim minors(2,M)
+n = numgens I
+g = codim I
+gI = gens I
+
+betti res (S^1/I^2) -- depth 0
+
+betti res (S^1/(top (I^2))) --depth 2
+betti res (S^1/(top (I^3))) --depth 2
+betti res (S^1/(top (I^4))) --depth 2
+betti res (S^1/(top (I^5))) --depth 2
+--there should be a theorem!!
+
+--Vero satisfies sliding depth
+
+betti res prune HH_(n-g) (koszul gI) -- CM , depth 3
+betti res prune HH_(n-g-1) (koszul gI) --CM
+betti res prune HH_(n-g-2) (koszul gI) -- depth 1
+betti res prune HH_(n-g-3)(koszul gI) -- depth 3
+
+--So this satisfies sliding depth and G_\infty
+
+----
+--rational normal quartic curve is a hyperplane section: all the positive depths
+--go down by 1. Note: this is G_5, not G_6, AND it is lci, so satisfies
+--ell(I_P)< codim P for 3 = g<codim P< 5.
+--symbolic powers obviously have depth >=1, by definition.
+--
+--
+restart
+loadPackage"Depth"
+r = 6
+S = ZZ/101[x_0..x_(r-1)]
+M = map(S^2, S^{r-1:-1},(i,j) -> x_(i+j))
+I = trim minors(2,M)
+gI = gens I
+g = codim I
+n = numgens I
+
+--betti res (S^1/I^2) -- depth 0
+--betti res (S^1/I^3) -- depth 0
+
+--of course symbolic powers have depth >=1.
+
+betti res prune HH_(n-g) (koszul gI)-- the canonical module, depth 2
+betti res prune HH_(n-g-1) (koszul gI)-- depth 2
+betti res prune HH_(n-g-2) (koszul gI)-- depth 0
+
+s=5
+J = ideal(gI*random(source gI, S^{s:-2}));
+K = (J:I);
+s ==codim K
+depth (S^1/(J:I)) == r - s --dim 1, depth 1
+
+
+---
+--seems to be AN_\infty. 
+J = ideal(gens I * random(source gens I, S^{4:-3}));
+J = minors(2,M_{0,1})+minors(2,M_{2,3})+minors(2,M_{0,3})+minors(2,M_{1,2})
+codim J
+K = (J:I); --4-residual CI, dim = 1
+dim K -- 1
+betti res K -- depth = 1 , CM
+
+-----
+--rational normal n-ic curve, dim 2 in n+1 vars, is AN_{\infty}: it's lci (except at the origin)
+--and this implies G_(s+1) for s=n, while the symbolic powers necessarily have
+--depth >=1. Doe every CM, lci projective scheme satisfy AN_(g+1) ?
+restart
+r = 6
+S = ZZ/101[x_0..x_(r-1)]
+M = map(S^2, S^{r-1:-1},(i,j) -> x_(i+j))
+I = trim minors(2,M)
+g = codim I
+gI = gens I
+n= numgens I
+--betti res (S^1/I^2) -- dept 0
+--betti res (S^1/I^3) -- depth 0
+
+--symbolic powers always have depth >=1
+
+betti res prune HH_(n-g) (koszul gI)-- the canonical module, depth 2
+betti res prune HH_(n-g-1) (koszul gI)-- depth 2
+betti res prune HH_(n-g-2) (koszul gI)-- depth 0
+--so we have sliding depth and G_s for s<=r. Also the symbolic power condition.
+
+---
+J = ideal(gens I * random(source gens I, S^{2:-2,3:-3}));
+K = (J:I); --5-residual CI, dim = 1
+betti res K -- depth = 1
+-----
+
+
+restart
+loadPackage"Depth"
+r = 9
+S = ZZ/101[x_0..x_(r-1)]
+M = genericMatrix(S,x_0,3,3)
+I = trim minors(2,M)
+gI = gens I
+g = codim I
+n = numgens I
+
+--betti res (S^1/I^2) -- depth 0
+--betti res (S^1/I^3) -- depth 0
+
+--of course symbolic powers have depth >=1.
+
+time betti res prune HH_(n-g) (koszul gI)-- the canonical module
+time depth HH_(n-g) (koszul gI)
+time betti res prune HH_(n-g-1) (koszul gI)-- CM
+betti res prune HH_(n-g-2) (koszul gI)-- CM
+
+betti res (S^1/I^2)--depth 0
+betti res I-- CM, dim 5
+betti res (S^1/(top (I^2))) --depth 3
+betti res (S^1/(top (I^3))) --depth 3
+betti res (S^1/(top (I^4))) --depth ?
+betti res (S^1/(top (I^5))) --depth ?
+
+
+s=5
+J = ideal(gI*random(source gI, S^{s:-2}));
+K = (J:I);
+s ==codim K
+depth  (S^1/(J:I)) depth 1, dim 4. --dim 1, depth 1
+
+
+---
+--seems to be AN_\infty. 
+J = ideal(gens I * random(source gens I, S^{4:-3}));
+J = minors(2,M_{0,1})+minors(2,M_{2,3})+minors(2,M_{0,3})+minors(2,M_{1,2})
+codim J
+K = (J:I); --4-residual CI, dim = 1
+dim K -- 1
+betti res K -- depth = 1 , CM
