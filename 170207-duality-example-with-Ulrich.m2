@@ -80,3 +80,22 @@ for w from max(3, ceiling((s+1)/2)) to s do(
 
 
 
+-----
+S= ZZ/101[x_1..x_7]
+f = random(S^1,S^{-2,-2,-3})
+I = ideal fromDual f
+betti (F = res I)
+omega = prune coker dual(F.dd_7)
+degree (S^1/I)
+degree((module I)/(module(I^2)))
+degree(omega ** ((module I)/(module(I^2))))
+
+
+betti res (I^2)
+mm = ideal vars S
+numgens trim ideal(gens(I*(mm^2)) %(I^2))
+
+T = QQ[n]
+p=((n)*(n-1)/2+(n+2)*(n+1)*(n)/6-1)-(2*n+2)*n
+apply (10, i-> sub(p, n=>i))
+sub(p, n=>6)

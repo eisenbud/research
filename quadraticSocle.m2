@@ -406,3 +406,4 @@ betti (F = res I)
 om = coker transpose F.dd_n
 degree (om**om)
 degree(S^1/I)
+
