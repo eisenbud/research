@@ -12,6 +12,7 @@ newPackage(
 export {"toDividedPowers",
         "fromDividedPowers",
 	"fromDu",
+	"toDu",
 	"DividedPower" -- change to DividedPowers 
 	}
 
@@ -45,22 +46,77 @@ fromDividedPowers Matrix := M -> (
     map(target M, source M, (i,j) -> fromDividedPowers (M_j_i))
 )
 
-fromDu = method(Options=>{DividedPower => false})
-fromDu Matrix := o -> M -> if o.DividedPower === false then fromDual M else 
-                                                  fromDual toDividedPowers M
+--fromDu returns an ideal, not a matrix
+
+--fromDu Matrix := o -> M -> if o.DividedPower === false then fromDual M else 
+--                                                  trim ideal fromDual toDividedPowers M
+fromDu = method(Options=>{DividedPower => false})						  
+fromDu Matrix := o -> M -> (
+    	  if numgens target M > 1 then error"input matrix has too many rows";
+	  dtar :=  (degrees target matrix{{M}})_0_0;
+	  R := ring M;
+	  M' := R^{dtar}**M; -- set target degree to 0, just in case.
+	  if o.DividedPower === true then M' = toDividedPowers M';
+	  
+    	  dmax := first max degrees source M';
+          g := product apply(generators R, v -> v^dmax);
+          I1 := ideal contract(transpose M', matrix{{g}});
+	  ideal apply(numgens R, j->R_j^(dmax+1)) : I1
+	  )	  
+          --trim (ideal (target f1 ** 
+--	               map(R^1, R^{numgens R:-dmax-1}, (i,j) -> R_j^(dmax+1))) 
+--                : ideal f1)
+
+///
+restart
+loadPackage("DividedPowers", Reload =>true)
+S = QQ[a,b]
+f = matrix{{a,b^2}}
+fromDu f
+///
 fromDu RingElement := o -> f -> fromDu(matrix{{f}}, DividedPower=> o.DividedPower)
 
+--toDu returns a matrix
 toDu = method(Options=>{DividedPower => false})
 toDu(ZZ, Matrix) := o -> (d,f) -> (
          R := ring f;
          g := product apply(generators R, v -> v^d);
          box := matrix table (1, numgens R, (i,j) -> R_j^(d+1));
 	 if o.DividedPower === false then return
-         contract(
+         transpose contract(
               transpose mingens image (generators (image box : image f) % box),
-              matrix{{g}})
-	 
+              matrix{{g}});
+         m := transpose fromDividedPowers contract(
+              transpose mingens image (generators (image box : image f) % box),
+               matrix{{g}});
+	 map(target m, source m, (i,j) -> (degree m_j_i)_0*m_j_i)
+)
+///
+setRandomSeed 0
+kk = QQ
+n = 3
+S = kk[a,b]
+f = a^2
+g = b^3
+h = matrix{{f,g}}
 
+fromDual h
+fromDual toDual(4, h)
+
+toDual(4, fromDual h)
+
+H = fromDu(GG h,DividedPower=>true)
+H' = trim ideal GG' toDu(4,H,DividedPower=>true)
+trim ideal GG h
+M = fromDu f
+G = toDu(2, M)
+
+M' = fromDu (f, DividedPower =>true)
+G'' = fromDividedPowers toDu(2, M', DividedPower =>false)
+G' = toDu(2, M', DividedPower =>true)
+
+(M')_1
+///
 
 beginDocumentation()
 
@@ -103,13 +159,13 @@ Key
 Headline
  fromDual with optional divided power translation
 Usage
- M = fromDu m
- M = fromDu p
+ I = fromDu m
+ I = fromDu p
 Inputs
  m:Matrix
  p:RingElement
 Outputs
- M:Matrix
+ I:Ideal
 Description
   Text
     transforming f to g(f) in the polynomial basis and then applying 
@@ -123,9 +179,9 @@ Description
    S = QQ[a,b,c]
    f1 = a^2
    f2 = (a+b)^2
-   betti res coker fromDu f1
-   betti res coker fromDu f2
-   betti res coker fromDu(f2, DividedPower =>true)
+   betti res  fromDu f1
+   betti res  fromDu f2
+   betti res  fromDu(f2, DividedPower =>true)
 Caveat
  If any of the polynomials invoved has degree >= characteristic ring m,
  the option must be DividedPower=>false.
@@ -134,11 +190,11 @@ SeeAlso
 ///
 
 TEST///
+--fromDividedPowers and toDividedPowers are inverse to one another
 setRandomSeed 0
 kk = QQ
 n = 3
 S = kk[a,b,c]
-map(S,S,0_S*vars S)
 p = (a+b)^2
 q = toDividedPowers p
 assert(q == 2*a^2+2*a*b+2*b^2)
@@ -149,14 +205,38 @@ Q = fromDividedPowers toDividedPowers P
 R = toDividedPowers fromDividedPowers P
 assert(P==Q)
 assert(P == R)
+///
 
+///TEST
+--fromDu is equivariant on ideals
+setRandomSeed 0
+kk = QQ
+n = 3
+S = kk[a,b,c]
 g = random(S^3, S^3)
 testmap = map(S,S,(vars S)*g)
 testmap' = map(S,S,(vars S)*(dual g)^-1)
 f = random(S^1,S^{-2,-2,-3})
-I1 = fromDual toDividedPowers testmap f
-I2 = testmap' fromDual toDividedPowers f
-assert(trim ideal I1==trim ideal I2)
+testmap'  fromDu(f, DividedPower =>true) == 
+         fromDu(testmap f, DividedPower => true)
+///
+
+TEST///
+-- applying fromDu toDu is the identity on ideals.
+setRandomSeed 0
+S = QQ[a,b]
+G = random(S^2,S^2)
+GG = map(S,S,(vars S)*G)
+GG' = map(S,S,(vars S)*transpose G^-1)
+f = a^2
+g = b^3
+h = matrix{{f,g}}
+assert(trim ideal GG h ==  fromDu toDu(4,GG h))
+assert(trim ideal GG h ==  fromDu(
+	                             toDu(4, GG h, 
+					 DividedPower=>true), 
+				     DividedPower =>true)
+				 )
 ///
 
 end--
@@ -187,3 +267,20 @@ assert(I==J)
 
 
 
+--repeat
+TEST///
+setRandomSeed 0
+S = QQ[a,b]
+G = random(S^2,S^2)
+GG = map(S,S,(vars S)*G)
+GG' = map(S,S,(vars S)*transpose G^-1)
+f = a^2
+g = b^3
+h = matrix{{f,g}}
+assert(trim ideal GG h == trim ideal fromDu toDu(4,GG h))
+assert(trim ideal GG h == trim ideal fromDu(
+	                             toDu(4, GG h, 
+					 DividedPower=>true), 
+				     DividedPower =>true)
+)
+///
