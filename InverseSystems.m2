@@ -53,6 +53,7 @@ fromDividedPowers Matrix := M -> (
 fromDu = method(Options=>{DividedPowers => false})						  
 fromDu Matrix := o -> M -> (
     	  if numgens target M > 1 then error"input matrix has too many rows";
+          if not isHomogeneous M then error"this version needs a homogeneous argument";
 	  dtar :=  (degrees target matrix{{M}})_0_0;
 	  R := ring M;
 	  M' := R^{dtar}**M; -- set target degree to 0, just in case.
@@ -96,34 +97,40 @@ containsDthPowers = I ->(
     while powers(R,D)%I != 0 do D = D+1;
     D)
 
-inverseSystem = method(Options => {DividedPowers => true, PowerBound => 0})
+inverseSystem = method(Options => {DividedPowers => true, PowerBound => 0, Local => true})
 inverseSystem Ideal := o-> I -> (
-    d := PowerBound;
-    if d===0 then d = containsDthPowers I;
+    d := o.PowerBound; -- this is potentially less than the regularity. Is this ok??
+
+    if d===0 then(
+     if 0==dim I and isHomogeneous I then d = containsDthPowers I -1
+     else return "ideal not zero-dimensional; needs explicit option PowerBound.  
+     Re-run as 
+     inverseSystem(I, PowerBound => D)
+     for appropriate D.");
+     
     toDu(d,I,DividedPowers => o.DividedPowers)
     )
 inverseSystem Matrix := o-> M -> (
+
     fromDu(M, DividedPowers => o.DividedPowers)
     )
 
-///
+TEST///
 restart
 uninstallPackage "InverseSystems"
 loadPackage("InverseSystems", Reload => true)
 setRandomSeed 0
 kk = QQ
 n = 3
-S = kk[a,b]
-powers(S,3)
-
-f = a^2
-g = b^3
-h = matrix{{f,g}}
-containsDthPowers ideal h
-ideal h == fromDu toDu(4, ideal h)
-
-
-ideal h == fromDu toDu(4, fromDu h)
+S = kk[a,b,hvar]
+I = ideal"a4,b5+b7"
+J = ideal "a4,b5"
+hI = homogenize(I, hvar)
+inverseSystem (I, PowerBound => 4)
+inverseSystem (I, PowerBound => 6)
+inverseSystem (J
+inverseSystem gens hI
+inverseSystem gens J
 ///
 
 beginDocumentation()
@@ -254,6 +261,17 @@ assert(ideal GG h == fromDu(toDu(4, fromDu(toDu(4,ideal GG h),
 		 DividedPowers=>true), DividedPowers => true)))
 ///
 
+///
+--the local, that is, inhomogeneous case:
+S = QQ[a,b,c]
+G = random(S^3,S^3)
+GG = map(S,S,(vars S)*G)
+M = matrix{{a^2+b^3}}
+I1 = inverseSystem M
+I2 = inverseSystem GG M
+assert(hilbertSeries ideal leadTerm gens gb I1===hilbertSeries ideal leadTerm gens gb I2)
+
+///
 
 end--
 restart
