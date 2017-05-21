@@ -9,12 +9,12 @@ newPackage(
     	DebuggingMode => true
     	)
 
-export {"toDividedPowers",
+export {"inverseSystem",
+        "toDividedPowers",
         "fromDividedPowers",
-	"fromDu",
+	"containsDthPowers",
 	"toDu",
-	"inverseSystem",
-	--option names:
+	--option names (symbols):
 	"PowerBound",
 	"DividedPowers"
 	}
@@ -57,7 +57,7 @@ fromDividedPowers Matrix := M -> (
 fromDu = method(Options=>{DividedPowers => false})						  
 fromDu Matrix := o -> M -> (
     	  if numgens target M > 1 then error"Input matrix has too many rows.";
-          if not isHomogeneous M then error"This version needs a homogeneous argument.";
+--          if not isHomogeneous M then error"This version needs a homogeneous argument.";
 --	  dtar :=  (degrees target matrix{{M}})_0_0;
 	  dtar :=  (degrees target M)_0_0;	  
 	  R := ring M;
@@ -71,65 +71,87 @@ fromDu Matrix := o -> M -> (
 	  )	  
 fromDu RingElement := o -> f -> fromDu(matrix{{f}}, DividedPowers=> o.DividedPowers)
 
-lFromDu = method()
-lFromDu Matrix := M ->(
-    --M: 1-row, not necessarily homogenous, treated as local.
-    R := ring M;
-    n := numgens R;    
-    dtar :=  (degrees target matrix{{M}})_0_0;
-    M' := R^{dtar}**M; -- set target degree to 0, just in case.
-    dmax := 2+first max degrees source M';
---    dmax := first max degrees source M';
-    g := product apply(generators R, v -> v^dmax);
-    J := ideal apply(generators R, v -> v^(1+dmax));
-    M0 := contract(transpose M', matrix{{g}});
-    X := symbol X;
-    R1 := (coefficientRing R)[X_0..X_n, MonomialOrder => Eliminate 1];
-    toR1 := map(R1,R,{X_1..X_n});
-    M1 := toR1 M0;
-    J1 := toR1 J;
-    Mh := homogenize(M1, X_0);
-    I1 := syz(Mh**R1/J1);
-    error();
-    leadTerm I1
-    )
+
+powers = (d,v) ->
+   -- v a list of ring elements; d a natural number
+    apply(v, x->x^d)
     
-    
+containsDthPowers = method()
+containsDthPowers Ideal := I->(
+    --assumes that I has dimension 0, thus contains a power of the variables
+    --returns the smallest D such that I contains the Dth powers of all the variables.
+    if dim I != 0 then error"Input ideal must be 0-dimensional";
+    S := ring I;
+    v := gens S; -- a list
+    n := numgens S;
+    d := min flatten degrees I;
+    while (matrix{powers(d,v)} % I) != 0 do d = d+1;
+    d
+   ) 
 ///
 restart
+uninstallPackage "InverseSystems"
 loadPackage("InverseSystems", Reload =>true)
-S = QQ[a,b]
-
-f = matrix{{a,b^2+b^3}}
-lFromDu f
-leadTerm transpose Mh
-I1
-g = matrix"a,b2"
-lFromDu g
+S = QQ[x,y]
+gens S
+I = ideal"x3,xy+y5"
+I = ideal"x3,y5"
+containsDthPowers I
+containsDthPowers ideal"x3"
 ///
 
---toDu returns a matrix. input should be an ideal
-toDu = method(Options=>{DividedPowers => false})
-toDu(ZZ, Ideal) := o -> (d,f) -> (
+toDu = method(Options => {DividedPowers => true})
+toDu (ZZ,Ideal) := o -> (d,I) -> (
+         -- assumes that I is an ideal in a polynomial ring
+	 -- returns a matrix representing the annihilator of I in the dual of ring I, accurate up to dual degree d.
+         S := ring I;
+	 if not isPolynomialRing S then error "I should be an ideal in a polynomial ring";
+         g := product powers(d,gens S);
+	 box :=ideal powers(d+1,gens S);
+         m := compress contract(gens(box : I) % box, matrix{{g}});
+	 if o.DividedPowers === true then m = fromDividedPowers m;    
+--	 if o.DividedPowers === false 
+--	 then return m else(
+--	 map(target m, source m, (i,j) -> (degree m_j_i)_0*m_j_i))
+    	 m
+    )
+
+///
+restart
+uninstallPackage "InverseSystems"
+installPackage "InverseSystems"
+check"InverseSystems"
+S = QQ[x,y]
+gens S
+
+I = ideal"x3,y5"
+M = toDu (10,I, DividedPowers => false)
+inverseSystem(M,DividedPowers => false)
+
+--inhomogeneous case doesn't work yet
+I = ideal"x3,xy+y5"
+primaryDecomposition I
+M = toDu (10,I, DividedPowers => false)
+inverseSystem(M,DividedPowers => false)
+///
+
+{*
+toDu(ZZ, Matrix) := o -> (d,f) -> (
          R := ring f;
-         g := matrix {{product apply(generators R, v -> v^d)}};
-         box := ideal apply(numgens R, j->R_j^(d+1));
-         m := contract(
-              mingens image (generators (box : f) % box),
-              g);
-	 m1 := map(target m, source m, (i,j) -> (degree m_j_i)_0*m_j_i);
-	 if o.DividedPowers === false then m1 else fromDividedPowers m1
+         g := product apply(generators R, v -> v^d);
+         box := matrix table (1, numgens R, (i,j) -> R_j^(d+1));
+	 if o.DividedPower === false then return
+         transpose contract(
+              transpose mingens image (generators (image box : image f) % box),
+              matrix{{g}});
+         m := transpose fromDividedPowers contract(
+              transpose mingens image (generators (image box : image f) % box),
+               matrix{{g}});
+	 map(target m, source m, (i,j) -> (degree m_j_i)_0*m_j_i)
 )
-toDu(ZZ, Matrix) := o -> (d,M) -> toDu(d,ideal M, DividedPowers => o.DividedPowers)
+*}
 
-powers := (R,d) -> matrix{apply(numgens R,j->R_j^d)}
-containsDthPowers = I ->(
-    R := ring I;
-    D := 1;
-    while powers(R,D)%I != 0 do D = D+1;
-    D)
-
-inverseSystem = method(Options => {DividedPowers => true, PowerBound => 0, Local => true})
+inverseSystem = method(Options => {DividedPowers => true, PowerBound => 0})
 inverseSystem Ideal := o-> I -> (
     d := o.PowerBound; -- this is potentially less than the regularity. Is this ok??
 
@@ -147,23 +169,6 @@ inverseSystem Matrix := o-> M -> (
     fromDu(M, DividedPowers => o.DividedPowers)
     )
 
-TEST///
-restart
-uninstallPackage "InverseSystems"
-loadPackage("InverseSystems", Reload => true)
-setRandomSeed 0
-kk = QQ
-n = 3
-S = kk[a,b,hvar]
-I = ideal"a4,b5+b7"
-J = ideal "a4,b5"
-hI = homogenize(I, hvar)
-inverseSystem (I, PowerBound => 4)
-inverseSystem (I, PowerBound => 6)
-inverseSystem (J
-inverseSystem gens hI
-inverseSystem gens J
-///
 
 beginDocumentation()
 
@@ -323,37 +328,160 @@ SeeAlso
 ///
 
 doc ///
+Key
+ inverseSystem
+ (inverseSystem, Ideal)
+ (inverseSystem, Matrix)
+Headline
+ Macaulay Inverse systems (replaces fromDual and toDual)
+Usage
+ I1 = inverseSystem M
+ M1 = inverseSystem I
+Inputs
+ M:Matrix
+ M:RingElement
+ I:Ideal
+Outputs
+ I1:Ideal
+ M1:Matrix
+Description
+ Text
+  Let S = k[x_1..x_n] and let D be its dual, the divided power algebra,
+  regarded as an S-module.  Let M be a 1xm matrix of polynomials,
+  and let I be an ideal of S. 
+  
+  From a submodule of D to an ideal of S:
+  
+  We think of the entries of M as generators of an  S-submodule MM of D,
+  and 
+  inverseSystem M returns the annihilator in S of MM.
+  In the default behavior
+  a monomial $x^a$ in an entry of the matrix M is taken to represent
+  $a!x^(a) \in D'$, where,
+  $a = (a_1,\dots,a_n)$ then $a! = a_1!*\dots*a_n!$. Use
+  
+  inverseSystem(M, DividedPowers => false)
+  
+  to make the monomials of entries of M represent the dual basis of the monomial basis of S,
+  that is, the divided powers of the generators of D as an algebra.
+  
+  From an ideal of S to a submodule of D:
+  
+  If $I$ is an ideal of $S$, homogeneous or not,
+  we regard $I$ as an ideal of the localization $S'$ of $S$ at $(x_1,\dots,x_n)$. If $S'/I$ is of
+  finite length then
+  
+  M = inverseSystem I
+  
+  and
+  
+  M1 = inverseSystem(I, DividedPowers => false)
+  
+  each return a 1 x m matrix whose entries are
+  the minimal generators of
+  the annihilator of $I$ in $D$. In the matrix $M$
+  a term $x^a$
+  is to be interpreted as 
+  $a! x^(a)$, while in the matrix $M'$ it is interpreted
+  as $x^(a)$. Of course the first computation is only
+  valid if all the powers of variables appearing in the generators
+  of $I$ are < char k.
+  
+  On the other hand, if $S/I$ is not of finite length, then the
+  optional argument PowerBound is mandatory, and
+ 
+  M = inverseSystem(I, PowerBound => d)
+  M1 = inverseSystem(I, DividedPowers => false, PowerBound => d)
+
+  will compute as above but with results valid only up to degree d.
+  
+  To make these computations it is necessary to represent some sufficiently
+  large finitely generated S-submodule of $D'$ (this will automatically be
+  an $S'$-submodule. To do this we use the map of modules
+  D'-> S/(x_1^d,\dots, x_n^d) sending $x^{(a)}$ to 
+  contract(x^a, product(n, j-> x_i^{d-1})), defined only when the variables
+  in $x^{(a)}$ appear only with powers < d.
+  
+ Example
+  setRandomSeed 0
+  kk = QQ
+  S = kk[a,b,c]
+  map(S,S,0_S*vars S)
+  p = (a+b)^2
+  q = toDividedPowers p
+  p' = fromDividedPowers q
+  p'==p
+
+Caveat
+ Because inverseSystem
+ involves a conversion between the bases of the dual,
+ it should not be used in the default mode
+ unless the characteristic is greater than the highest
+ degree to which a variable appears. 
+ To make $x^a$ represent $x^(a)$,
+ for example in small characteristics use
+  
+ inverseSystem(Matrix, DividedPowers=>false)
+  
+ (which was the default behavior of the old script
+ "fromDual"). 
+SeeAlso
+ fromDividedPowers
+ toDividedPowers
+///
+
+doc ///
    Key 
     fromDividedPowers
+    (fromDividedPowers,Matrix)
+    (fromDividedPowers,RingElement)
    Headline 
     Translates from divided power basis to monomial basis
    Usage
+    f1 = fromDividedPowers f
    Inputs
+    f:RingElement
+    f:Matrix
    Outputs
+    f1:RingElement
+    f1:Matrix
    Description
     Text
+     If f is a polynomial, or a matrix of polynomials, written in the divided power monomial basis, then f1 is the corresponding
+     object written in the ordinary monomial basis.
     Example
+     S = ZZ/101[x,y]
+     x^2 == fromDividedPowers (2*x^2)
    SeeAlso
     toDividedPowers
 ///
 doc ///
-   Key
+   Key 
     toDividedPowers
-   Headline
-    translates from monomial basis to divided power basis
+    (toDividedPowers,Matrix)
+    (toDividedPowers,RingElement)
+   Headline 
+    Translates to divided power monomial basis from ordinary monomial basis
    Usage
+    f1 = toDividedPowers f
    Inputs
+    f:RingElement
+    f:Matrix
    Outputs
+    f1:RingElement
+    f1:Matrix
    Description
     Text
+     If f is a polynomial, or a matrix of polynomials, then f1 is the corresponding
+     object written in the divided power monomial basis, where for example $x^2$ denotes $x^{(2)}$
     Example
+     S = ZZ/101[x,y]
+     2*x^2 == toDividedPowers (x^2)
    SeeAlso
     fromDividedPowers
 ///
 
-
-
-doc ///
+///
 Key 
  fromDu
  (fromDu, Matrix)
@@ -409,8 +537,36 @@ assert(P==Q)
 assert(P == R)
 ///
 
+
+TEST///
+--with or without divided powers,
+--applying inverseSystem twice should be 
+--the identity on ideals AND on submodules of the dual, represented as matrices.
+
+setRandomSeed 0
+S = QQ[a,b]
+G = random(S^2,S^2)
+GG = map(S,S,(vars S)*G)
+GG' = map(S,S,(vars S)*transpose G^-1)
+f = a^2
+g = b^3
+h = GG matrix{{f,g}}
+I = ideal h
+--the equality for ideals:
+assert(I ==  inverseSystem inverseSystem(I,PowerBound =>4))
+assert(I ==  inverseSystem(inverseSystem(I, PowerBound=>4, DividedPowers=>true), 
+			   DividedPowers =>true
+			  )
+       )
+
+--The equality for matrices 
+--since we can't directly compare submodules of the injective hull, we compare them by taking their annihilators:
+assert(inverseSystem h == inverseSystem inverseSystem(inverseSystem h, PowerBound=>4))
+assert(inverseSystem h == inverseSystem(inverseSystem(inverseSystem h, PowerBound=>4, DividedPowers=>true), 
+	                                DividedPowers=>true))
+///
 ///TEST
---fromDu is equivariant on ideals
+--inverseSystem is equivariant on ideals (since it uses divided powers by default)
 setRandomSeed 0
 kk = QQ
 n = 3
@@ -419,33 +575,26 @@ g = random(S^3, S^3)
 testmap = map(S,S,(vars S)*g)
 testmap' = map(S,S,(vars S)*(dual g)^-1)
 f = random(S^1,S^{-2,-2,-3})
-assert(testmap'  fromDu(f, DividedPowers =>true) == 
-         fromDu(testmap f, DividedPowers => true))
 assert(testmap' inverseSystem f == inverseSystem testmap f)
+
+--the two are NOT equal if DividedPowers => false:
+assert(testmap'  inverseSystem(f, DividedPowers =>false) != 
+         inverseSystem(testmap f, DividedPowers => false))
 ///
 
-TEST///
---with or without divided powers,
--- applying fromDu toDu is the identity on ideals.
--- applying toDu fromDu is the identity on submodules of the dual.
+///
 setRandomSeed 0
-S = QQ[a,b]
-G = random(S^2,S^2)
-GG = map(S,S,(vars S)*G)
-GG' = map(S,S,(vars S)*transpose G^-1)
-f = a^2
-g = b^3
-h = matrix{{f,g}}
-assert(trim ideal GG h ==  fromDu toDu(4,GG h))
-assert(trim ideal GG h ==  fromDu(
-	                             toDu(4, GG h, 
-					 DividedPowers=>true), 
-				     DividedPowers =>true)
-				 )
-assert(ideal h == fromDu toDu(4, fromDu toDu(4,h)))
-assert(ideal GG h == fromDu toDu(4, fromDu toDu(4,ideal GG h)))
-assert(ideal GG h == fromDu(toDu(4, fromDu(toDu(4,ideal GG h),
-		 DividedPowers=>true), DividedPowers => true)))
+kk = QQ
+n = 3
+S = kk[a,b,hvar]
+I = ideal"a4,b5+b7"
+J = ideal "a4,b5"
+hI = homogenize(I, hvar)
+inverseSystem (I, PowerBound => 4)
+inverseSystem (I, PowerBound => 6)
+inverseSystem (J
+inverseSystem gens hI
+inverseSystem gens J
 ///
 
 ///
@@ -457,8 +606,15 @@ M = matrix{{a^2+b^3}}
 I1 = inverseSystem M
 I2 = inverseSystem GG M
 assert(hilbertSeries ideal leadTerm gens gb I1===hilbertSeries ideal leadTerm gens gb I2)
-
 ///
+
+--still to do: 
+--make PowerBound automatic in the artinian case. Add to documentation.
+
+--write tests for:
+-- the equivariance on matrices. 
+--the local behavior
+
 
 end--
 restart
