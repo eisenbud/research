@@ -204,7 +204,9 @@ Description
   to note that when taking the inverse system of an ideal,
   only the primary components contained in 
   $(x_1,\dots,x_n)$ play a role.
-  
+
+  %%%%%%%%%%%%%%%%%%%%%%%%  
+
   Going from a submodule of D to an ideal of $S$: 
   
   Because D and D' are not finitely generated S-modules
@@ -221,8 +223,8 @@ Description
   inverseSystem M = inverseSystem(M, DividedPowers => false)
   
   a monomial $x^a$ is taken to represent
-  $a!x^(a) \in D'$, where,
-  $a = (a_1,\dots,a_n)$ then $a! = a_1!*\dots*a_n!$.
+  $a!x^{(a)} \in D'$, where, if
+  $a = (a_1,\dots,a_n)$, then $a! = a_1!*\dots*a_n!$.
   This means
   that the script should not be used in the default
   way unless the characteristic is greater than the highest
@@ -259,8 +261,38 @@ Description
   I' = inverseSystem(matrix{{(x+y)^2}}, DividedPowers=>true)  
   betti res I'
  Text
-  Indeed, in the default behavior inverseSystem is equivariant in a natural
-  sense.
+ 
+  Indeed, in the default behavior inverseSystem is equivariant in a precise sense:
+  If G is an $n\times n$ invertible scalar matrix, then G defines an automorphism 
+  g: S\to S by change of variables. Also g also acts on 1 x m matrices M, componentwise, and,
+  with the default behavior of inverseSystem (that is, DividedPowers=>false) we have
+  (transpose g)^{-1} (inverseSystem M) = inverseSystem(g M), as illustrated below:
+ Example
+  kk = QQ
+  n = 3
+  S = kk[a,b,c]
+  M = matrix{{a^2,b^3+c^3}}
+ 
+  G = random(S^3, S^3)
+  g = map(S,S,(vars S)*G)
+  g' = map(S,S,(vars S)*(transpose G))
+  h =  map(S,S,(vars S)*(transpose G)^(-1))
+
+  inverseSystem M
+  g'(inverseSystem g(M))
+ Text
+  These may look different, but...
+ Example
+  g'(inverseSystem g(M)) == inverseSystem M
+ Text
+  Equivalently,
+ Example
+  h(inverseSystem M) == inverseSystem g(M)
+		
+ Text  
+  There is a similar equivariance for the dual action of inverseSystem on ideals.
+
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
   Going from an ideal of S to a submodule of D:
   
