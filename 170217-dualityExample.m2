@@ -97,6 +97,25 @@ testDuality(Ideal,Ideal,ZZ,ZZ) := o -> (I,J,s,w) ->(
     testDuality(I,J,{s,w,u},o)
     )
 
+symmPower = (d,M) ->(
+R := ring M;
+g := presentation M;
+r := numgens target g;
+X := symbol X;
+kk := ultimate(coefficientRing, R);
+R' := kk[X_1..X_r];
+Y2 := basis(d-1,R');
+Y1 := basis(1,R');
+mult := (Y1**Y2)//(basis(d,R'));
+--m1 := matrix((sub(mult, R))*(g**symmetricPower(d-1,target g)));
+
+L := flatten entries gens ((ideal vars R')^d);
+L1 := apply(L, i->flatten exponents i);
+degs := apply(L1,i->sum(#i,j->i_j*(degrees (target g))_j));
+m := map(R^(-degs),,matrix((sub(mult, R))*(g**symmetricPower(d-1,target g))));
+
+coker m
+)
 
 end--
 restart
@@ -125,6 +144,113 @@ testDuality(I,J,{s,w,u}, Verbose => true)
 --before the M2 invocation.
 
 
+---programs for symmetric powers
+restart
+load "170217-dualityExample.m2"
+--Veronese variety
+R = ZZ/101[a..f]
+s = 5
+m = genericSymmetricMatrix(R,a,3)
+I =trim minors(2,m);
+K= koszul gens I
+betti res HH_2 K
+betti res (I^2)
+--ideal of linear type
+ff = ideal ((gens I) * random(source gens I, R^{4:-2,s-4:-3}));
+K = ff:I;
+codim K -- s-residual intersection
+betti res K -- K is Gorenstein for 4 quadrics, also for 3 quadrics and a cubic, not for 2 and 2 or all cubic
+--(ie 2:-2,2:-3)
+M = (module I)/module(ff);
+omega' = symmetricPower(s-2,M);
+i= 2
+SM = symmetricPower(s-2-i,M);
+SM'= symmetricPower(i,M);
+SM'dual = Ext^s(SM',R^1);
+SM'dual' = Hom(SM', omega');
+betti res SM
+betti res SM'dual
+betti res SM'dual'
+--iso for 4:-2 and 2:-2, 2:-3. NOTE that this is covered by E-U Thm 2.2.
+--all three different for 4:-2, 1:-3, and i=1, also for i=2. Therefore the
+--Chardin duality result (replace power by symm power) does NOT hold with the weak hypothesis of E-U.
+
+restart
+load "170217-dualityExample.m2"
+--Rational normal quartic
+R = ZZ/101[a..e]
+s = 5
+m = matrix"a,b,c,d;b,c,d,e"
+I = minors(2,m);
+ff = ideal ((gens I) * random(source gens I, R^{4:-2,1:-3}));
+K = ff:I;
+codim K -- s-residual intersection
+betti res K 
+M = prune((module I)/module(ff));
+omega' = symmPower(s-2,M);
+i= 1
+SM = symmPower(s-2-i,M);
+SM'= symmPower(i,M);
+SM'dual = Ext^s(SM',R^1);
+time SM'dual' = Hom(SM', omega');
+betti res SM
+betti res SM'dual
+betti res SM'dual'
+--all three different for 5:-3, also for 4:-2,1:-3
+
+restart
+load "170217-dualityExample.m2"
+--P^1 x P^3
+R = ZZ/101[a..h]
+s = 4
+m = genericMatrix(R,a,2,4)
+I = minors(2,m);
+--ideal of linear type
+ff = ideal ((gens I) * random(source gens I, R^{4:-2,s-4:-3}));
+K = ff:I;
+codim K -- s-residual intersection
+betti res K
+M = (module I)/module(ff);
+omega' = symmPower(s-2,M);
+omega'' = prune((module I^2)/(ff*I));
+i= 1
+SM = prune symmPower(s-2-i,M);
+SM'= symmPower(i,M);
+SM'dual = Ext^s(SM',R^1);
+time SM'dual' = Hom(SM', omega');
+SM'dual'' = Hom(SM',omega'');
+betti res SM
+betti res SM'dual
+betti res SM'dual'
+betti res SM'dual''
+--SM'dual' is different
+
+--example without G_s
+restart
+load "170217-dualityExample.m2"
+(s,w) = (5,4)
+(I,J) = makeIJ(s,w);
+betti res I
+codim I
+betti res J
+(gens J)%I
+ring I
+codim(K = (J:I)) == s
+omega = Ext^s(R^1/K, R);
+betti res K
+betti res omega
+
+M = (module I)/(module J);
+codim M == s
+i = 2 -- i = 1..(s-1)//2
+dualM = Ext^s(symmPower(i,M), R);
+dualM' = symmPower(s-1-i,M);
+betti res dualM
+betti res dualM'
 
 
+omega' = symmPower(s-1,M);
+betti res omega'
+--time omega'' = symmetricPower(s-1,M);-- takes 5.7 sec
+--betti res omega''
 
