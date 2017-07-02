@@ -79,13 +79,23 @@ conj = I ->(
     (J:I,prune((module I^r)/module(J*I^(r-1))))
     )
 
+isIsoWithMap = (A,B)->(
+    S := ring A;
+    H := Hom(A,B);
+    Hp := prune H;
+    pmap := Hp.cache.pruningMap;
+    f := homomorphism(pmap*map(Hp,S^1, random(target presentation Hp,S^1)));
+    t := if prune coker f == 0 then true else false;
+    (t,f))
+
 isIso = (A,B)->(
     S := ring A;
     H := Hom(A,B);
     Hp := prune H;
     pmap := Hp.cache.pruningMap;
     f := homomorphism(pmap*map(Hp,S^1, random(target presentation Hp,S^1)));
-    if prune coker f == 0 then true else false)
+    t := if prune coker f == 0 then true else false;
+    t)
 
 end--
 viewHelp ReesAlgebra
@@ -442,3 +452,108 @@ isIso(M,H1) == true
 
 netList primaryDecomposition I
 netList I_*
+
+---------------
+--monomial curve examples
+--in P3:
+restart
+load "residualDeterminantal.m2"
+
+S = ZZ/32003[a..d]
+I = monomialCurveIdeal(S,{1,3,4})
+(sI,ell, r) = specialFibeIdeal(I, I_0)
+J = rand(I,1,2)+rand(I,1,3)
+K = J:I
+M = prune(module(I^r)/module(J*I^(r-1)))
+betti res M
+betti res prune(Hom(M,M))
+--self-dual, MCM iso omega, iso to End M.
+
+restart
+load "residualDeterminantal.m2"
+--rational normal curves
+d = 7
+S = ZZ/32003[x_0..x_(d-1)]
+I = monomialCurveIdeal(S,toList(1..d-1))
+(sI,ell,r) = specialFibeIdeal(I, I_0)
+(ell,r) 
+ell == d
+r  -- (for d = 4,5,6,7, r = 0,1,3,3)
+J=rand(I,ell-1,2);
+time (K,M) = conj I;
+minimalBetti K -- it's CM; but M is not omega.
+minimalBetti M
+betti res prune Hom(M,M) -- look 
+omega = Ext^(d-1)(S^1/K,S^1) -- not iso M
+
+--
+restart
+load "residualDeterminantal.m2"
+--cusps of order delta
+--delta = 1,2 give analyt indep generators
+--delta = 3: it *seems* to work, 
+--but only inhomogeneously.
+
+d = 5
+delta = 3
+S = ZZ/32003[x_0..x_(d-1)]
+exps = toList(1..d-2)|{d-1+delta}
+I = monomialCurveIdeal(S,exps)
+betti res I
+degree I
+(sI,ell,r) = specialFibeIdeal(I, I_0)
+(ell,r) == (4,2)
+
+J=rand(I,2,2)+rand(I,1,3);
+K = J:I
+codim K == 3
+codim(I+K) == 4
+M = prune(module(I^r)/module(J*I^(r-1)));
+betti (F = res M) -- CM but not homogeneously symmetric!
+M' = coker transpose F.dd_3
+H = Hom(M,M')
+prune H
+kk= coefficientRing S
+random kk
+f = sum(4, i->(random(kk)*homomorphism(H_{i})));
+n
+g = (matrix f)**(S^1/(ideal vars S))
+isHomogeneous coker g
+prune (M**(S^1/(ideal vars S)))
+target g
+cbar = (coker f)/((ideal vars S)*(coker f))
+
+V = S/K
+Ibarr = sub(I^r,V);
+omega = sub(I,V);
+A = omega_3 -- this is a nonzerodivisor of V
+res ideal A
+H1 = (A^2*Ibarr):((A^2*omega):Ibarr)
+betti trim H1
+
+--bug! this is isom to Hom, but prune Hom says 4 gens.
+--for other reasons I know that the 4 gens of Hom
+--are NOT all the homomorphisms.
+
+C = sum(H1_*,B -> (random kk)*B);
+0==gens (A^2*Ibarr) % (C*((A^2*omega):Ibarr)+(ideal vars V))
+0==gens (C*((A^2*omega):Ibarr)) %((A^2*Ibarr)+(ideal vars V))
+
+betti res I^2
+
+betti res M'
+prune Hom(M,M')
+minimalBetti K -- it's CM; but M is not omega.
+omega = prune Ext^(3)(S^1/K,S^1); -- not iso M
+betti res omega
+betti res prune Hom(M,M) -- look 
+
+betti res omega
+
+T = ring sI
+U = T/sI
+v2 = (vars U)_{0,1,2}
+v3 = (vars U)_{3,4,5}
+reg2 = ideal(v2*random(source v2, U^{2:-1}))
+reg3 = ideal (v3*random(source v3, U^{1:-1}))
+res (reg2+reg3)
