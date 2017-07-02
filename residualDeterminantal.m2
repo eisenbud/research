@@ -250,3 +250,41 @@ betti(H =  prune Hom(M,M))
 minimalBetti H
 omega = prune fastExt(6,K);
 minimalBetti omega
+
+restart
+--4 x 5 non-generic in 8 vars
+load "residualDeterminantal.m2"
+S = ZZ/101[a..d]
+L = flatten entries gens((ideal vars S)^2)
+
+randm = ()->(
+m := mutableMatrix map(S^4, S^{5:-2},(i,j)-> if i>j+1 then 0_S else L_(random 10));
+apply (4, i-> m_(i,i) = S_i^2);
+m_(3,2) = 0;
+m_(3,3) = a;
+m_(3,4) = b;
+m = matrix m;
+mi := apply(4, i->minors(i+1, m));
+(m, mi/codim)
+)
+
+randm()
+
+M=apply (1000, i->(
+	(m, seq) = randm();
+	if seq == {4,4,3,2} then (
+	return m;
+	break))
+)
+M1 = select(M, i-> i =!=null)
+m = M1_0
+I = minors(4,m)
+(sI,ell,r) = specialFibeIdeal(I,I_0)
+
+(K,M) = conj I;
+minimalBetti M
+betti(H =  prune Hom(M,M))
+minimalBetti H
+omega = prune fastExt(6,K);
+minimalBetti omega
+
