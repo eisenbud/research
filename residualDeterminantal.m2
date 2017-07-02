@@ -185,8 +185,12 @@ R = ring I
 L0 = ideal(I_0,I_5)+rand(I,1,2);
 L = ideal apply(L0_*, a -> a^2);
 K = L:I;
+betti res trim K
 gens(K^2)% (L*K)
-M = (module K)/module ideal(I_0,I_5);
+M = (module K)/module ideal(I_0^2,I_5^2);
+minimalBetti M -- doesn't work 
+--error: input polynomials/vectors were computed in a non-compatible monomial order
+prune Ext^2(M,S);
 prune Hom(M,M)
 
 ---
@@ -197,9 +201,20 @@ load "residualDeterminantal.m2"
 
 S = ZZ/101[a,b,c,d]    
 I = ideal"ab,ac,bc,bd,d2"
+I = ideal"ab2,ac2,bc2,bd2,d3"
+betti res I
 (K,M) = conj I
-minimalBetti M
-prune Hom(M,M)
+betti presentation M
+M' = Ext^3(M,S^{-22})
+H = Hom(M,M')
+Hp = prune H
+pmap = Hp.cache.pruningMap
+target pmap
+f = homomorphism(pmap*map(Hp,S^1, random(target presentation Hp,S^1)));
+prune coker f
+betti res M
+betti res M'
+betti res prune Hom(M,M)
 codim K
 omega = fastExt(3,K)
 prune Hom(omega,omega)
@@ -224,7 +239,14 @@ restart
 --3 x 5 non-generic in 8 vars
 load "residualDeterminantal.m2"
 S = ZZ/101[a..h]
-matrix"a,b,c,d,e;
+m = matrix"a,b,c,d,e;
        b,c,h,e,f;
        c,d,e,f,g"
-       
+I = minors(3,m)       
+(sI,ell,r) = specialFibeIdeal(I,I_0)
+(K,M) = conj I;
+minimalBetti M
+betti(H =  prune Hom(M,M))
+minimalBetti H
+omega = prune fastExt(6,K);
+minimalBetti omega
