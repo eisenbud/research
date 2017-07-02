@@ -269,7 +269,7 @@ S = ZZ/101[a..d]
 L = flatten entries gens((ideal vars S)^2)
 
 randm = ()->(
-m := mutableMatrix map(S^4, S^{5:-2},(i,j)-> if i>j+1 then 0_S else L_(random 10));
+m := mutableMatrix map(S^4, S^{5:-2},(i,j)-> if i>j+1 or j>i+2 then 0_S else L_(random 10));
 apply (4, i-> m_(i,i) = S_i^2);
 m_(3,2) = 0;
 m_(3,3) = a;
@@ -290,9 +290,9 @@ M=apply (1000, i->(
 M1 = select(M, i-> i =!=null)
 m = M1_0
 I = minors(4,m)
-(sI,ell,r) = specialFibeIdeal(I,I_0)
+--(sI,ell,r) = specialFibeIdeal(I,I_0)
 
-(K,M) = conj I;
+time (K,M) = conj I;
 minimalBetti M
 betti(H =  prune Hom(M,M))
 minimalBetti H
