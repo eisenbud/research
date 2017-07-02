@@ -414,6 +414,8 @@ I = minors(3,m);
 restart
 load "residualDeterminantal.m2"
 S = ZZ/101[a..d]
+--S = QQ[a..d]
+--S = ZZ/32003[a..d]
 m= matrix {{a^2, d^2, b^2, b*d}, {b*d, b^2, a^2, d^2}, {0, 0, a, b}}
 I = minors(3,m)
 I2 = minors(2,m)
@@ -421,10 +423,16 @@ I1 = minors(1,m)
 {I1,I2,I}/codim -- codims 3,3,2
 (K,M) = conj I;
 --(ell, r) = (3,7)
-minimalBetti M -- linear, 8,16,8, gen in degree 35
+betti res M -- linear, 8,16,8, gen in degree 35
+
 
 J = rand(I,2,5)
 omega = prune ((module I)/module J) -- 2 gens; not iso to M
+codim K
+omega' = Ext^2(S^1/K,S^1)
+omega'**S^{-10}
+isIso(omega, omega'**S^{-10}) == false -- huh??
+
 minimalBetti Hom(M,M) -- same resolution as M,
 M' = Ext^2(M,S^{-72})
 isIso(M,M') == true
