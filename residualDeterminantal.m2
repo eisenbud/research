@@ -23,7 +23,7 @@ totalBetti(ZZ,BettiTally) := (j,B) ->(
 totalBetti(ZZ,Module) := (j,M) -> (
     totalBetti(j, minimalBetti M))
 totalBetti BettiTally := B->(
-    len = max apply(keys B, k->k_0);
+    len := max apply(keys B, k->k_0);
     apply(len+1, j -> totalBetti(j,B)))
 totalBetti Module := M ->(
     totalBetti minimalBetti M)
@@ -43,6 +43,7 @@ fastExt = (i,I) ->(
     F := res(I, LengthLimit => i+1, FastNonminimal =>true);
     (kernel transpose F.dd_(i+1))/image transpose F.dd_(i)
     )
+
 rand = (I,s,d) ->
     ideal ((gens I)*random(source gens I, (ring I)^{s:-d}))
 
@@ -54,9 +55,10 @@ redNumber = sI ->(
     i:= 0;
     last (while hilbertFunction(i,N)!=0  list i do i = i+1)
     )
+
 specialFibeIdeal = method()
-specialFibeIdeal(Ideal,RingElement):= (I,a) ->(
-     Reesi:= reesIdeal(I, a);
+specialFibeIdeal(Ideal,RingElement):= (I,x) ->(
+     Reesi:= reesIdeal(I, x);
      S := ring Reesi;
      --is the coefficient ring of Reesi automatically flattened? NO
      kk := ultimate(coefficientRing, S);
@@ -68,6 +70,7 @@ specialFibeIdeal(Ideal,RingElement):= (I,a) ->(
      r := redNumber sI;
      (sI,ell,r)
      )
+
 conj = I ->(
     d := degree(I_0);
     (sI,ell,r) := specialFibeIdeal(I,I_0);
@@ -75,6 +78,14 @@ conj = I ->(
     J := rand(I,ell-1,d);
     (J:I,prune((module I^r)/module(J*I^(r-1))))
     )
+
+isIso = (A,B)->(
+    S := ring A;
+    H := Hom(A,B);
+    Hp := prune H;
+    pmap := Hp.cache.pruningMap;
+    f := homomorphism(pmap*map(Hp,S^1, random(target presentation Hp,S^1)));
+    if prune coker f == 0 then true else false)
 
 end--
 viewHelp ReesAlgebra
@@ -252,7 +263,7 @@ omega = prune fastExt(6,K);
 minimalBetti omega
 
 restart
---4 x 5 non-generic in 8 vars
+--4 x 5 non-generic in 4 vars
 load "residualDeterminantal.m2"
 S = ZZ/101[a..d]
 L = flatten entries gens((ideal vars S)^2)
@@ -288,3 +299,138 @@ minimalBetti H
 omega = prune fastExt(6,K);
 minimalBetti omega
 
+
+
+--3 x 4 non-generic in 3 vars
+restart
+load "residualDeterminantal.m2"
+S = ZZ/101[a..c]
+{*
+L = flatten entries gens((ideal vars S)^2)
+randm = ()->(
+m := mutableMatrix map(S^3, S^{4:-2},(i,j)-> if i>j+1 then 0_S else L_(random 6));
+apply (3, i-> m_(i,i) = S_i^2);
+m_(2,1) = 0;
+m_(2,2) = a;
+m_(2,3) = b;
+m = matrix m;
+mi := apply(3, i->minors(i+1, m));
+(m, mi/codim)
+)
+
+randm()
+M=apply (1000, i->(
+	(m, seq) = randm();
+	if seq == {4,4,3,2} then (
+	return m;
+	break))
+)
+M1 = select(M, i-> i =!=null)
+m = M1_0
+*}
+m = matrix {{a^2, a*c, c^2, c^2}, {a*b, b^2, c^2, a^2}, {0, 0, a, b}}
+I = minors(3,m)
+--(sI,ell,r) = specialFibeIdeal(I,I_0)
+
+(K,M) = conj I;
+T = S/K
+toT = map(T,S)
+minimalBetti M
+
+J = rand(I,2,5)
+omega = prune ((module I)/module J) -- not iso to M
+minimalBetti Hom(M,M)
+M' = Ext^2(M,S^{-72})
+H = Hom(M,M');
+
+
+betti M
+betti(H1 =  prune Hom(M,M)**S^{-35})
+minimalBetti H1
+omega = prune fastExt(6,K);
+minimalBetti omega
+
+
+
+Ibar = trim toT I
+f = Ibar_0    
+f = rand(Ibar,1,5)
+f1 = rand(Ibar,1,5)
+
+gens(Ibar^8) % (f*Ibar^7) == 0
+gens(Ibar^7) % ((f^7*Ibar):Ibar^7) ==0
+gens((f^(7)*Ibar^7):Ibar^7) % (Ibar^7) ==0
+
+gens((f^13*Ibar):Ibar^7) % (Ibar^7) ==0
+gens((Ibar^7)) %((f^13*Ibar):Ibar^7)  !=0
+
+gens((f^12*Ibar):Ibar^7) % (Ibar^7) !=0
+gens((Ibar^7)) %((f^12*Ibar):Ibar^7)  ==0
+
+Ibar^7 : ((f^7*Ibar):Ibar^7)
+
+
+g = rand((f^7*Ibar^7): (((f^7*Ibar):Ibar^7)),1,62)
+(f^7*Ibar^7) == g*((f^7*Ibar):Ibar^7)
+
+g1 = rand(Ibar,1,62);
+(f^7*Ibar^7) == g1*((f^7*Ibar):Ibar^7)
+
+------------------
+--3 x 4 non-generic in 4 vars
+restart
+load "residualDeterminantal.m2"
+S = ZZ/101[a..d]
+
+L = flatten entries gens((ideal vars S)^2)
+randm = ()->(
+m := mutableMatrix map(S^3, S^{4:-2},(i,j)-> if i>j+1 then 0_S else L_(random 10));
+apply (3, i-> m_(i,i) = S_i^2);
+m_(2,1) = 0;
+m_(2,2) = a;
+m_(2,3) = b;
+m = matrix m;
+mi := apply(3, i->minors(i+1, m));
+(m, mi/codim)
+)
+
+randm()
+M=apply (100, i->(
+	(m, seq) = randm();
+	if seq == {4,3,2} or seq =={3,3,2} then (
+	return m;
+	break))
+)
+M1 = select(M, i-> i =!=null)
+
+M2 = select(M1, m->(
+I = minors(3,m);
+(sI,ell,r) = specialFibeIdeal(I,I_0);
+(ell == 3) and r>0 )
+)
+
+--3x4 example with 4 vars, ell = 3, r=7,
+--found by the method above.
+restart
+load "residualDeterminantal.m2"
+S = ZZ/101[a..d]
+m= matrix {{a^2, d^2, b^2, b*d}, {b*d, b^2, a^2, d^2}, {0, 0, a, b}}
+I = minors(3,m)
+I2 = minors(2,m)
+I1 = minors(1,m)
+{I1,I2,I}/codim -- codims 3,3,2
+(K,M) = conj I;
+--(ell, r) = (3,7)
+minimalBetti M -- linear, 8,16,8, gen in degree 35
+
+J = rand(I,2,5)
+omega = prune ((module I)/module J) -- 2 gens; not iso to M
+minimalBetti Hom(M,M) -- same resolution as M,
+M' = Ext^2(M,S^{-72})
+isIso(M,M') == true
+betti(H1 =  prune Hom(M,M)**S^{-35})
+isIso(M,H1) == true
+--so M is iso to M', Hom(M,M)
+
+netList primaryDecomposition I
+netList I_*
