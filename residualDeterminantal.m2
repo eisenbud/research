@@ -13,6 +13,7 @@ and all isomorphic to omega_{R/K}, independent of i.
 
 
 load "SymmetricPower.m2"
+needsPackage "ReesAlgebra"
 
 --programs to extract the list of total betti numbers from a BettiTally
 totalBetti = method()
@@ -44,7 +45,40 @@ fastExt = (i,I) ->(
     )
 rand = (I,s,d) ->
     ideal ((gens I)*random(source gens I, (ring I)^{s:-d}))
+
+
+redNumber = sI ->(
+    param := rand(ideal vars ring sI, dim sI,1);
+    N := (ring sI)^1/(sI+param);
+    assert(dim N == 0);
+    i:= 0;
+    last (while hilbertFunction(i,N)!=0  list i do i = i+1)
+    )
+specialFibeIdeal = method()
+specialFibeIdeal(Ideal,RingElement):= (I,a) ->(
+     Reesi:= reesIdeal(I, a);
+     S := ring Reesi;
+     --is the coefficient ring of Reesi automatically flattened? NO
+     kk := ultimate(coefficientRing, S);
+     gS := gens S;
+     T := kk[gS, Degrees => {#gS:1}];
+     minimalpres := map(T,S);
+     sI := trim minimalpres Reesi;
+     ell := dim sI;
+     r := redNumber sI;
+     (sI,ell,r)
+     )
+conj = I ->(
+    d := degree(I_0);
+    (sI,ell,r) := specialFibeIdeal(I,I_0);
+     <<(ell,r)<<endl;flush;
+    J := rand(I,ell-1,d);
+    (J:I,prune((module I^r)/module(J*I^(r-1))))
+    )
+
 end--
+viewHelp ReesAlgebra
+
 restart
 load "residualDeterminantal.m2"
 --q := n-p
@@ -70,19 +104,21 @@ apply(num, j-> prune fastExt(cod+j+2,I_j))
 --test whether the crucial I^r/JI^(r-1) is MCM of codim s
 restart
 load "residualDeterminantal.m2"
-(p,n) = (3,5)
+(p,n) = (2,5)
 q = n-p
 s = p*q
 r = p*q+1-p-q
 ell = s+1
 
-j= 3
+I = detPower(p,n,1);
+(sI,ell,r) = specialFibeIdeal(I,I_0)
+
 apply(1, u->(i = s;
 I = detPower(p,n,1);
 R= ring I;
 J = ideal ((gens I)*random(source gens I, (ring I)^{i:-p}));
 --print minimalBetti J;
-print minimalBetti (module(I^j)/module(J*I^(j-1)));
+print minimalBetti (module(I^r)/module(J*I^(r-1)));
 ))
 
 --2 x n for n <= 7, the module I^r/JI^(r-1) has linear resolution of length s.
@@ -111,13 +147,14 @@ minimalBetti Jell
 --canonical module?
 restart
 load "residualDeterminantal.m2"
-(p,n) = (3,5) -- runs out of Heap for 3,6
+(p,n) = (2,4) -- runs out of Heap for 3,6
 q = n-p
 s = p*q
 r = p*q+1-p-q
 ell = s+1
 cod = n-p+1
 I = detPower(p,n,1);
+assert(s+1 == dim specialFiberIdeal(I,I_0))
 mm = ideal vars ring I
 Jell = rand(I,ell,p);
 --(gens trim (mm*I))% Jell
@@ -127,3 +164,67 @@ time K = Js:I;
 time minimalBetti M
 
 time omega =  fastExt(s,K)
+
+-----
+code methods reesIdeal
+uninstallPackage "ReesAlgebra"
+installPackage "ReesAlgebra"
+viewHelp ReesAlgebra
+
+
+restart
+load "residualDeterminantal.m2"
+(p,n) = (2,4) 
+q = n-p
+s = p*q
+r = p*q+1-p-q
+ell = s+1
+cod = n-p+1
+I = detPower(p,n,1)
+R = ring I
+L0 = ideal(I_0,I_5)+rand(I,1,2);
+L = ideal apply(L0_*, a -> a^2);
+K = L:I;
+gens(K^2)% (L*K)
+M = (module K)/module ideal(I_0,I_5);
+prune Hom(M,M)
+
+---
+--general statement
+--assume I equigenerated for simplicity!
+restart
+load "residualDeterminantal.m2"
+
+S = ZZ/101[a,b,c,d]    
+I = ideal"ab,ac,bc,bd,d2"
+(K,M) = conj I
+minimalBetti M
+prune Hom(M,M)
+codim K
+omega = fastExt(3,K)
+prune Hom(omega,omega)
+
+
+restart
+load "residualDeterminantal.m2"
+(p,n) = (2,5)
+q = n-p
+s = p*q
+r = p*q+1-p-q
+ell = s+1
+
+I = detPower(p,n,1);
+(sI,ell,r) = specialFibeIdeal(I,I_0)
+(K,M) = conj I;
+betti prune M
+betti prune Hom(M,M)
+
+
+restart
+--3 x 5 non-generic in 8 vars
+load "residualDeterminantal.m2"
+S = ZZ/101[a..h]
+matrix"a,b,c,d,e;
+       b,c,h,e,f;
+       c,d,e,f,g"
+       
