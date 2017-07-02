@@ -410,7 +410,7 @@ I = minors(3,m);
 )
 
 --3x4 example with 4 vars, ell = 3, r=7,
---found by the method above.
+--found by the method above. -- but actually only involves 3 vars.
 restart
 load "residualDeterminantal.m2"
 S = ZZ/101[a..d]
