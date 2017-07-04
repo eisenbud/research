@@ -557,3 +557,50 @@ v3 = (vars U)_{3,4,5}
 reg2 = ideal(v2*random(source v2, U^{2:-1}))
 reg3 = ideal (v3*random(source v3, U^{1:-1}))
 res (reg2+reg3)
+
+----------------------------
+--residual intersection in a codim 2 perfect
+restart
+load "residualDeterminantal.m2"
+d = 4; n= 5;e = 1; kk = ZZ/101
+S = kk[x_0..x_(d-1)]
+--
+m = map(S^n,S^{n+1:-e}, (i,j) -> if i<n-1 then random(kk)*x_(random(d)) else random(kk)*x_(random(d))^2)
+minorss = apply(n, j->minors(j+1,m));
+minorss/codim
+--
+m = matrix {{11*x_0, -16*x_2, -50*x_0, -26*x_0, -26*x_1, 0}, {35*x_1, 11*x_3, -15*x_0, -x_3, -13*x_1,
+      -26*x_0}, {12*x_2, 5*x_1, -9*x_3, 19*x_0, -33*x_3, -21*x_3}, {33*x_1, -29*x_1, 40*x_3, -34*x_0, 12*x_2,
+      40*x_1}, {40*x_0, -47*x_1, 49*x_1, 33*x_2, 25*x_3, 0}}
+m = matrix {{-9*x_1, 29*x_0, 17*x_1, -34*x_0, 28*x_2, -17*x_1}, {-24*x_1, 39*x_1, 45*x_3, -7*x_1,
+       -30*x_1, 44*x_2}, {38*x_1, -42*x_1, x_2, 30*x_2, -42*x_2, 20*x_2}, {-19*x_1, -14*x_3, -22*x_2,
+       6*x_2, 44*x_0, 32*x_2}, {36*x_1^2, 6*x_0^2, -19*x_3^2, -38*x_3^2, -29*x_1^2, 12*x_3^2}}
+ell == 4, 
+r == 6
+
+I = minors(n,m);
+J = rand(I,d-1,5*e+1);
+M = module(I^6)/module(J*I^5);
+minimalBetti M
+minimalBetti I
+K = J:I;
+betti res J
+minimalBetti K
+
+(L,ell,r)= specialFibeIdeal(I,I_0);
+
+
+
+minimalBetti(module(I^2)/module(J*I))
+V = S/K
+map(V,S)
+Ibarr = sub(I^r,V);
+minimalBetti sub(omega, S)
+
+A = omega_0 -- this is a nonzerodivisor of V
+res ideal A
+H1 = (A^4*Ibarr):((A^4*omega):Ibarr)
+betti H1
+C = sum(H1_*, B -> random(kk)*B)
+gens(A^3*Ibarr) % (C*((A^3*omega):Ibarr)+(ideal vars V)*(A^3*Ibarr))
+trim ideal oo
