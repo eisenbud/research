@@ -39,12 +39,14 @@ trim (I^k)
 )
 
 fastExt = (i,I) ->(
-    --returns Ext^i(ring I/I,R)
+    --let R = ring I
+    --returns Ext^i_R(R/I , R)
     F := res(I, LengthLimit => i+1, FastNonminimal =>true);
     (kernel transpose F.dd_(i+1))/image transpose F.dd_(i)
     )
 
 rand = (I,s,d) ->
+    --s elements of degree d chosen at random from I
     ideal ((gens I)*random(source gens I, (ring I)^{s:-d}))
 
 
@@ -572,35 +574,120 @@ minorss/codim
 m = matrix {{11*x_0, -16*x_2, -50*x_0, -26*x_0, -26*x_1, 0}, {35*x_1, 11*x_3, -15*x_0, -x_3, -13*x_1,
       -26*x_0}, {12*x_2, 5*x_1, -9*x_3, 19*x_0, -33*x_3, -21*x_3}, {33*x_1, -29*x_1, 40*x_3, -34*x_0, 12*x_2,
       40*x_1}, {40*x_0, -47*x_1, 49*x_1, 33*x_2, 25*x_3, 0}}
+
+
+----POTENTIAL COUNTER-EXAMPLE: 5X6 MATRIX IN 4 VARS.
+restart
+load "residualDeterminantal.m2"
+d = 4; n= 5;e = 1; kk = ZZ/101
+S = kk[x_0..x_(d-1)]
+
 m = matrix {{-9*x_1, 29*x_0, 17*x_1, -34*x_0, 28*x_2, -17*x_1}, {-24*x_1, 39*x_1, 45*x_3, -7*x_1,
        -30*x_1, 44*x_2}, {38*x_1, -42*x_1, x_2, 30*x_2, -42*x_2, 20*x_2}, {-19*x_1, -14*x_3, -22*x_2,
        6*x_2, 44*x_0, 32*x_2}, {36*x_1^2, 6*x_0^2, -19*x_3^2, -38*x_3^2, -29*x_1^2, 12*x_3^2}}
-ell == 4, 
-r == 6
-
+--ell == 4, 
+--r == 6
+--codims of i xi minors: {4,4,4,3,2}
 I = minors(n,m);
-J = rand(I,d-1,5*e+1);
+J = rand(I,3,6);
+J4 = rand(I,4,6);
+
 M = module(I^6)/module(J*I^5);
-minimalBetti M
-minimalBetti I
-K = J:I;
-betti res J
-minimalBetti K
+time minimalBetti M
+--o12 = total: 22 72 84 40 6
+--         36: 22 72 84 40 6
+--NOT self-dual, and not MCM.
+--But
 
-(L,ell,r)= specialFibeIdeal(I,I_0);
-
-
-
-minimalBetti(module(I^2)/module(J*I))
 V = S/K
-map(V,S)
-Ibarr = sub(I^r,V);
-minimalBetti sub(omega, S)
+IV = sub(I,V)
+IVS = prune pushForward(map(V,S),module (IV^6))
+betti res IVS
+--o22 = total: 16 48 48 16
+--         36: 16 48 48 16
 
-A = omega_0 -- this is a nonzerodivisor of V
-res ideal A
-H1 = (A^4*Ibarr):((A^4*omega):Ibarr)
-betti H1
-C = sum(H1_*, B -> random(kk)*B)
-gens(A^3*Ibarr) % (C*((A^3*omega):Ibarr)+(ideal vars V)*(A^3*Ibarr))
-trim ideal oo
+betti res Hom(IVS, IVS)
+--is the same
+
+
+--------------
+--doesn't work with 1-residual int of certain codim 2 perfect ideals.
+restart
+load "residualDeterminantal.m2"
+S = ZZ/101[x,y]
+P = ideal vars S
+--mlin =  random(S^1, S^{2:-1})
+--mquad =  random(S^2, S^{2:-2})
+--m = mlin||mquad
+m = matrix"x2,0,y;0,y2,x"
+isHomogeneous m
+I = minors(2,m)
+--specialFibeIdeal(I,I_0) --here we have r = 1.
+f1 = sum(I_*, g -> random(ZZ/101)*g)
+f2 = sum(I_*, g -> random(ZZ/101)*g)
+K = ideal(f1):I;
+L = (ideal(f1,f2):I) -- the link
+g = sum(L_*,h->random(ZZ/101)*h)
+assert(0!=gens(L^2) % (K + g*L+ (ideal vars S)*L^2)) -- reduction number of L is >1.
+--Bernd proves that for a perfect codim 2 ideal I with r= 1, such that
+--Ibar is omega-self-dual, then the link L of I would have r = 1,
+--which is not the case here.
+
+
+(K,M) = conj I
+betti (F = res M)
+M/(P*M)
+M' = coker transpose F.dd_1
+M'/(P*M')
+H = Hom(M,M')
+
+
+--but 2-residual intersection seems to work.
+restart
+load "residualDeterminantal.m2"
+S = ZZ/101[x,y,z]
+mlin =  random(S^2, S^{3:-1})
+mquad =  random(S^2, S^{3:-2}) -- get the 0 value in the assert for up to -8
+m = mlin||mquad
+I = minors(3,m)
+codim minors(2,m)
+--specialFibeIdeal(I,I_0): ell = 3, r = 2
+f1 = sum(I_*, g -> random(ZZ/101)*g)
+f2 = sum(I_*, g -> random(ZZ/101)*g)
+K = ideal(f1,f2):I;
+L = ideal(m^{3})
+g = sum(L_*,h->random(ZZ/101)*h)
+assert(0==(gens(L^2) % (K + g*L+ (ideal vars S)*L^2)))
+-- = 0
+(K,M) = conj I
+betti res M
+betti res prune Hom(M,M)
+betti res Ext^2(S^1/K,S^1)
+isHomogeneous M
+--
+
+restart
+load "residualDeterminantal.m2"
+S = ZZ/101[x,y,z]
+mlin =  random(S^3, S^{3:-1})
+mquad =  random(S^3, S^{1:-3})
+m = mlin|mquad
+isHomogeneous m
+
+I = minors(3,m)
+betti m
+codim minors(2,m)
+--specialFibeIdeal(I,I_0)
+f1 = sum(I_*, g -> random(ZZ/101)*g)
+f2 = sum(I_*, g -> random(ZZ/101)*g)
+f3 = sum(I_*, g -> random(ZZ/101)*g)
+J3 = ideal (f1,f2,f3)
+J2 = ideal(f1,f2)
+P = ideal vars S
+(gens (I^3)) % (I^2*J3+P*I^3)
+
+K = ideal(f1,f2):I;
+L = J3:I
+g = sum(L_*,h->random(ZZ/101)*h)
+assert(0 == (gens(L^2) % (K + g*L+ P*L^2)))
+
