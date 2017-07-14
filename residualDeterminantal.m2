@@ -117,7 +117,8 @@ redNumber = sI ->(
     r'-1
     )
 
-specialFiberInfo = (I,a) ->(
+specialFiberInfo = method()
+specialFiberInfo(Ideal, RingElement) := (I,a) ->(
     --a \in I\subset S, a a nzd.
     --returns (sI,ell,r), the special fiber ideal, analytic spread, reduction number
     --Note that though the generators of specialFiberIdeal(I,a) have double degrees
@@ -134,6 +135,8 @@ specialFiberInfo = (I,a) ->(
     r := redNumber sJ;
     (sJ,ell,r)
      )
+specialFiberInfo Ideal := I -> specialFiberInfo(I,I_0)
+
 ///
 restart
 load "residualDeterminantal.m2"
@@ -396,6 +399,121 @@ isIsoEnd = ()-> if isEquigenerated I then return isHomogeneousIso(Mbar, Hom(Mbar
 isIsoOmega  = ()-> if isEquigenerated I then return isHomogeneousIso(Mbar, Ext^s(R^1/K, R^1)) else
                                              isLocalIso(Mbar, Ext^s(R^1/K, R^1))
 
+
+reesIdeal1 = method(Options => {Variable => "w"})
+
+fixupw = w -> if instance(w,String) then getSymbol w else w
+
+reesIdeal1(Module) := Ideal => o -> M -> (
+     P := presentation M;
+     UE := transpose syz transpose P;
+     symmetricKernel(UE,Variable => fixupw o.Variable)
+     )
+
+reesIdeal1(Ideal) := Ideal => o-> (J) -> (
+     symmetricKernel(gens J, Variable => fixupw o.Variable)
+     )
+
+---- needs user-provided non-zerodivisor. 
+
+reesIdeal1(Module, RingElement) := Ideal =>
+reesIdeal1(Module, RingElement) := Ideal => o -> (M,a) -> (
+     R := ring M;
+     if R =!= ring a 
+       then error("Expected Module and Element over the same ring");   
+     P := presentation M;
+     S := symmetricAlgebra(target P, VariableBaseName => fixupw o.Variable);
+     I := ideal(vars S * promote(P,S));
+     saturate(I,promote(a,S)))
+reesIdeal1(Ideal, RingElement) := Ideal => o -> (I,a) -> (
+     reesIdeal(module I, a)
+     )
+
+///
+restart
+load "residualDeterminantal.m2"
+
+--A difficult Rees ideal
+R = ZZ/101[a,b,c,d]
+I = ideal(a^3*b^2*c^2-a^4*b*d^2+a^2*b^2*d^3-a*c^2*d^4,a^2*b^3*c^2-a^3*b^2*d^2+a*b^3*d^3-b*c^2*
+       d^4,-a^3*b^3*c+a^2*b^4*c-a^3*b*c^2*d+a*b*c*d^4-b^2*c*d^4,-a^2*b*c^4-a^3*b^2*c*d+a^2*b^3*c*
+       d+a*b^3*c*d^2-b^4*c*d^2,a*b^5*c-b^6*c+a*b^3*c^2*d-b*c^4*d^2-a*b^2*c*d^3+b^3*c*d^3)
+
+mu = k -> (gens(I^k) % (I^(k-1))*(ideal vars R))
+mu 2
+
+
+P = presentation module I
+(S,phi) = flattenRing (Sy = symmetricAlgebra(target P))
+Iy =  phi ideal(vars Sy*promote(P,Sy))
+S1 = ZZ/101[gens S]
+(gens S1)/degree
+psi = map(S1,S)
+I1=(psi Iy)
+
+
+A = psi phi promote(I_0,Sy)
+isHomogeneous A
+P2 = psi phi (ideal(vars Sy))^2
+X = psi phi ideal promote(vars R, Sy)
+J72 = intersect(X^7, P2);
+betti oo
+
+syzA = syz contract(gens(X^7), A);
+betti contract (gens(X^7),A)
+cJ72 = map( S1^119,,contract(transpose (gens (X^7)*syzA), gens J72));
+betti cJ72
+scJ72 = syz (cJ72, DegreeLimit => 2);
+rel = contract(A,gens J72)*scJ72;
+ideal rel
+
+
+J2 = intersect(P2,Iy);
+betti J2
+betti I
+intersect(J2 , ideal A);
+
+
+(Rflat,phi) =  flattenRing Sy
+
+Aflat = phi A
+Iyflat = phi Iy
+verbose = 1
+time (Iyflat : Aflat)
+time (Iy : promote(I_0, Sy)) -- more than 486 sec
+
+time saturate (Iy, promote(I_0, Sy), Strategy => Iterate)
+///
+
+
+jacDual = phi -> (
+    --The 
+    IX := trim ideal flatten entries Phi;
+    n := numrows phi;
+    m := numcols phi;
+    if numgens IX > m then IX = ideal vars ring phi;
+    X = gens IX;
+    R = ring phi;
+    S = R[T_1..T_n];
+    T = vars S;
+    XS := promote(X,S);
+    B := T * promote(phi,S)//XS;
+    assert(XS*B == T * promote(phi,S));
+    B
+    )
+
+ 
+ ///
+restart
+load "residualDeterminantal.m2"
+m = 3
+R = ZZ/101[x_(0,0)..x_(m-1,m)]    
+Phi = transpose genericMatrix(R,x_(0,0),m,m-1)
+jacDual Phi
+
+/// 
+     
+     
 end--
 
 ----generic determinantal examples
@@ -404,12 +522,14 @@ end--
 --part a for n<=6 (also 3 x 5)
 --parts a,b,c,d,e checked for n<=5. 
 --
---Note:
+--Note: for the maximal minors of a p x n generic matrix,
+--g = n-p+1
 --q = n-p
 --s = p*q
 --r = p*q+1-p-q
 --ell = s+1
-
+-- ell-g = p*q-q 
+--so, sincd p>=2, we have  ell-g > r
 restart
 load "residualDeterminantal.m2"
 (p,n) = (2,4)
@@ -426,8 +546,9 @@ restart
 load "residualDeterminantal.m2"
 S = ZZ/101[a,b,c,d]    
 I = ideal"ab,ac,bc,bd,d2"
+codim I == 3 -- this is g
 prepare I
-(ell,r) == (4,2) --geometric
+(ell,r) == (4,2) --geometric so ell-g < r
 isMbarMCM() == true
 isIsoNextPower() == true
 isSelfDual() == true
@@ -435,6 +556,7 @@ isIsoEnd() == true
 isIsoOmega() == false
 
 I = ideal"ab2,ac2,bc2,bd2,d3"
+codim I ==3 --- again, ell-g < r.
 prepare I
 (ell,r) == (4,3) -- not geometric
 isMbarMCM() == true
@@ -453,6 +575,7 @@ m = matrix"a,b,c,d,e;
        b,c,h,e,f;
        c,d,e,f,g"
 I = minors(3,m)       
+codim I == 3 -- in this case ell-g > r
 prepare I -- 40sec. --geometric residual
 (ell,r) = 7,2
 isMbarMCM() == true
@@ -466,8 +589,9 @@ isIsoOmega() --true
 restart
 load "residualDeterminantal.m2"
 S = ZZ/101[a..d]
-L = flatten entries gens((ideal vars S)^2)
 
+{*
+L = flatten entries gens((ideal vars S)^2)
 setRandomSeed 0
 randm = ()->(
 m := mutableMatrix map(S^4, S^{5:-2},(i,j)-> if i>j+1 or j>i+2 then 0_S else L_(random 10));
@@ -487,16 +611,18 @@ M=apply (1000, i->(
 );
 M1 = select(M, i-> i =!=null);
 m = M1_0
+*}
 m = matrix {{a^2, d^2, b^2, 0, 0}, {d^2, b^2, b*d, c^2, 0}, {0, a*d, c^2, b*c, b*c}, {0, 0, 0,
       a, b}}
 I = minors(4,m);
-prepare I -- computation of the special fiber ideal is slow
+codim I == 2
+time prepare I -- computation of the special fiber did not finish in 10 hours.
 (ell,r) 
-isMbarMCM() == true
-isIsoNextPower() == true
-isSelfDual() == true
-isIsoEnd() == true
-isIsoOmega() == true 
+isMbarMCM() 
+isIsoNextPower() 
+isSelfDual() 
+isIsoEnd() 
+isIsoOmega()
 
 -----------------------------------------
 --3 x 4 non-generic in 3 vars
@@ -534,9 +660,9 @@ S = ZZ/101[a..c]
 m = matrix {{a^2, a*c, c^2, c^2}, {a*b, b^2, c^2, a^2}, {0, 0, a, b}}
 I = minors(3,m)
 betti I -- generated by 5 quintics
-
-prepare I 
-(ell,r) ==(3,7) --is geometric
+codim I == 2
+prepare I -- ell-g = 1 < r
+(ell,r) ==(3,7) --is geometric, Ibar^r \cong I^r/JI^(r-1)
 isMbarMCM() == true
 isIsoNextPower() == true
 isSelfDual() == true
@@ -620,7 +746,7 @@ I = monomialCurveIdeal(S,{1,3,4}) -- the smooth rational quartic in P3
 --note that in this case the residual we take is inhomogeneous!
 
 prepare I 
-(ell,r) ==(3,1)
+(ell,r) ==(3,1) -- codim 2, I not CM, geometric residual, and Ibar \cong I/J
 isMbarMCM() == true
 isIsoNextPower() == true
 isSelfDual() == true
@@ -632,13 +758,14 @@ isIsoOmega() ==false
 --rational normal curves (deg = d-1 >=4)
 restart
 load "residualDeterminantal.m2"
---results as below fro d= 5,6
-d = 7
+--results as below fro d= 5,6, maybe 7
+d = 6
 S = ZZ/32003[x_0..x_(d-1)]
 I = monomialCurveIdeal(S,toList(1..d-1))
 
 prepare I 
-(ell,r) --for d= 5,6,7 get  (5,1), (6,3), (7,3);
+(ell,r) --for d= 5,6,7 get  (5,1), (6,3), (7,3); geometric residual, Ibar^r \cong I^r/JI^(r-1).
+--ell-g = r for d=5, ell-g < r for d = 6
 isMbarMCM() == true
 isIsoNextPower() == true
 isSelfDual() == true
@@ -646,10 +773,7 @@ isIsoEnd() == true
 isIsoOmega() ==false
 
 --
---a cuspidal rational curve in P4
---cusps of order delta
---delta = 1,2 give analyt indep generators
---delta = 3
+--rational curve with triple cusp in P4
 restart
 load "residualDeterminantal.m2"
 
@@ -658,16 +782,14 @@ delta = 3
 S = ZZ/32003[x_0..x_(d-1)]
 exps = toList(1..d-2)|{d-1+delta}
 I = monomialCurveIdeal(S,exps)
-(sI,ell,r) = specialFiberInfo(I,I_0)
-(ell,r) ==(4,2)
-J=rand(I,2,2)+rand(I,1,3);
-prepare (I,J,ell,r)
+codim I == 3 -- 
+betti res I -- Cohen-Macaulay
 
 prepare I 
-(ell,r) = (4,2)
-isMbarMCM() == true -- doesn't work the way it should because of the bug in minimalBetti
+(ell,r) = (4,2) -- ell-g =1 <r
+isMbarMCM() == true 
 isIsoNextPower() == true
-isSelfDual() == true -- true for an inhomogeneous J, but NOT for the homogeneous J above.
+time isSelfDual() == true -- uses inhomogeneous J
 isIsoEnd() == ? -- slow
 isIsoOmega() ==false
 
@@ -688,10 +810,12 @@ minorss/codim
 m = matrix {{11*x_0, -16*x_2, -50*x_0, -26*x_0, -26*x_1, 0}, {35*x_1, 11*x_3, -15*x_0, -x_3, -13*x_1,
       -26*x_0}, {12*x_2, 5*x_1, -9*x_3, 19*x_0, -33*x_3, -21*x_3}, {33*x_1, -29*x_1, 40*x_3, -34*x_0, 12*x_2,
       40*x_1}, {40*x_0, -47*x_1, 49*x_1, 33*x_2, 25*x_3, 0}}
+--5 x 6 matrix
 I = minors(5,m);
+codim I == 2
 
 prepare I 
-(ell,r) -- (4,3)
+(ell,r) -- (4,3) -- ell-g = 2 < r
 isMbarMCM() == true
 isIsoNextPower() == true
 isSelfDual() == true
@@ -723,17 +847,17 @@ isIsoOmega() ==false
 --which is not the case here.
 
 
---but 2-residual intersection seems to work.
+--buta 2-residual intersection where it does work.
 restart
 load "residualDeterminantal.m2"
 S = ZZ/101[x,y,z]
 mlin =  random(S^2, S^{3:-1})
 mquad =  random(S^2, S^{3:-2}) -- get the 0 value in the assert for up to -8
 m = mlin||mquad
-I = minors(3,m)
+I = minors(3,m) -- 3x3 of a 3x4 matrix, codim 2, perfect
 
 prepare I 
-(ell,r) == (3,2)
+(ell,r) == (3,2) -- geometric residual, ell-g = 1 <r
 isMbarMCM() == true
 isIsoNextPower() == true
 isSelfDual() == true
@@ -747,15 +871,142 @@ S = ZZ/101[x,y,z]
 mlin =  random(S^3, S^{3:-1})
 mquad =  random(S^3, S^{1:-3})
 m = mlin|mquad
-I = minors(3,m)
+I = minors(3,m) -- 3x3 of a 3x4; codim 2, perfect
 
 prepare I 
-(ell,r) == (3,2)
+(ell,r) == (3,2) -- ell-g= 1<r
 isMbarMCM() == true
 isIsoNextPower() == true
 isSelfDual() == true
 isIsoEnd() == true
 isIsoOmega() ==false
+
+
+-----------------------
+--monomial ideals. Must have codim <= ell-1 < mu (so not primary to the max ideal), 
+--and have an (ell-1)-residual intersection.
+
+restart
+load "residualDeterminantal.m2"
+setRandomSeed 0
+(mu,deg) = (6,3)
+S = ZZ/101[a..d]
+I = randomMonomialIdeal(toList (mu:deg),S)
+toString I
+codim I
+(sI, ell, r) = specialFiberInfo(I,I_0)
+
+J = rand(I,deg,ell-1)
+K = (J:I)
+codim K ==  ell-1
+
+S = ZZ/101[a..d]
+I = ideal(b^2*c,a^2*b,b^3,a*c^2,a*c*d,a^2*c)
+codim I ==2
+betti res I -- pd 4
+prepare I -- Mbar not cong M. Not geom residual
+(ell, r) == (4,3) -- ell-g = 2 < r
+isMbarMCM() ==true
+isIsoNextPower() == true
+isSelfDual() ==true
+isIsoEnd()  == true
+isIsoOmega() == false
+
+--a linkage case in a codim 3 ideal
+restart
+load "residualDeterminantal.m2"
+(mu,deg) = (6,3)
+S = ZZ/101[a..d]
+I = ideal(d^3,c*d^2,c^3,b^3,a^2*c,a*c^2)
+codim I ==3
+betti res I -- pd 4
+prepare I -- Mbar is cong M. is geom residual
+(ell, r) == (4,3)
+isMbarMCM() == true
+isIsoNextPower() == true
+isSelfDual() == true
+isIsoEnd()  == true
+isIsoOmega() == false
+------------------------------------------
+--Bernd's counter-example to self-duality, from July 8.
+restart
+load "residualDeterminantal.m2"
+S = ZZ/101[x,y,z]
+{*
+mlin =  map(S^3, S^{-1},matrix"x;y;z")
+mquad =  random(S^3, S^{3:-2})
+mrand = mlin|mquad
+Irand = minors(3,mrand)
+prepare Irand -- SLOW
+*}
+
+--the following specialization makes the computation quick
+m = map(S^3, S^{-1,3:-2}, 
+    matrix"
+    x, y2,z2,0;
+    y, x2,y2,z2;
+    z, 0, x2,y2")
+apply(3, i->codim minors(i+1,m)) -- {3,3,2}
+I = minors(3,m)
+
+prepare I -- computation with m1 takes a few minutes, but with m it's quick
+(ell,r) == (3,2) --its a geometric residual intersection, and Ibar is \cong I^2/JI
+--ell-g = 1 < r
+isMbarMCM() == true --total betti numbers are 3,6,3 -- note that this is symmetric.
+isIsoNextPower() == true
+isSelfDual() == false
+isIsoEnd() == true
+isIsoOmega() ==false
+
+
+restart
+load "residualDeterminantal.m2"
+d = 4
+S = ZZ/101[x_0..x_(d-1)]
+m1 = transpose vars S**S^{-1}
+m2 = map(S^d, S^{d:-2}, (i,j) -> (if i>j then x_(i-j-1)^2 else
+	                          if i == j then x_(d-1)^2 else 0_S)
+			          )	    	    	    	  
+m = m1 |m2
+I = minors(d,m)
+GConditions I
+--perfect, codim 2
+prepare I -- computation with m1 takes a few minutes, but with m it's quick
+(ell,r) == (d,  d-1 = ell-g+1) --its a geometric residual intersection, and Ibar is \cong I^2/JI
+--here ell-g =1 <r
+--ell-g = 1 < r
+isMbarMCM() == true --total betti numbers are d times the binomial coefficients -- note that this is symmetric.
+--Total Betti Number {4, 12, 12, 4, 0}
+isIsoNextPower() == true
+isSelfDual() == false
+isIsoEnd() == true
+isIsoOmega() ==false
+
+
+
+{*
+Let d \geq 2 and let I be the ideal in the polynomial ring in d variables
+generated by the d by d minors of a d+1 by d matrix whose first row
+has the d variables as entries and the other entries are suitable (if not
+general) quadrics. Again, \ell=d and r=d-1. But I^{d-1}/J_{d-1}I^{d-2}
+cannot be omega-selfdual because the general d-residual intersection
+is the maximal ideal, which cannot have reduction number 1 modulo
+the general d-1-residual intersection because the d-1-residual intersection
+has initial degree 3.
+
+M is always isomorphic to its endomorphism ring in these examples
+because M is S_2 and the general d-1-residual intersection has no
+codimension d associated primes.
+
+I think there is just a distinction between small and large reduction number.
+If r is at most \ell-g, everything may be true. Otherwise the selfduality can
+fail, although we have seen it hold in many cases, even for very large reduction
+numbers. It would be good to understand this.
+*}
+
+restart
+load "residualDeterminantal.m2"
+d = 
 
 --Bernd's counter-example to self-duality, from July 8.
 restart
@@ -780,58 +1031,84 @@ I = minors(3,m)
 
 prepare I -- computation with m1 takes a few minutes, but with m it's quick
 (ell,r) == (3,2) --its a geometric residual intersection, and Ibar is \cong I^2/JI
-isMbarMCM() == true --total betti numbers are 3,6,3
+--ell-g = 1 < r
+isMbarMCM() == true --total betti numbers are 3,6,3 -- note that this is symmetric.
 isIsoNextPower() == true
 isSelfDual() == false
 isIsoEnd() == true
 isIsoOmega() ==false
 
------------------------
---monomial ideals. Must have codim <= ell-1 < mu (so not primary to the max ideal), 
---and have an (ell-1)-residual intersection.
 
-restart
+-----
+restart 
 load "residualDeterminantal.m2"
-setRandomSeed 0
-(mu,deg) = (6,3)
-S = ZZ/101[a..d]
-I = randomMonomialIdeal(toList (mu:deg),S)
-toString I
+S = ZZ/101[a,b,c]
+m = matrix"a,b,c,0;
+           0, a, b, c;
+	   0,bc,ac,ab"
+I = minors(3,m)
 codim I
-(sI, ell, r) = specialFiberInfo(I,I_0)
+codim minors(2,m)
+isHomogeneous I
 
-J = rand(I,deg,ell-1)
-K = (J:I)
-codim K ==  ell-1
 
-S = ZZ/101[a..d]
-ideal(b^2*c,a^2*b,b^3,a*c^2,a*c*d,a^2*c)
-codim I ==2
-betti res I -- pd 4
-prepare I -- Mbar not cong M. Not geom residual
-(ell, r) == (4,3)
-isMbarMCM() ==true
-isIsoNextPower() == true
-isSelfDual() ==true
-isIsoEnd()  == true
-isIsoOmega() == false
-
---a linkage case in a codim 3 ideal
-restart
-load "residualDeterminantal.m2"
-(mu,deg) = (6,3)
-S = ZZ/101[a..d]
-I = ideal(d^3,c*d^2,c^3,b^3,a^2*c,a*c^2)
-codim I ==3
-betti res I -- pd 4
-prepare I -- Mbar is cong M. is geom residual
-(ell, r) == (4,3)
-isMbarMCM() == true
+prepare I
+(ell, r) == (3,4)
+isMbarMCM() == true --total betti numbers are 3,6,3 -- note that this is symmetric.
 isIsoNextPower() == true
 isSelfDual() == true
-isIsoEnd()  == true
-isIsoOmega() == false
+isIsoEnd() == true
+isIsoOmega() ==false
+J3 = ideal random(S^1,S^{3:-4});
+J2 = ideal (J3_0,J3_1);
+isHomogeneousIso (Mbar, module(J3:I)/module(J2:I)) == false
 
-GConditions I
-codim I
-betti presentation prune module I
+----
+restart 
+load "residualDeterminantal.m2"
+S = ZZ/101[a,b,c]
+m = matrix"a,b,c,0;
+           0, a2, b2, c2;
+	   0,bc,ac,ab"
+I = minors(3,m)
+prepare I
+(ell,r) == (3,7) -- (was (3,4) for the two linear row case)
+isMbarMCM() == true --total betti numbers are 3,6,3 -- note that this is symmetric.
+isIsoNextPower() == true
+isSelfDual()  == true
+isIsoEnd() == true
+isIsoOmega() ==false
+
+
+----
+--random ideals
+restart 
+
+test = I-> (
+    <<betti res I<<endl;
+    <<"--prepare and report (ell, r) and whether Ibar^r cong I^r/JI^(r-1)"<<endl;
+t := prepare I;
+<<endl <<"? Ibar^r cong  I^r/JI^(r-1) "<<t <<endl;
+<<"betti numbers of Mbar: ? Is Mbar MCM "<<endl;
+<<isMbarMCM()<<endl;
+<<"? Mbar is self-dual: "<<endl;
+<<isSelfDual()<<endl;
+<<"? Mbar cong End Mbar: "<<endl;
+<<isIsoEnd()<<endl;
+<<"? Mbar cong omega: "<<endl;
+<<isIsoOmega();
+)
+
+load "residualDeterminantal.m2"
+S = ZZ/101[a,b,c,d]
+I1 = ideal"a,b"
+I = ideal ((gens I1)*random(source gens I1, S^{5:-2}))
+test I
+
+
+isMbarMCM(); == true --total betti numbers are 3,6,3 -- note that this is symmetric.
+isIsoNextPower() == true
+isSelfDual()  == true
+isIsoEnd() == true
+isIsoOmega() ==false
+

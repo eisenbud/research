@@ -57,7 +57,7 @@ h_1_[0]^[1]
 
 restart
 load "ci-experiments.m2"
-
+kk= ZZ/101
 c = 4
 d = 3
 S = kk[x_0..x_(c-1)]
@@ -65,7 +65,7 @@ ff = matrix{apply(c, j-> (S_j)^d)}
 ff = ff*random(source ff, source ff);
 R = apply(c, j-> S/ideal ff_{0..j});
 (low,high) = (4,6)
-T = TateResolution1 (coker vars R_(c-1), low,high);
+T = TateResolution1 (coker vars R_(c-1), low,
 MM = apply(-low+1..high-1, j->coker T.dd_j);
 
 R' = R_0 -- hypersurface
