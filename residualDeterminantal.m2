@@ -158,7 +158,7 @@ conj = I ->(
     --if I is equigenerated then the result is homogeneous; otherwise NOT
     d := degree(I_0);
     (sI,ell,r) := specialFiberInfo(I,I_0);
-     <<(ell,r)<<endl;flush;
+    -- <<(ell,r)<<endl;flush;
     --J := rand(I,ell-1,d); -- is is only ok if I is equi-generated
     kk := ultimate(coefficientRing, ring I);
     choose1 = I -> sum(I_*, i-> random(kk)*i);
@@ -365,12 +365,16 @@ R = ring K;
 Mbar = prune(I^r*(R^1/K));
 isHomogeneousIso(M,Mbar))
 
+
+
 isEquigenerated = I ->(
-    degs := I_*/degree;
+    degs := I
+    _*/degree;
     if isHomogeneous I and  all(degs, i-> i==degs_0) then true else false)
 
 
 -- (a) M := I^r/J*I^(r-1) or M := Ibar^r is MCM of codim ell-1;
+
 isMbarMCM = ()->if  isEquigenerated I then (print (B = minimalBetti Mbar);
                                        return(s+1 == #totalBetti B)
 				       ) else(
@@ -379,6 +383,18 @@ isMbarMCM = ()->if  isEquigenerated I then (print (B = minimalBetti Mbar);
 				    B = apply(1+ length Ko, i-> numgens prune HH_i MKo);
                                     print B;
 				    #select(B, i -> i!=0) == s+1)
+
+isMbarMCM1 = (Mbar)->(
+    if  isEquigenerated I then (
+	B := minimalBetti Mbar;
+        t := (s+1 == #totalBetti B)
+	) else (
+          R := ring Mbar;
+     	  Ko := koszul vars R;
+	  MKo = Mbar**Ko;
+	  B = apply(1+ length Ko, i-> numgens prune HH_i MKo);
+	  t = (#select(B, i -> i!=0) == s+1));
+	  (t,B))
 
 -- (b) M \cong I^(r+1)/J*I^r or Ibar^(r+1)
 isIsoNextPower = () -> if isEquigenerated I then return isHomogeneousIso(Mbar,I^(r+1)*(R^1/K)) else
@@ -391,8 +407,16 @@ isSelfDual = ()->if isEquigenerated I then
     (Mbar' = Ext^(ell-1)(Mbar, (ring Mbar)^1);
     isLocalIso(Mbar,Mbar'))
 
+isSelfDual1 = (I,Mbar)->if isEquigenerated I then 
+    (Mbar' = prune fastExt(ell-1, Mbar);
+    return isHomogeneousIso(Mbar,Mbar')) else
+    (Mbar' = Ext^(ell-1)(Mbar, (ring Mbar)^1);
+    isLocalIso(Mbar,Mbar'))
+
 -- (d) M \cong Hom(M,M) (sometimes this isomorphism seems strange and/or inhomogeneous)
 isIsoEnd = ()-> if isEquigenerated I then return isHomogeneousIso(Mbar, Hom(Mbar,Mbar)) else
+                                            isLocalIso(Mbar, Hom(Mbar,Mbar))
+isIsoEnd1 = (I, Mbar)-> if isEquigenerated I then return isHomogeneousIso(Mbar, Hom(Mbar,Mbar)) else
                                             isLocalIso(Mbar, Hom(Mbar,Mbar))
 
 -- (e) M \cong omega_{R/K}
@@ -486,34 +510,131 @@ time saturate (Iy, promote(I_0, Sy), Strategy => Iterate)
 ///
 
 
-jacDual = phi -> (
-    --The 
-    IX := trim ideal flatten entries Phi;
-    n := numrows phi;
-    m := numcols phi;
-    if numgens IX > m then IX = ideal vars ring phi;
-    X = gens IX;
-    R = ring phi;
-    S = R[T_1..T_n];
-    T = vars S;
-    XS := promote(X,S);
-    B := T * promote(phi,S)//XS;
-    assert(XS*B == T * promote(phi,S));
-    B
+jacDual = method()
+jacDual Matrix := phi ->(
+    t := numrows phi;
+    T := symbol T;
+    S := ring phi;
+    ST := S[T_0..T_(t-1)];
+    X := vars ring phi;
+    X' := promote(X, ST);
+    phi' := promote(phi, ST);
+    symmAlg := vars ST*phi';
+    psi := symmAlg//X';
+    assert(symmAlg == X'*psi);
+    psi)
+    
+jacDual(Matrix,Matrix, Matrix) := (phi,X,T) -> (
+    --If phi is an m x n matrix over R, then T = matrix{{T_1..T_m}}
+    -- should be a 1 x m over variables over R[T_1..T_m].
+    --ideal X \subset R should contain the entries of the matrix phi.
+    --the routine returns a matrix psi over ring T such that 
+    --T phi = X psi.
+    --Thus psi is a Jacobian dual of phi.
+    ST := ring T;
+    pro := map(ST,ring phi);--,gens ring phi|toList(numcols T:0_ST));
+    if numcols T != numrows phi then error"if phi has m rows then T must have m cols.";
+    XST := X;
+    if ring XST =!= S then XST = pro X;
+    phiS := phi;
+    if ring phi =!= ST then phiST = pro phi;
+    psi := (T * phiST)//XST;
+    --check that this worked:
+    assert(T*phiST == XSR*psi);
+    psi
     )
+///
+restart
+load "residualDeterminantal.m2"
+kk = ZZ/101
+d = 3
+S = kk[x_0..x_(d-1)]
 
- 
+mlin = transpose vars S
+mquad = random(S^d, S^{-1,-4,d-2:-2})
+
+--mquad = random(S^d, S^{d:-1})
+phi = mlin|mquad
+psi = jacDual transpose phi
+D = (det psi % promote(vars ring phi, ring psi))
+factor D
+codim singularLocus (ring D/ideal D)
+
+Irand = minors(d,phi)
+prepare Irand
+test()
+
+--time sI = specialFiberIdeal(Irand,Irand_0); --436 sec
+--sI
+
+--prepare Irand -- SLOW
+phi = syz gens Irand;
+
+
+X = vars S
+ST = kk[x,y,z, T_0..T_3]
+ST = S[T_0..T_3]
+
+use ST
+jacDual(phi, X, matrix{{T_0,T_1,T_2,T_3}})
+
+vars S
+vars ST
+vars ring phi
+///
+
  ///
 restart
 load "residualDeterminantal.m2"
 m = 3
 R = ZZ/101[x_(0,0)..x_(m-1,m)]    
 Phi = transpose genericMatrix(R,x_(0,0),m,m-1)
-jacDual Phi
+S = R[T_0,T_1]
+jacDual (Phi, vars R, vars S)
 
 /// 
      
-     
+prepare1 = method()
+prepare1 Ideal  := I->(
+(sI,ell,r) = specialFiberInfo(I,I_0);
+s = ell-1;
+if r == 0 then error"the ideal has analytically independent generators";
+(K,M) = conj I;
+s' := codim K;
+if s' !=s then error "doesn't form an ell-1 residual intersection";
+R = ring K;
+Mbar = prune(I^r*(R^1/K));
+(ell, r, K,M,Mbar))
+
+testConjectures = I-> (
+<<"betti res I:" <<endl <<betti res I<<endl;
+(ell, r,K,M,Mbar) := prepare1 I;
+<<endl<<"(ell, r) = " <<(ell,r)<<endl;
+geom:= codim(I+K)>ell-1;
+<<endl<<"K = J:I is a geometric residual intersection = " <<geom<<endl;
+<<endl <<"Ibar^r is isomorphic to I^r/JI^(r-1) =  "<<isLocalIso(M,Mbar) <<endl;
+(t,B) := isMbarMCM1(Mbar);
+<<endl << "Mbar is MCM = "<<t<<endl;
+<<"betti numbers of Mbar:"<<endl;
+<<B<<endl;
+<<endl<<"Mbar is isomorphic to End(Mbar) = "<<isIsoEnd1(I,Mbar)<<endl;
+<<endl;
+<<"Mbar is self-dual= "<<isSelfDual1(I,Mbar)<<endl;
+<<endl;
+<<"Mbar is isomorphic to omega_K = "<<isIsoOmega()<<endl;
+)
+///
+restart
+load "residualDeterminantal.m2"
+kk = ZZ/101
+d = 3
+S = kk[x_0..x_(d-1)]
+mlin = transpose vars S
+m1= random(S^d, S^{d:-1})
+phi = mlin|m1
+I = minors(d,phi)
+testConjectures I
+///
 end--
 
 ----generic determinantal examples
@@ -931,14 +1052,17 @@ isIsoOmega() == false
 --Bernd's counter-example to self-duality, from July 8.
 restart
 load "residualDeterminantal.m2"
-S = ZZ/101[x,y,z]
-{*
+kk = ZZ/101
+S = kk[x,y,z]
+
 mlin =  map(S^3, S^{-1},matrix"x;y;z")
 mquad =  random(S^3, S^{3:-2})
 mrand = mlin|mquad
 Irand = minors(3,mrand)
-prepare Irand -- SLOW
-*}
+--prepare Irand -- SLOW
+phi = syz gens Irand;
+ST = kk[x,y,z, T_0..T_3]
+jacDual(phi, matrix{{x,y,z}},matrix{{T_0,T_1,T_2,T_3}})
 
 --the following specialization makes the computation quick
 m = map(S^3, S^{-1,3:-2}, 
@@ -946,10 +1070,24 @@ m = map(S^3, S^{-1,3:-2},
     x, y2,z2,0;
     y, x2,y2,z2;
     z, 0, x2,y2")
+
+-- a homogeneous analogue
+m = map(S^3, S^{-1,3:-2}, 
+    matrix"
+    x2, y2,z2,0;
+    y2, x2,y2,z2;
+    z2, 0, x2,y2")
+
 apply(3, i->codim minors(i+1,m)) -- {3,3,2}
 I = minors(3,m)
 
 prepare I -- computation with m1 takes a few minutes, but with m it's quick
+codim K
+KK = koszul gens K;
+KKk  = KK ** coker vars S
+netList apply(length KKk, i-> HH_(i+1) KKk)
+--conclusion: S/KK has dimension 1, depth 0 -- NOT a domain.
+
 (ell,r) == (3,2) --its a geometric residual intersection, and Ibar is \cong I^2/JI
 --ell-g = 1 < r
 isMbarMCM() == true --total betti numbers are 3,6,3 -- note that this is symmetric.
@@ -1004,30 +1142,6 @@ fail, although we have seen it hold in many cases, even for very large reduction
 numbers. It would be good to understand this.
 *}
 
-restart
-load "residualDeterminantal.m2"
-d = 
-
---Bernd's counter-example to self-duality, from July 8.
-restart
-load "residualDeterminantal.m2"
-S = ZZ/101[x,y,z]
-{*
-mlin =  map(S^3, S^{-1},matrix"x;y;z")
-mquad =  random(S^3, S^{3:-2})
-mrand = mlin|mquad
-Irand = minors(3,mrand)
-prepare Irand -- SLOW
-*}
-
---the following specialization makes the computation quick
-m = map(S^3, S^{-1,3:-2}, 
-    matrix"
-    x, y2,z2,0;
-    y, x2,y2,z2;
-    z, 0, x2,y2")
-apply(3, i->codim minors(i+1,m)) -- {3,3,2}
-I = minors(3,m)
 
 prepare I -- computation with m1 takes a few minutes, but with m it's quick
 (ell,r) == (3,2) --its a geometric residual intersection, and Ibar is \cong I^2/JI
@@ -1084,20 +1198,6 @@ isIsoOmega() ==false
 --random ideals
 restart 
 
-test = I-> (
-    <<betti res I<<endl;
-    <<"--prepare and report (ell, r) and whether Ibar^r cong I^r/JI^(r-1)"<<endl;
-t := prepare I;
-<<endl <<"? Ibar^r cong  I^r/JI^(r-1) "<<t <<endl;
-<<"betti numbers of Mbar: ? Is Mbar MCM "<<endl;
-<<isMbarMCM()<<endl;
-<<"? Mbar is self-dual: "<<endl;
-<<isSelfDual()<<endl;
-<<"? Mbar cong End Mbar: "<<endl;
-<<isIsoEnd()<<endl;
-<<"? Mbar cong omega: "<<endl;
-<<isIsoOmega();
-)
 
 load "residualDeterminantal.m2"
 S = ZZ/101[a,b,c,d]
