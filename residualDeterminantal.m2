@@ -34,7 +34,8 @@ fiber ring--theorem of Vasconcelos in his book (prop 9.34 in the computational m
 *}
 
 load "SymmetricPower.m2"
-needsPackage "ReesAlgebra"
+--needsPackage "ReesAlgebra"
+needsPackage("ReesAlgebra",FileName => "~/gitRepos/Workshop-2017-Berkeley/ReesAlgebras/ReesAlgebra.m2")
 needsPackage "RandomIdeals"
 
 --programs to extract the list of total betti numbers from a BettiTally
@@ -53,12 +54,21 @@ totalBetti Ideal := I -> totalBetti minimalBetti I
 totalBetti (ZZ,Ideal) := (j,I) -> totalBetti (j, minimalBetti I)
 
 --kth power of p x p minors of generic p x n matrix (over a new ring)
-detPower = {p,n,k} ->(
+detPower = (p,n,k) ->(
 R := ZZ/101[x_(0,0)..x_(p-1,n-1)];
 m := transpose genericMatrix(R, x_(0,0),n,p);
 I := minors(p,m);
 trim (I^k)
 )
+
+detPower1 = (p,n,k) ->(
+R := ZZ/101[x_(0,0)..x_(p-1,n-1)];
+m := transpose genericMatrix(R, x_(0,0),n,p);
+I := minors(p,m);
+f := det m_{0..p-2}^{0..p-2};
+(trim (I^k),f)
+)
+
 
 fastExt = method()
 fastExt(ZZ,Ideal) := (i,I) -> (
@@ -96,7 +106,6 @@ ell = s+1
 
 I = detPower(p,n,1);
 (sI,ell,r) = specialFiberInfo(I,I_0)
-
 time (K,M) = conj I;
 minimalBetti M -- CM codim 
 
@@ -107,12 +116,17 @@ isHomogeneousIso(M,M')
 isHomogeneousIso(M,M'')
 ///
 
-
-rand = (I,s,d) ->
+rand = method()
+rand(Ideal, ZZ, ZZ) := (I,s,d) ->
     --s elements of degree d chosen at random from I
     --need a version that uses *all* the generators, works with hom, etc
     ideal ((gens I)*random(source gens I, (ring I)^{s:-d}))
 
+rand (Ideal,ZZ) := (I,s) -> (
+    kk = ultimate(coefficientRing, ring I);
+    ideal apply(s, j->sum(I_*, i-> random(kk)*i))
+    )
+    --s linear combinations of the generators of I, whether of the same degree or not.
 
 redNumber = sI ->(
     --needs a ring whose generators have degree 1
@@ -124,15 +138,23 @@ redNumber = sI ->(
     r'-1
     )
 
-specialFiberInfo = method()
-specialFiberInfo(Ideal, RingElement) := (I,a) ->(
+specialFiberInfo = method(
+        Options => {
+	  DegreeLimit => {},
+	  BasisElementLimit => infinity,
+	  PairLimit => infinity,
+	  MinimalGenerators => true,
+	  Strategy => null,
+	  }
+)
+specialFiberInfo(Ideal, RingElement) := o->(I,a) ->(
     --a \in I\subset S, a a nzd.
     --returns (sI,ell,r), the special fiber ideal, analytic spread, reduction number
     --Note that though the generators of specialFiberIdeal(I,a) have double degrees
     --as produced by the current Rees Algebra package, the ideal is homoogeneous for
     --a single grading, with vars of degree 1.
     J := trim I;
-    sJ1 := specialFiberIdeal(I,a);
+    sJ1 := specialFiberIdeal(I,a,o);
     R1 := ring sJ1;
     kk := ultimate(coefficientRing, R1);
     x := symbol x;
@@ -142,19 +164,29 @@ specialFiberInfo(Ideal, RingElement) := (I,a) ->(
     r := redNumber sJ;
     (sJ,ell,r)
      )
-specialFiberInfo Ideal := I -> specialFiberInfo(I,I_0)
+specialFiberInfo Ideal := o-> I -> specialFiberInfo(I,I_0)
 
 ///
 restart
 load "residualDeterminantal.m2"
-(p,n) = (2,6)
+
+(p,n) = (2,4)
 q = n-p
 s = p*q
 r = p*q+1-p-q
 ell = s+1
 
-I = detPower(p,n,1);
-time (sI,ell,r) = specialFiberInfo(I,I_0)
+I = detPower(p,n,3);
+
+
+time (sI,ell,r) = specialFiberInfo(I,I_0);
+time (sI,ell,r) = specialFiberInfo(I,I_0, Strategy => Bayer);
+time (sI,ell,r) = specialFiberInfo(I,I_0, Strategy => Iterate);
+time (sI,ell,r) = specialFiberInfo(I,I_0, Strategy => Eliminate);
+time (sI,ell,r) = specialFiberInfo(I);
+--rather than using I_0, use a subminor
+
+
 ///
 
 conj = I ->(
@@ -563,6 +595,7 @@ mquad = random(S^d, S^{-1,-4,d-2:-2})
 --mquad = random(S^d, S^{d:-1})
 phi = mlin|mquad
 psi = jacDual transpose phi
+
 D = (det psi % promote(vars ring phi, ring psi))
 factor D
 codim singularLocus (ring D/ideal D)
@@ -660,9 +693,17 @@ end--
 --so, sincd p>=2, we have  ell-g > r
 restart
 load "residualDeterminantal.m2"
-(p,n) = (2,4)
+(p,n) = (2,5)
 I = detPower(p,n,1);
 prepare I
+Rbar = (ring K)^1/K
+Ibar = I*Rbar
+(K,ell,r) =  specialFiberInfo I;
+Kell = rand(I,ell):I
+codim Kell
+ell
+
+
 isMbarMCM() == true
 isIsoNextPower() == true
 isSelfDual() == true
