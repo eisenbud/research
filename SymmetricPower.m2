@@ -3,7 +3,8 @@
 --was very slow on moderate examples. 
 --Now completely independent of the old code and very much faster.
 
-symmPower = (d,M) ->(
+symmPower = method()
+symmPower(ZZ,Module) := (d,M) ->(
 R := ring M;
 g := presentation M;
 r := numgens target g;
@@ -33,12 +34,39 @@ assert(source m1 == target m2);
 coker(m1*m2)
 )
 
+--make it functorial -- assumes the ring of phi has a single grading (7/28/17)
+symmPower(ZZ,Matrix) :=(d,phi) ->(
+    R = ring phi;
+    phim = matrix phi;
+    m = numrows phim;
+    n = numcols phim;
+    X = symbol X;
+    Y = symbol Y;
+    Rtar = R[X_0..X_(m-1)];
+    Rsour = R[Y_0..Y_(n-1)];
+    Rphi = map(Rtar, Rsour, (vars Rtar)*(Rtar**phim));
+    phid = Rphi (basis({d,0}, Rsour))//basis({d,0},Rtar);
+    back = map(R,Rtar,toList(numgens Rtar: 0_R));
+    map(symmPower(d, target phi), symmPower(d, source phi),back phid)
+    )
+
+--
+
 TEST///
 restart
 load "SymmetricPower.m2"
+S = ZZ/101[a,b,c,d]
+M = S^2
+phi = map(M,S^3,matrix"a,b,0;0,c,d")
+symmPower(2, phi)
+
 S = ZZ/101[a,b][c,d, Degrees =>{{1,2},{3,1}}]
 F = S^{{1,1,1},{2,2,3}}
 assert(degrees symmPower(2, F) == {{-2, -2, -2}, {-3, -3, -4}, {-4, -4, -6}})
+phi = map(F,F,1)
+symmPower(2,phi)
+
+symmetricPower(2,matrix phi)
 
 M1 = coker matrix {{c, d}, {c, d}}
 toString symmPower(2, M1)

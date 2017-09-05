@@ -6,8 +6,9 @@ newPackage(
                         Email => "de@msri.org", 
                         HomePage => "http://www.msri.org/~de"}},
               Headline => "Analyzing Resolutions over a Complete Intersection",
-              DebuggingMode => true, --should be false when submitted
-	      PackageExports => {"MCMApproximations","BGG"} 
+              DebuggingMode => false, --should be false when submitted
+	      PackageExports => {"MCMApproximations","BGG"},
+	      DebuggingMode => true
 	      )
 	  export{
 	--things related to Ext over a complete intersection
@@ -75,6 +76,7 @@ newPackage(
 	   "tensorWithComponents",
 	   "toArray"
 	   }
+print "file in the research directory"
 
 {*
 restart

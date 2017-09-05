@@ -75,7 +75,7 @@ truncate(0, target S2(0, evenExtModule M6))
 --Conjecture 2: If R = S/(ideal ff), a complete intersection, M is an
 --R-module, and the regular sequence ff is "sufficiently general for M,
 --then regularity extModule M_i is a nondcreasing function of i, where,
---M_i is the "codim i MCM approximation" over R_i := S/(ideal ff_{0..i-1}).
+--M_i is the "codim i MCM approximation" over R_i := S/(ideal ff_{0..i-1})."
 --Note that this is *false* if ff is not sufficiently general (as
 --one would expect.)
 
@@ -199,3 +199,38 @@ hf(-3..3, target se)
 hf (-3..3, target so)
 hf(-3..3, target se')
 hf(-3..3, target so')
+
+
+--------------
+--looking for codim 2 examples where X and Y are interesting
+uninstallPackage "CompleteIntersectionResolutions"
+restart
+installPackage "CompleteIntersectionResolutions"
+
+viewHelp CompleteIntersectionResolutions
+check "CompleteIntersectionResolutions"
+peek loadedFiles
+restart
+loadPackage( "CompleteIntersectionResolutions", Reload =>true)
+
+d =4
+kk = ZZ/101
+S = kk[x,y,z]
+gg = matrix{{x^d,y^d}}
+ff = gg*random(source gg, source gg)
+R = S/ideal ff
+pRS = map(R,S)
+
+M' = coker map(R^2, R^{3:-2}, matrix"x2,xy,y2;0,x2,y2")
+M' = coker random(R^1,R^{3:-3})
+M' = coker random(R^{0,0},R^{2:-3,-3})
+mfBound M'
+M = syzygyModule(2,M')
+mf = matrixFactorization(ff,highSyzygy M')
+mf2 = makeFiniteResolutionCodim2(mf,ff);
+keys mf2
+XX = mf2#((keys mf2)_10)
+YY = mf2#((keys mf2)_11)
+XX^3
+YY^3
+
