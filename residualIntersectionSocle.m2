@@ -205,3 +205,71 @@ L' = ideal(x_1,x_2,x_4,x_5)
 L^4 == L'^4
 L'' = ideal(x_1,x_2,x_5)
 (L'^8):(L'')^4 == L''^4
+
+
+----
+Checking some examples
+R = ZZ[x,y]
+F = matrix"x2+y2,x+y"
+F' = matrix"x2-xy,x+y"
+G = x
+det jacobian F*G
+D = det jacobian (F'*G)
+D%ideal (G^2*F)
+gens (D*ideal(x,y))%ideal (G^2*F)
+
+
+---
+{*$(a_{1}, \dots, a_{d}) = (a_{1}',\dots, a_{d}')$, then the Jacobian determinants
+of $a_{1}, \dots, a_{d}$ and $a_{1}',\dots, a_{d}'$ differ by an element of the ideal
+$$
+J\cdot I_{d-1}(\jacobian(a_{1}, \dots, a_{d})),
+$$
+where $I_{d-1}(\jacobian(a_{1}, \dots, a_{d}))$ denotes the ideal of $(d-1)\times (d-1)$ minors of the
+Jacobian matrix. 
+*}
+
+S = ZZ/101[x,y,z]
+A = random(S^1,S^{-2,-3,-4})
+g = random(source A, source A)
+A' = A*g
+delta = det (jacobian A) - det(jacobian A')
+J = ideal A
+I = (J* minors(2, jacobian A))+J^2*minors(1, jacobian A)
+delta % I
+
+{*
+Let $R=k[x,y]$, where $k$ is a field of characteristic $\neq3$, and take $I= (G)$ with $G=x^{2}+y^{2}$, 
+and $F = x,y$. If we replace the Jacobian matrix
+$\jacobian(GF)$ by
+$$
+A :=\frac{1}{3}\jacobian(GF) +
+\begin{pmatrix}
+ -y&x\\
+ -y&x
+\end{pmatrix}
+$$
+then
+$$
+A
+\begin{pmatrix}
+ x\\y
+\end{pmatrix} =
+\begin{pmatrix}
+ GF_{1}\\GF_{2}
+\end{pmatrix}
+$$
+but
+$\det(A) = G$; in particular it is in $I$ but not in the socle of $I/JI$.
+*}
+S = ZZ[x,y]
+G = x^2+y^2
+G = x*y
+F =  matrix"x,y"
+J =jacobian(G*F)
+M = matrix"-y,x;
+-y,x"
+(D = det(A = J+M)) %G
+A*transpose vars S
+transpose (G*F)
+gens(ideal(x,y)*D)%(G^2*F)
