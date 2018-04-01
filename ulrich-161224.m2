@@ -1,3 +1,4 @@
+
 genSocle = method()
 genSocle(ZZ,ZZ):= (n,d) -> genSocle(n,{d})
 genSocle(ZZ,List):= (n,D) -> (
@@ -512,3 +513,22 @@ toList flatten(3:1|2:2|5,6,7)
 toList(3:1)
 
 --------------
+--Example from our duality paper, late in section 7
+kk = ZZ/2
+R = kk[x,y]
+mm = ideal vars R
+
+G = x^2+y^2
+I = ideal G
+F = matrix{{x,y}}
+J = ideal(G*F)
+
+M = matrix{{-y,x},{-y,x}}
+A = diff(F, transpose (G*F))+3*M
+
+A*transpose F == 3*G*transpose F
+
+det A %(I^1)
+det A %(I^2)
+det A% (I*J)
+gens (mm*det A) % gens (I*J)

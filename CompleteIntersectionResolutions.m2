@@ -7,10 +7,10 @@ newPackage(
                         HomePage => "http://www.msri.org/~de"}},
               Headline => "Analyzing Resolutions over a Complete Intersection",
               DebuggingMode => false, --should be false when submitted
-	      PackageExports => {"MCMApproximations","BGG"},
+	      PackageExports => {"MCMApproximations","BGG","LocalRings"},
 	      DebuggingMode => true
 	      )
-	  export{
+    	    export{	  
 	--things related to Ext over a complete intersection
 	   "ExtModule", 
 	   "evenExtModule", 
@@ -20,6 +20,8 @@ newPackage(
 	--tools used to construct the "higher matrix factorization"
 	--of a high syzygy
 	   "matrixFactorization",
+           "layeredMFaug", --returns mf with augmentation
+           "layeredMF",	   
 	   "Check", -- optional arg for matrixFactorization
 	   "highSyzygy",
   	   "Optimism", -- optional arg for highSyzygy etc	   
@@ -498,6 +500,182 @@ cosyzygyRes (ZZ,Module) := (p,M)-> (
 	     
 cosyzygyRes Module := M -> cosyzygyRes(2,M)
 
+layeredMFaug =  method(Options=>{Check => false, Verbose =>false})
+layeredMFaug(Matrix, Module) := opts -> (gg, M) -> (
+    --inductive construction of a (possibly non-minimal) MF from any MCM module
+    --Inputs:
+    --gg = {{f1,..,fc}} is a 1 x c matrix 
+    --whose entries are a sufficiently 
+    --general regular sequence in S.
+    --R#c := S/(ideal ff).
+    --M an MCM over S/ideal ff.
+    --
+    --If opts#check == true (the default value) then various
+    --tests are performed along the way.
+    
+    --Outputs: 
+    --d: a triangular map of direct-sum modules,
+    --the matrix factorization differential.
+    --
+    --h: a map, the sum of the
+    --the partial homotopies.
+    --
+    --gamma, map from the target of d to the module M.
+    --
+    --Description:
+    --Atar#p = (target BS#1++..++target BS#p) 
+    --Asour#p = (source BS#1++..++source BS#p), and
+    --
+    --d: Atar#c <-- Asour#c
+    --and h#p: Asour#p <--- Atar#p over S.
+    --The map
+    --d is a special upper triangular 
+    --lifting to S of the presentation matrix
+    --of M over R#c.
+    --
+    --The map h#p is a homotopy for ff#p on the restriction
+    --dpartial#p: Atar#p <-- Asour#p of d, over the ring R#(p-1),
+    --so dpartial#p * h#p = ff#p mod (ff#1..ff#(p-1).
+    --
+    --In addition, h#p * dpartial#p induces f#p on B1#p.
+    S0 := ring gg;
+    S := S0;
+--    S := localRing(S0, ideal gens S0);
+--    S := ring gg;
+    ff := sub(gg, S);
+--pushForward not implemented yet for local rings
+--    MS := pushForward(map(ring M,S),M);
+    --push forward M to S, by hand
+    presS := sub(presentation M,S);
+    MS := minimalPresentation coker(presS|ff**target presS); 
+    cod := numcols ff;
+
+--We first compute d; the homotopy computation is at the end
+--handle the codim 1 case  
+    if cod <=1 then (
+	L := res(MS, LengthLimit => 2);
+	print betti L;
+	--the following would work only when we have
+	--minimal resolutions, so need local or graded
+--	if (ideal ff)*MS != 0 or  L_2 !=0 then error"module M(1) is not an MCM mod the hypersurface";
+	d := L.dd_1;
+	h := map(ff_{0}**id_(L_0))//d;
+	gamma:= inducedMap(MS,L_0);
+        if opts.Verbose === true then 
+                <<{rank target d,rank source d}<<
+	        " in codimension "<<cod<<endl;	
+--	error();
+	return {d,h,gamma};
+	);
+
+--now the higher codim case, by induction:
+--set up the modules, one codim less:
+    gg' := gg_{0..cod-2};
+    R'0 := S/(ideal gg');
+    R' := R'0;
+--    R' := localRing(R'0, ideal gens R'0);    
+    ff' := sub(gg', S);
+    q := map(R',S);
+    MR' := prune(R'**MS); -- M as an R'-module
+    (alpha, beta) := approximation MR';
+    B0 := source beta;
+    B0S := B0**S0;
+    M' := source alpha; -- an MCM R' module
+    pres'S := sub(presentation M',S0);
+    -- pushForward M' to S, by hand
+    -- M'S := pushForward(q,MR');
+    M'S := minimalPresentation coker(pres'S|ff'**target pres'S); 
+--compute the maps/modules bS and psiS corresponding to the codim
+    alphaS := map(MS, M'S, sub(matrix alpha, S0));
+    betaS := map(MS, B0S, sub(matrix beta, S0));
+    gammaS := map(MS, M'S++B0S, (alphaS|betaS));
+    BB1 := ker (alpha|beta);
+    B1 := minimalPresentation BB1;
+    B1S := B1**S;
+    psib := inducedMap(M' ++ B0, BB1)*(B1.cache.pruningMap);
+    psibS := map(M'S++B0S,B1S, sub(matrix psib, S));
+    psiS := psibS^[0];
+    bS := psibS^[1];
+--connect this with the inductively defined mf
+    if opts.Verbose === true then << {rank B0S, rank B1S} << " in codimension " << cod<<endl;
+    mf' := layeredMFaug (ff', M', opts);
+    d' := mf'_0;
+    h' := mf'_1;
+    gamma' := mf'_2;
+    gamma1 := (alphaS*gamma')|gammaS;
+    zer := map(B0S,source d', 0);
+--put it together
+    d = map(target d'++target bS, source d'++source bS, matrix((d'|psiS)||(zer|bS)));
+--and now compute the homotopies
+    --I think the following has to be done mod f1..f(c-1) and then lifted.
+    dR' := d**R';
+    hR' := (ff_{cod-1}**id_(target dR'))//dR';
+    h = map(source d, target d, sub(matrix hR',S));
+--    error();
+    {d,(h'||0*id_(source h'))|h,gammaS}
+    )
+layeredMF = method(Options=>{Check => false, Verbose =>false})
+layeredMF(Matrix, Module) := opts -> (ff,M) -> 
+           (layeredMFaug(ff,M, opts))_{0,1}
+
+
+-*
+restart
+loadPackage("CompleteIntersectionResolutions", Reload=>true)
+
+kk=ZZ/101
+S = kk[a,b]
+ff0 = matrix"a4,b4"
+R = S/ideal ff0
+N = coker vars R
+M = highSyzygy N
+ff = ff0*random(source ff0, source ff0)
+lmfa = layeredMFaug(ff,M, Verbose =>true)
+lmf = layeredMF(ff,M,Verbose=>true)
+
+mf = matrixFactorization(ff0, M)
+BRanks mf
+BRanks lmf
+bMaps mf
+bMaps lmf
+finiteBettiNumbers mf
+finiteBettiNumbers lmf
+infiniteBettiNumbers (mf,10)
+infiniteBettiNumbers (lmf,10)
+makeFiniteResolution(mf,ff)
+makeFiniteResolution(lmf,ff)
+makeFiniteResolutionCodim2(mf,ff)
+makeFiniteResolutionCodim2(lmf,ff)
+viewHelp CompleteIntersectionResolutions
+
+--
+kk=ZZ/101
+S = kk[a,b]
+ff = matrix"a4+a4"
+R = S/ideal ff
+N = coker vars R
+M = highSyzygy N
+M = syzygyModule(3,N)
+lmf = layeredMFaug(ff,M)
+--
+mf = matrixFactorization(ff, M)
+BRanks mf
+layeredResolution (ff,M)
+BRanks mf
+h = (hMaps mf)_0
+h' = map(target h, source h,
+    matrix apply (#components source h, i->(apply(#components target h, j-> h_[j]^[i])))
+)
+assert(h == h')
+
+h = (hMaps mf)_0
+h' = map(target h, source h,
+    matrix apply (#components source h, i->(apply(#components target h, j-> h_[j]^[i])))
+)
+assert(h == h')
+*-
+    
+    
 matrixFactorization = method(Options=>{Check => false})
 matrixFactorization(Matrix, Module) := opts -> (ff, M) -> (
     --Inputs:
@@ -1545,8 +1723,7 @@ makeFiniteResolutionCodim2(List,Matrix) := (MF,ff) -> (
     assert(hconst_0*F.dd_1+F.dd_2*hconst_1 == f2*id_(F_1));
     assert(hconst_1*F.dd_2 == map(S^{deg1}**F_2, F_2, f2*id_(F_2)));
     if hh1 !=hh1' then 
-           <<"homotopy for first f1 (which is ff_0) 
-	   had component mapping to e_1**B_0(2)."<<endl;
+           <<"Note that h1 != h1' (homotopies for ff_0)"<<endl;
     out
     )
 
@@ -4516,3 +4693,13 @@ check "CompleteIntersectionResolutions"
 
 viewHelp CompleteIntersectionResolutions
 
+------------
+Need local rings to do this, for example:
+S = ZZ/101[a,b]
+ m =  matrix "a,b;
+b,a"
+M = coker m
+f = det m
+R = localRing(S,ideal gens S)
+ff = sub(f,R)
+R/ff
