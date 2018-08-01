@@ -6,8 +6,7 @@ newPackage(
                         Email => "de@msri.org", 
                         HomePage => "http://www.msri.org/~de"}},
               Headline => "Analyzing Resolutions over a Complete Intersection",
-              DebuggingMode => false, --should be false when submitted
-	      PackageExports => {"MCMApproximations","BGG","LocalRings"},
+	      PackageExports => {"MCMApproximations","BGG"},--"LocalRings"},
 	      DebuggingMode => true
 	      )
     	    export{	  
@@ -22,6 +21,7 @@ newPackage(
 	   "matrixFactorization",
            "layeredMFaug", --returns mf with augmentation
            "layeredMF",	   
+	   "lmfa",
 	   "Check", -- optional arg for matrixFactorization
 	   "highSyzygy",
   	   "Optimism", -- optional arg for highSyzygy etc	   
@@ -83,7 +83,6 @@ print "file in the research directory"
 {*
 restart
 loadPackage("CompleteIntersectionResolutions", Reload=>true)
-
      S = ZZ/101[x,y,z]
      R = S/ideal"x3,y3"
      M = R^1/ideal(x,y,z)
@@ -500,6 +499,18 @@ cosyzygyRes (ZZ,Module) := (p,M)-> (
 	     
 cosyzygyRes Module := M -> cosyzygyRes(2,M)
 
+flattenDirectSum = method()
+flattenDirectSum Module := M->(
+    if M.cache.?components then(
+    L := M.cache.components;
+    directSum flatten apply(L, N -> if N.cache.?components then N.cache.components else N))
+    else M)
+flattenDirectSum Matrix := phi->
+    map(flattenDirectSum target phi, flattenDirectSum source phi, matrix phi)
+
+-*
+--This is a version that has the wrong orderings.
+
 layeredMFaug =  method(Options=>{Check => false, Verbose =>false})
 layeredMFaug(Matrix, Module) := opts -> (gg, M) -> (
     --inductive construction of a (possibly non-minimal) MF from any MCM module
@@ -554,7 +565,7 @@ layeredMFaug(Matrix, Module) := opts -> (gg, M) -> (
 --handle the codim 1 case  
     if cod <=1 then (
 	L := res(MS, LengthLimit => 2);
-	print betti L;
+	if opts.Verbose == true then print betti L;
 	--the following would work only when we have
 	--minimal resolutions, so need local or graded
 --	if (ideal ff)*MS != 0 or  L_2 !=0 then error"module M(1) is not an MCM mod the hypersurface";
@@ -564,8 +575,7 @@ layeredMFaug(Matrix, Module) := opts -> (gg, M) -> (
         if opts.Verbose === true then 
                 <<{rank target d,rank source d}<<
 	        " in codimension "<<cod<<endl;	
---	error();
-	return {d,h,gamma};
+	return (d,h,gamma);
 	);
 
 --now the higher codim case, by induction:
@@ -574,49 +584,447 @@ layeredMFaug(Matrix, Module) := opts -> (gg, M) -> (
     R'0 := S/(ideal gg');
     R' := R'0;
 --    R' := localRing(R'0, ideal gens R'0);    
-    ff' := sub(gg', S);
+    ff' := gg';
     q := map(R',S);
     MR' := prune(R'**MS); -- M as an R'-module
     (alpha, beta) := approximation MR';
     B0 := source beta;
     B0S := B0**S0;
     M' := source alpha; -- an MCM R' module
-    pres'S := sub(presentation M',S0);
     -- pushForward M' to S, by hand
     -- M'S := pushForward(q,MR');
+    pres'S := sub(presentation M',S0);
     M'S := minimalPresentation coker(pres'S|ff'**target pres'S); 
 --compute the maps/modules bS and psiS corresponding to the codim
     alphaS := map(MS, M'S, sub(matrix alpha, S0));
     betaS := map(MS, B0S, sub(matrix beta, S0));
-    gammaS := map(MS, M'S++B0S, (alphaS|betaS));
+--    gammaS := map(MS, M'S++B0S, (alphaS|betaS)); -- this is a map from  a nonfree module
     BB1 := ker (alpha|beta);
     B1 := minimalPresentation BB1;
     B1S := B1**S;
     psib := inducedMap(M' ++ B0, BB1)*(B1.cache.pruningMap);
     psibS := map(M'S++B0S,B1S, sub(matrix psib, S));
-    psiS := psibS^[0];
+    psiS := psibS^[0]; -- this is the matrix of the map; target is freeo
     bS := psibS^[1];
 --connect this with the inductively defined mf
     if opts.Verbose === true then << {rank B0S, rank B1S} << " in codimension " << cod<<endl;
-    mf' := layeredMFaug (ff', M', opts);
-    d' := mf'_0;
-    h' := mf'_1;
-    gamma' := mf'_2;
-    gamma1 := (alphaS*gamma')|gammaS;
+    (d',h',gamma')  := layeredMFaug(ff', M', opts);
+    gammaS := map(MS,target d'++B0S, (alphaS*gamma')|betaS);
     zer := map(B0S,source d', 0);
---put it together
-    d = map(target d'++target bS, source d'++source bS, matrix((d'|psiS)||(zer|bS)));
+--put it together. Note that
+--target matrix psiS == target d'
+    d1 := map(target d'++target bS, source d'++source bS, 
+	            matrix((d'|psiS)||(zer|bS)));
+    d = flattenDirectSum d1;
 --and now compute the homotopies
-    --I think the following has to be done mod f1..f(c-1) and then lifted.
     dR' := d**R';
-    hR' := (ff_{cod-1}**id_(target dR'))//dR';
-    h = map(source d, target d, sub(matrix hR',S));
+    hR' := map(ff_{cod-1}**target dR')//dR';
+    hc := map(source d1,
+	      S^{-degree ff_(cod-1)}**target d1, 
+	      sub(matrix hR',S));
+    h1:=((target hc)_[0]*h')|hc;
+    h = flattenDirectSum h1;
 --    error();
-    {d,(h'||0*id_(source h'))|h,gammaS}
+--    (d,((target hc)_[0]*h')|hc,gammaS)
+    (d,h,gammaS)
     )
 layeredMF = method(Options=>{Check => false, Verbose =>false})
 layeredMF(Matrix, Module) := opts -> (ff,M) -> 
            (layeredMFaug(ff,M, opts))_{0,1}
+*-
+
+
+
+
+layeredMFaug =  method(Options=>{Check => false, Verbose =>false})
+layeredMFaug(Matrix, Module) := opts -> (gg, M) -> (
+    --inductive construction of a (possibly non-minimal) MF from any MCM module
+    --Inputs:
+    --gg = {{f1,..,fc}} is a 1 x c matrix 
+    --whose entries are a sufficiently 
+    --general regular sequence in S.
+    --R#c := S/(ideal ff).
+    --M an MCM over S/ideal ff.
+    --
+    --If opts#check == true (the default value) then various
+    --tests are performed along the way.
+    
+    --Outputs: 
+    --d: a triangular map of direct-sum modules,
+    --the matrix factorization differential.
+    --
+    --h: a map, the sum of the
+    --the partial homotopies.
+    --
+    --gamma, map from the target of d to the module M.
+    --
+    --Description:
+    --Atar#p = (target BS#1++..++target BS#p) 
+    --Asour#p = (source BS#1++..++source BS#p), and
+    --
+    --d: Atar#c <-- Asour#c
+    --and h#p: Asour#p <--- Atar#p over S.
+    --The map
+    --d is a special upper triangular 
+    --lifting to S of the presentation matrix
+    --of M over R#c.
+    --
+    --The map h#p is a homotopy for ff#p on the restriction
+    --dpartial#p: Atar#p <-- Asour#p of d, over the ring R#(p-1),
+    --so dpartial#p * h#p = ff#p mod (ff#1..ff#(p-1).
+    --
+    --In addition, h#p * dpartial#p induces f#p on B1#p.
+    S0 := ring gg;
+    S := S0;
+--    S := localRing(S0, ideal gens S0);
+--    S := ring gg;
+    ff := sub(gg, S);
+--pushForward not implemented yet for local rings
+--    MS := pushForward(map(ring M,S),M);
+    --push forward M to S, by hand
+    presS := sub(presentation M,S);
+    MS := minimalPresentation coker(presS|ff**target presS); 
+    cod := numcols ff;
+--We first compute d; the homotopy computation is at the end
+--handle the codim 1 case  
+       
+    if cod <=1 then (
+--	L := res(MS, LengthLimit => 2);
+--	if opts.Verbose == true then print betti L;
+	--the following would work only when we have
+	--minimal resolutions, so need local or graded
+--	if (ideal ff)*MS != 0 or  L_2 !=0 then error"module M(1) is not an MCM mod the hypersurface";
+	d := presentation MS;
+	if opts.Verbose == true then print betti d;	
+
+	h := map(ff_{0}**id_(target d))//d;
+	gamma:= inducedMap(MS,target d);
+        if opts.Verbose === true then 
+                <<{rank target d,rank source d}<<
+	        " in codimension "<<cod<<endl;	
+	return (d,h,gamma);
+	);
+
+--now the higher codim case, by induction:
+--set up the modules, one codim less:
+    gg' := gg_{0..cod-2};
+    R'0 := S/(ideal gg');
+    R' := R'0;
+--    R' := localRing(R'0, ideal gens R'0);    
+    ff' := gg';
+    q := map(R',S);
+    MR' := prune(R'**MS); -- M as an R'-module
+    (alpha, beta) := approximation MR';
+    B0 := source beta;
+    B0S := B0**S0;
+    M' := source alpha; -- an MCM R' module
+    -- pushForward M' to S, by hand
+    -- M'S := pushForward(q,MR');
+    pres'S := sub(presentation M',S0);
+    M'S := minimalPresentation coker(pres'S|ff'**target pres'S); 
+--compute the maps/modules bS and psiS corresponding to the codim
+    alphaS := map(MS, M'S, sub(matrix alpha, S0));
+    betaS := map(MS, B0S, sub(matrix beta, S0));
+--    gammaS := map(MS, M'S++B0S, (alphaS|betaS)); -- this is a map from  a nonfree module
+    BB1 := ker (alpha|beta);
+--    BB1 := ker (beta|alpha);    
+    B1 := minimalPresentation BB1;
+    B1S := B1**S;
+    psib := inducedMap(M'++B0, BB1)*(B1.cache.pruningMap);
+--    psib := inducedMap(B0++M', BB1)*(B1.cache.pruningMap);    
+    psibS := map(M'S++B0S,B1S, sub(matrix psib, S));
+    psiS := psibS^[0]; -- this is the matrix of the map; target is freeo
+    bS := psibS^[1];
+--connect this with the inductively defined mf
+    if opts.Verbose === true then << {rank B0S, rank B1S} << " in codimension " << cod<<endl;
+    (d',h',gamma')  := layeredMFaug(ff', M', opts);
+    gammaS := map(MS,target d'++B0S, (alphaS*gamma')|betaS);
+    zer := map(B0S,source d', 0);
+--put it together. Note that
+--target matrix psiS == target d'
+    d1 := map(target d'++target bS, source d'++source bS, 
+	            matrix((d'|psiS)||(zer|bS)));
+    d = flattenDirectSum d1;
+    print d;
+--error();
+--and now compute the homotopies
+    dR' := d**R';
+    hR' := map(ff_{cod-1}**target dR')//dR';
+    hc := map(source d1,
+	      S^{-degree ff_(cod-1)}**target d1, 
+	      sub(matrix hR',S));
+    h1:=((target hc)_[0]*h')|hc;
+    h = flattenDirectSum h1;
+--    error();
+--    (d,((target hc)_[0]*h')|hc,gammaS)
+    (d,h,gammaS)
+    )
+layeredMF = method(Options=>{Check => false, Verbose =>false})
+layeredMF(Matrix, Module) := opts -> (ff,M) -> 
+           (layeredMFaug(ff,M, opts))_{0,1}
+
+lmfa = method(Options=>
+    {Check => false, Verbose =>false})
+lmfa(Matrix,Module) := opts -> (ff,M) ->(
+    --M is an R := S/ideal ff module.
+    S := ring ff;
+    R := ring M;
+    pR := map(R,S);
+    c := numcols ff;
+    MS := pushForward(pR,M);
+    FS := res MS;
+    if length FS != c then 
+       error"module is not MCM mod the regular sequence";
+    if isFreeModule M then (
+	d := map(MS,S^0,0);
+	h := map(S^0,S^0,0);
+	gamma := map(MS,MS,1);
+        return (d,h,gamma));
+    ff' := ff_{0..c-2};
+    R' := S/ideal ff';
+    pR' := map(R',S);
+    MR' := pushForward(map(R,R'),M);
+    (alpha, beta) := approximation MR';
+    M' := source alpha;
+    M'S := pushForward(pR',M');
+    alphaS := map(MS, M'S, lift(matrix alpha, S));
+    B0':= source beta;
+    betaS := map(MS, S**B0', lift(matrix beta, S));    
+    K :=kernel(alpha|beta);
+    B1' := prune K;
+    if not isFreeModule B1' then 
+       error "should have been free";
+    p := B1'.cache.pruningMap; -- goes from B1' to K
+    bpsi := inducedMap(M'++B0',
+	          kernel (alpha|beta))*p;
+    psi'' := (M'++B0')^[0]*bpsi;
+    b' := lift((M'++B0')^[1]*bpsi, S);
+    if M' == 0 then return(b',0,beta);
+    --
+    (d',h',gamma') := lmfa(ff',M');
+    print (d',h',gamma');
+    --these are maps over S
+    A0' := target d';
+    psi' := lift(psi''//(gamma'**ring psi''), S);
+    A1' := source d';
+    zer := map(S**B0',A1',0);
+    d = map(A0'++S**B0', A1'++S**B1', (d'|psi')||(zer|b'));
+    gamma = map(MS,(source gamma')++S**B0',
+	        alphaS*gamma'|betaS);
+    h = 0;
+    (d,h,gamma)
+)
+
+///
+restart
+loadPackage("CompleteIntersectionResolutions", Reload=>true)
+S = ZZ/101[x,y,z]
+ff = matrix"x3,y3,z3"
+R = S/ideal ff
+M = highSyzygy coker vars R
+lmfa(ff,M)
+matrixFactorization(ff,M)
+
+A0' == target psi'
+A0'==target psi'
+b'
+M'
+B'0
+B'1
+///
+--    if c ==
+--    ff' := ff_{0..c-2};
+
+-*
+--test the decomposition of the mf and layeredmf:
+restart
+uninstallPackage "CompleteIntersectionResolutions"
+installPackage "CompleteIntersectionResolutions"
+loadPackage("CompleteIntersectionResolutions", Reload=>true)
+n = 3
+S = ZZ/32003[x_0..x_(n-1)]
+NS = coker vars S
+ff = matrix{apply(gens S, x->x^3)}
+R = S/ideal ff
+N = coker vars R
+M = highSyzygy N
+MS = pushForward(map(R,S),M)
+mf = matrixFactorization (ff, M)
+lmf = layeredMF(ff,M)
+mf_0
+lmf_0
+td = target mf_0
+tld = target lmf_0
+sd = source mf_0
+sld = source lmf_0
+
+th = target mf_1
+tlh = target lmf_1
+sh =  source mf_1
+slh = source lmf_1
+
+BRanks mf
+BRanks lmf
+ARanks mf
+ARanks lmf
+ring mf_0 === ring MS
+ring lmf_0 === ring MS
+
+bMaps mf
+bMaps lmf
+psiMaps mf
+psiMaps lmf
+
+hMaps mf/betti
+hMaps lmf/betti
+
+betti res MS
+betti makeFiniteResolution (mf,ff)
+betti makeFiniteResolution (lmf,ff) -- this fails for n=3.
+
+
+
+-----------
+--an Ulrich module of codim 2: \cO(H+p-q) on an elliptic quartic
+restart
+loadPackage ("CompleteIntersectionResolutions", Reload=>true)
+
+kk = QQ
+S = kk[x_0..x_3];
+ff = gens ideal(x_0*x_1-x_2*x_3, x_1^2-x_3^2+x_0*x_2)
+p = ideal(x_0,x_2,x_1+x_3)
+q = ideal(x_0,x_2,x_1-x_3)
+points = intersect(p,q)
+E = ideal ff;
+assert (codim (ideal jacobian E  +E) == 4)
+R = S/E;
+pR = sub(p,R);
+qR = sub(q,R);
+M = prune Hom(module pR, module qR); -- an R-module
+MS = prune pushForward(map(R,S), M)
+betti res MS
+
+
+
+(d,h,gamma) = layeredMFaug(ff,M);
+T = target d
+BRanks {d,h}
+
+betti d
+MS = prune coker d
+betti res MS
+phi = presentation MS
+(ff_{1}**target phi)//phi
+MS
+
+tar' = coker(map (target d, ,d_{8..11}))
+F = prune tar'
+Pi = (F.cache#pruningMap)^(-1)
+e = (inducedMap(tar', target d))*d_{0..7}
+e1 = Pi*e
+(ff_{0}**target e1)%e1
+
+
+
+prune coker((inducedMap(tar', target d))*d_{0..7})
+
+ff_1_0
+dR' * hc == R'^{-1} ** diagonalMatrix toList(8: ff_1_0)
+R'**(d*h_[1]) == R'^{-1} ** diagonalMatrix toList(8: ff_1_0)
+betti h
+betti h_[1]
+pushForward (map(R,S),M) == target gamma
+d
+d' = (target d)^[0]*d*(source d)_[0]
+betti d'
+psi = (target d)^[0]*d*(source d)_[1]
+F = S^{4:-1}
+w = (map(F,F,1)|| map(F,F,0))
+w = psi|map(F++F,F,(i,j) -> if i==3+j then 1 else 0)
+
+u = (w^(-1)*d)_{0..7}
+toString u
+
+S = QQ[x_0..x_3]
+u = matrix {{x_0, 0, 0, 0, 0, 0, 0, x_2}, {-x_0, 0, -x_2, 0, 0, -x_1, 0, -x_2}, {0, 0, 0, -x_3, -x_1, 0, 0,
+       0}, {0, 0, 0, x_0, x_2, 0, 0, 0}, {x_0, x_0, x_2, 0, 0, x_1, x_3, x_2}, {0, x_2, 0, -x_3, -x_1, 0, x_1,
+       0}, {0, 0, x_0, x_3, x_1, x_3, 0, 0}, {x_3, 0, 0, x_0, x_2, 0, 0, x_1}}
+M1 = coker u
+f0 = matrix{{x_0*x_1-x_2*x_3}}
+mu = (f0**target u)//u
+u*mu == f0**id_(target u)
+v = u^{4..7}
+M = coker v
+betti res M
+ann M
+f1 = (gens ann M)_{0}
+nu = (f1**id_(target v))//v
+v*nu 
+
+
+det A
+prune psibar
+(psibar*d)_{0..7}|d_{8..11}
+d'1 = psibar*d'
+(d'1)^{0,1,4,6}
+betti res coker oo
+psi^{2}||psi^{3}||psi^4
+
+F = S^{4:-1}
+psi' = map(F,F,1)||map(F,F,0)
+ch = transpose(transpose psi'//transpose psi)
+
+ch*d'
+
+change = map(S^{8:-1},S^{8:-1},(i,j) -> (
+	if i == 0 or i==1 or i==2 then
+        return psi'_(i,j);
+	if i ==7 then return psi'_(3,j);
+	0)
+)
+change*d
+
+d1 =  (target d)^[1]*d*(source d)_[1]
+
+h' = (target h)^[0]*h*(source h)_[0]
+0== d'*h' - diagonalMatrix toList(8:ff_0_0) -- modulo ff_0...ff_(cod -2) % ff_0
+
+pres  = d'--^{0..3}
+betti res coker oo
+h1 = (ff_{1}**target pres)%pres
+pres*h1
+
+hc = h*(source h)_[1]
+d*hc
+R' = S/(ideal (ff_{0}))
+R'^{-1}**diagonalMatrix toList(8:ff_1_0 % ff_{0}) == R'**(d*hc)
+
+MR' = prune pushForward(map(R,R'),M)
+(alpha,beta) = approximation MR'
+M' = source alpha
+betti res pushForward(map(R',S),M')
+(d,h,gamma) = layeredMFaug(ff',M');
+
+
+isHomogeneous h
+
+
+b1 = (target d)^[0]*d*(source d)_[0]
+psi = (target d)^[0]*d*(source d)_[1]
+b2 = (target d)^[1]*d*(source d)_[1]
+(target h)^[0]*h*(source h)_[0]
+isHomogeneous oo
+(target h)^[1]*h*(source h)_[0]
+isHomogeneous oo
+(target h)^[1]*h*(source h)_[1]
+
+
+d^[0]
+(source d)^[1]
+(source d)^[0]
+(L,aug) = layeredResolution (ff,MS, Verbose =>true)
+
+*-
 
 
 -*
@@ -632,6 +1040,20 @@ M = highSyzygy N
 ff = ff0*random(source ff0, source ff0)
 lmfa = layeredMFaug(ff,M, Verbose =>true)
 lmf = layeredMF(ff,M,Verbose=>true)
+lmfa = layeredMFaug(ff,M)
+lmf = layeredMF(ff,M)
+
+kk=ZZ/101
+S = kk[a,b,c]
+ff0 = matrix"a4,b4,c4"
+R = S/ideal ff0
+N = coker vars R
+M = highSyzygy N
+ff = ff0*random(source ff0, source ff0)
+(d,h,gamma) = layeredMFaug(ff,M, Verbose =>true);
+(d,h) = layeredMF(ff,M,Verbose=>true)
+lmfa = layeredMFaug(ff,M)
+lmf = layeredMF(ff,M)
 
 mf = matrixFactorization(ff0, M)
 BRanks mf
@@ -1129,9 +1551,10 @@ makeHomotopies(Matrix, ChainComplex, ZZ) := (f,F,d) ->(
      )
 ///
 restart
-notify=true
+--notify=true
 uninstallPackage "CompleteIntersectionResolutions"
 installPackage "CompleteIntersectionResolutions"
+viewHelp "CompleteIntersectionResolutions"
 check"CompleteIntersectionResolutions"
 loadPackage("CompleteIntersectionResolutions", Reload =>true)
 S = kk[a,b,c]
@@ -1892,7 +2315,9 @@ Description
   {TO "Shamash"},
   {TO "layeredResolution"},
   {TO "makeFiniteResolution"},
-  {TO "makeFiniteResolutionCodim2"}
+  {TO "makeFiniteResolutionCodim2"},
+  {TO "layeredMFaug"},
+  {TO "layeredMF"}	   
   }@
  Text
   @SUBSECTION "Tools for construction of higher matrix factorizations"@
@@ -4242,6 +4667,120 @@ doc ///
     oddExtModule
 ///
 
+doc///
+   Key
+    layeredMFaug
+    (layeredMFaug, Matrix, Module)
+    [layeredMFaug, Check]
+    [layeredMFaug, Verbose]    
+   Headline
+    layered resolution of an MCM module, with augmentation
+   Usage
+    D = layeredMFaug (ff,M)
+   Inputs
+    ff:Matrix
+     1 x c matrix containing a regular sequence in a polynomomial ring S
+    M:Module
+     MCM module over S/(ideal ff)
+    Check:Boolean
+    Verbose:Boolean
+   Outputs
+    D:Sequence
+     D = (d,h,gamma)
+   Description
+    Text
+     Constructs a matrix factorization for any
+     MCM over a complete intersection (not necessarily
+     a high syzyg) via the
+     ``layered'' algorithm. If the Verbose option is set to
+     true, then the computation at each layer is displayed.
+     
+     For example, here is an Ulrich module in codimension 2:
+     We take points p,q on an elliptic quartic curve in P^3
+     and consider the module M = O(p-q).
+     
+     The equations of the curve are two general quadrics vanishing on p and q:
+    Example
+     kk = ZZ/32003
+     S = kk[x_0..x_3]
+     p = ideal (x_0-x_1,x_0-x_2,x_0-x_3)
+     q = ideal (x_0-2*x_1,x_0-x_2,x_0-x_3)
+     points = intersect(p,q);
+     ff = gens points*random(source gens points, S^{2:-2});
+     IE = ideal ff;
+     R = S/IE;
+     pR = sub(p,R);
+     qR = sub(q,R);
+     M = prune Hom(module pR, module qR); -- an R-module
+    Text
+     We can check directly that this is an Ulrich module, by
+     pushing it forward to S and seeing that it has a linear
+     resolution of length 2:
+    Example
+     betti res pushForward(map(R,S),M)
+    Text
+     We compute the layered resolution and the associated homotopies and augmentation,
+     giving the matrix factorization:
+    Example
+     (d,h,gamma) = layeredMFaug(ff,M, Verbose =>true);
+     betti d
+     betti h
+    Text
+     The answer is computed inductively; first (d',h'), the layeredMf
+     is computed for
+     the MCM approximation M' of M over R' = S/(ff_0..ff_(codim -2)),
+     and then this is combined with the ordinary matrix factorization (dc,h)
+     for M over R'.
+     We can see the parts of the result as follows. First (d',h').
+     Note that this is a codim 1 matrix factorization in this case
+     (in general it would be codim c-1):
+    Example
+     d' = (target d)^[0]*d*(source d)_[0];
+     betti d'
+     psi = (target d)^[0]*d*(source d)_[1];
+     betti psi
+     h' = (target h)^[0]*h*(source h)_[0];
+     betti h'
+    Text
+     and we see the homotopy properties of the matrix factorization too:
+    Example
+     0 == d'*h' - diagonalMatrix toList(8:ff_0_0) 
+     0 == (S/ideal IE_0)**(d*h_[1] -  S^{-1}**diagonalMatrix toList(8: ff_1_0))
+    Text
+     in this case we could not have computed the matrix factorization directly;
+     neither M nor its first syzygy satisfies the needed surjectivity conditions,
+     but the second syzygy does:
+    Example
+     M2 = syzygyModule(2,M);
+     mf = matrixFactorization(ff,M2)
+   SeeAlso
+    matrixFactorization
+///
+
+doc///
+   Key
+    layeredMF
+    (layeredMF, Matrix, Module)
+    [layeredMF, Check]
+    [layeredMF, Verbose]    
+   Headline
+    layered resolution of an MCM module, with augmentation
+   Usage
+    D = layeredMFaug (ff,M)
+   Inputs
+    ff:Matrix
+     1 x c matrix containing a regular sequence in a polynomomial ring S
+    M:Module
+     MCM module over S/(ideal ff)
+    Check:Boolean
+    Verbose:Boolean
+   Outputs
+    D:Sequence
+     D = (d,h)
+   Description
+    Text
+     Constructs the layered resolution with auxilliary maps. 
+///
 ------TESTs------
 TEST/// -- tests of the "with components" functions
 S = ZZ/101[a,b]
@@ -4683,7 +5222,7 @@ assert(ring Eo === U)
 ///
 
 end--
-
+restart
 uninstallPackage "CompleteIntersectionResolutions"
 restart
 notify=true
@@ -4703,3 +5242,125 @@ f = det m
 R = localRing(S,ideal gens S)
 ff = sub(f,R)
 R/ff
+
+
+-* unfinished code and documentation for what it should do.
+--moduleAsExt = method()
+--moduleAsExt(Module,Ring) := (MM,R) ->()
+
+moduleAsExt = method()
+moduleAsExt(Module,Ring) := (MM,R) ->(
+    Ops := ring MM;
+    reg := regularity MM;
+    MMr := truncate(reg, MM);
+    F := res MMr;
+    K := res(coker vars R, LengthLimit => reg+numgens R);
+    K2 := res(coker K.dd_3, LengthLimit=>5);
+    T := makeT(presentation R, K, 2);
+    Tmat := T_0;
+    scan(drop(T,1), t->Tmat = Tmat||t);
+    --Two subroutines
+    insertT := phi -> (
+	--replace each entry of phi by the 
+	--appropriate linear combination of the rows of Tmat.
+	--Note that the entries of phi must be linear forms of Ops
+	--and the output is a matrix of scalars over thing ring R.
+	v := vars ring phi;
+	L := entries phi; -- list of lists of lin forms in Ops
+        matrix apply(#L, i -> 
+	    apply(#L_i, 
+		j-> sub(diff(v, L_i_j),R)*Tmat))
+	);
+    dsum := (p,F)-> directSum apply(p, i->F);
+    --End subroutines
+    phi := F.dd_1;
+    
+    print betti (Ks := dsum(rank source phi, K));
+    print betti (Kt := dsum(rank target phi,R^{2}**K2));
+    phiT := map(Ks_0,Kt_0,insertT phi);
+    print betti phiT;
+    
+--    error();
+    extend(dsum(rank source phi, K), 
+	dsum(rank target phi,R^{2}**K2), 
+	phiT)    
+        )
+doc///
+Key
+ moduleAsExt
+ (moduleAsExt, Module, Ring)
+Headline
+ Find a module with given assymptotic resolution
+Usage
+ M = moduleAsExt(MM,R)
+Inputs
+ MM:Module
+  module over poly ring with c variables of degree 2
+ R:Ring
+  (graded) complete intersection ring of codim c, edim n
+Outputs
+ M:Module
+  module over R such that Ext_R(M,k) = M\otimes \wedge(k^n)
+Description
+ Text
+  Suppose that $R = k[a_1,\dots, a_n]/(f_1,\dots,f_c)$ and
+  $F = k[x_1,\dots,x_c]\otimes \wedge k^n$, so that the minimal
+  $R$-free resolution of $k$ has underlying module $R\otimes F^*$.
+  
+  We truncate MM at its regularity and shift so it is generated
+  in degree 0, then pass to the ring
+  $E = Ext_R(k,k)$, and set  
+  $N := E^{n}\otimes trunc(n,E\otimes MM).$ We then resolve
+  $N$ over $E$.
+ Example
+  kk = ZZ/101;
+  S = kk[a,b,c];
+  ff = matrix{{a^4, b^4}};
+  R = S/ideal ff;
+  Ops = kk[x_1,x_2]
+  MM = Ops^1/ideal(x_1^2*x_2)  
+  betti presentation prune moduleAsExt(MM,R)  
+       ///
+*-
+
+-*
+restart
+loadPackage ("CompleteIntersectionResolutions", Reload=>true)
+uninstallPackage("CompleteIntersectionResolutions")
+installPackage("CompleteIntersectionResolutions")
+viewHelp moduleAsExt
+viewHelp CompleteIntersectionResolutions
+needsPackage "SimpleDoc"
+*-
+
+--an Ulrich module of codim 2: \cO(H+p-q) on an elliptic quartic
+restart
+loadPackage ("CompleteIntersectionResolutions", Reload=>true)
+kk = ZZ/32003
+S = kk[a,b,c,d]
+p = ideal (a-b,a-c,a-d)
+q = ideal "a-2b,a-3c,a-5d"
+points = intersect(p,q)
+ff = gens points*random(source gens points, S^{2:-2})
+ff' = ff_{0}
+E = ideal ff
+codim (ideal jacobian E  +E)
+R' = S/ideal (ff')
+R = S/E
+pR = sub(p,R)
+qR = sub(q,R)
+M = prune Hom(module pR, module qR) -- an R-module
+betti res M
+betti res (MS = pushForward(map(R,S),M))
+2--M is Ulrich over R
+
+MR' = prune pushForward(map(R,R'),M)
+(alpha,beta) = approximation MR'
+M' = source alpha
+betti res pushForward(map(R',S),M')
+
+layeredMFaug(ff',M')
+layeredMFaug(ff,M)
+
+(L,aug) = layeredResolution (ff,MS, Verbose =>true)
+
