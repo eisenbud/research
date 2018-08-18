@@ -1,3 +1,13 @@
+-*
+restart
+loadPackage("CompleteIntersectionResolutions", Reload=>true)
+
+uninstallPackage "CompleteIntersectionResolutions"
+restart
+installPackage "CompleteIntersectionResolutions"
+check "CompleteIntersectionResolutions"
+viewHelp CompleteIntersectionResolutions
+*-
 newPackage(
               "CompleteIntersectionResolutions",
               Version => "1.1", 
@@ -772,68 +782,128 @@ lmfa(Matrix,Module) := opts -> (ff,M) ->(
     pR := map(R,S);
     c := numcols ff;
     MS := pushForward(pR,M);
+    --MS will be the target of gamma
+    --check that MS is MCM of the right codim
+    if opts.Check == true then(
     FS := res MS;
     if length FS != c then 
-       error"module is not MCM mod the regular sequence";
+       error"module is not MCM mod the regular sequence");
+    ---
+    --deal with the case where M is a free module over R
     if isFreeModule M then (
 	d := map(MS,S^0,0);
 	h := map(S^0,S^0,0);
 	gamma := map(MS,MS,1);
-        return (d,h,gamma));
+        --return (d,h,gamma)
+	);
+    --Prepare the modules for the inductive step
     ff' := ff_{0..c-2};
     R' := S/ideal ff';
     pR' := map(R',S);
     MR' := pushForward(map(R,R'),M);
     (alpha, beta) := approximation MR';
-    M' := source alpha;
-    M'S := pushForward(pR',M');
-    alphaS := map(MS, M'S, lift(matrix alpha, S));
+    M' := source alpha;-- the MCM over R'
+    M'S := pushForward(pR',M'); -- target of gamma'
+    alphaS := map(MS, M'S, lift(matrix alpha, S)); 
     B0':= source beta;
     betaS := map(MS, S**B0', lift(matrix beta, S));    
     K :=kernel(alpha|beta);
     B1' := prune K;
+    --check that B1' is free
+    if opts.Check == true then(
     if not isFreeModule B1' then 
-       error "should have been free";
+       error "should have been free");
+    --
+    --now replace the subquotient module K with B1'
     p := B1'.cache.pruningMap; -- goes from B1' to K
-    bpsi := inducedMap(M'++B0',
-	          kernel (alpha|beta))*p;
-    psi'' := (M'++B0')^[0]*bpsi;
+    bpsi := inducedMap(M'++B0',K)*p;
+    psi'' := (M'++B0')^[0]*bpsi; --target is M'; psi' will have target == target d'
     b' := lift((M'++B0')^[1]*bpsi, S);
-    if M' == 0 then return(b',0,beta);
+--    error();
+    if M' == 0 then (
+    hcR' := (ff_{c-1}**id_(R'**target b'))//(R'**b');
+    hc := map(source b', ,lift((matrix hcR',S)));	    
+    return(b',hc,beta));
     --
     (d',h',gamma') := lmfa(ff',M');
-    print (d',h',gamma');
-    --these are maps over S
     A0' := target d';
-    psi' := lift(psi''//(gamma'**ring psi''), S);
     A1' := source d';
-    zer := map(S**B0',A1',0);
-    d = map(A0'++S**B0', A1'++S**B1', (d'|psi')||(zer|b'));
+
+    if opts.Verbose == true then print (d',h',gamma');
+
+    --the following need to be maps over S
+    psi' := lift(psi''//(gamma'**ring psi''), S);
+    zer0 := map(S**B0',A1',0);
+    --
+    dtar := flattenDirectSum(A0'++S**B0');
+    dsour := flattenDirectSum(A1'++S**B1');
+    --
+    d = map(dtar, dsour, (d'|psi')||(zer0|b'));
     gamma = map(MS,(source gamma')++S**B0',
 	        alphaS*gamma'|betaS);
-    h = 0;
+	    
+    if opts.Verbose == true then print  annihilator(coker d ** R');
+    if opts.Check == true then assert((ff_{c-1}**target d**R')%(d**R') == 0);
+    hc = (ff_{c-1}**id_(R'**target d))//(R'**d);
+    if opts.Check == true then assert((ff_{c-1}**id_(R'**target d)) % (R'**d) == 0);
+--    zer1 := 0*id_(S**B1');
+    zer1 := map(S**B1',S**source h', 0);
+--    h = map(source d,,lift(matrix hc, S))|(h'||zer1); previous code
+    h = (h'||zer1)|map(source d,,lift(matrix hc, S)); --order reversed from prev code
     (d,h,gamma)
 )
-
 ///
 restart
 loadPackage("CompleteIntersectionResolutions", Reload=>true)
-S = ZZ/101[x,y,z]
-ff = matrix"x3,y3,z3"
+n= 4
+x = symbol x;
+S = ZZ/101[x_0..x_(n-1)]
+ff = matrix{apply(gens S, a->a^3)}
 R = S/ideal ff
-M = highSyzygy coker vars R
-lmfa(ff,M)
-matrixFactorization(ff,M)
+pRS = map(R,S)
+M = highSyzygy coker vars R;
+MS = prune pushForward(pRS,M);
 
-A0' == target psi'
-A0'==target psi'
-b'
-M'
-B'0
-B'1
+--(d,h,gamma) = lmfa(ff,M, Check=>true, Verbose =>true)
+time (d1,h1,gamma) = lmfa(ff,M, Check=>true);
+time mf = matrixFactorization(ff,M);
+(d,h) = (mf_0,mf_1);
+Flmf = makeFiniteResolution({d1,h1},ff)
+apply(length Flmf, i-> prune HH_(i+1) Flmf)
+BRanks mf
+BRanks {d1,h1}
+netList bMaps {d1,h1}
+netList bMaps mf
+netList psiMaps {d1,h1}
+netList psiMaps mf
+
+time (d1,h1,gamma) = lmfa(ff,coker vars R, Check=>true);
+lmf = {d1,h1}
+Flmf = makeFiniteResolution({d1,h1},ff)
+
+
+restart
+loadPackage("CompleteIntersectionResolutions", Reload=>true)
+n= 2
+x = symbol x;
+S = ZZ/101[x_0..x_(n-1)]
+ff = matrix{apply(gens S, a->a^3)}
+R = S/ideal ff
+pRS = map(R,S)
+R1 = S/ideal(ff_{0})
+p1 = map(R,R1)
+(alpha, beta) = approximation(coker vars R1)
+pushForward(map(R1,S),source alpha)
+target alpha
+target beta
+F = (layeredResolution(ff, coker vars S))_0
+apply(length F+1, i-> prune HH_i F)
+
+(d,h,gamma) = lmfa (ff, coker vars R)
+lmf = {d,h}
+makeFiniteResolution(lmf,ff)
+makeFiniteResolutionCodim2(lmf, ff)
 ///
---    if c ==
---    ff' := ff_{0..c-2};
 
 -*
 --test the decomposition of the mf and layeredmf:
@@ -1517,20 +1587,34 @@ makeHomotopies(Matrix, ChainComplex, ZZ) := (f,F,d) ->(
      -- s_0s_{i}+s_{i}s_0 = f_i
      -- and, for each index list I with |I|<=d,
      -- sum s_J s_K = 0, when the sum is over all J+K = I
-     H := new MutableHashTable;
+     S := ring f;
+     
+     flist := flatten entries f;
+     lenf := #flist;
+     degs := apply(flist, fi -> degree fi); -- list of degrees (each is a list)
+     
+
      minF := min F;
      maxF := max F;
      if d>max F then d=maxF;
-     flist := flatten entries f;
-     lenf := #flist;
+
      e0 := (expo(lenf,0))_0;
-     for i from minF to d+1 do H#{e0,i} = F.dd_i;
+
      e1 := expo(lenf,1);
+     
+     H := new MutableHashTable;
+     
+     --make the 0  homotopies into F_minF;
+     for i from minF to d+1 do H#{e0,i} = F.dd_i;
      scan(#flist, j->H#{e1_j,minF-1}= map(F_minF, F_(minF-1), 0));
+
+     --the rest of the first homotopies
      for i from minF to d do
 	       scan(#flist,
 	       j->H#{e1_j,i}= (-H#{e1_j,i-1}*H#{e0,i}+flist_j*id_(F_i))//H#{e0,i+1}
 	       );
+	   
+     --the higher homotopies
      for k from 2 to d do(
 	  e := expo(lenf,k);
 	  apply(e, L ->(
@@ -1540,15 +1624,13 @@ makeHomotopies(Matrix, ChainComplex, ZZ) := (f,F,d) ->(
 	      H#{L,i} = sum(expo(lenf,L), 
 		 M->(H#{L-M,i+2*sum(M)-1}*H#{M,i}))//H#{e0,i+2*k-1};
 	    )));
-     --hashTable pairs H
-     S := ring f;
-     degs := apply(flist, fi -> degree fi); -- list of degrees (each is a list)
-     hashTable apply(keys H, k->
+
+     --correct the degrees, and return a HashTable
+     H1 := hashTable apply(keys H, k->
      {k, map(F_(k_1+2*sum (k_0)-1), 
---	     tensorWithComponents( S^(-sum(#k_0,i->(k_0)_i*degs_i)),F_(k_1)), 
 	     tensorWithComponents( S^{-sum(#k_0,i->(k_0)_i*degs_i)},F_(k_1)), 
-				         H#k)})
-     )
+				         H#k)});
+     H1)
 ///
 restart
 --notify=true
@@ -1576,46 +1658,68 @@ makeHomotopies1 = method()
 makeHomotopies1 (Matrix, ChainComplex) := (f,F) ->(
      makeHomotopies1 (f,F, length F))
 
-makeHomotopies1 (Matrix, ChainComplex, ZZ) := (f,F,d) ->(
+makeHomotopies1 (Matrix, ChainComplex, ZZ) := (f,F,b) ->(
      --given a 1 x lenf matrix f and a chain complex 
      -- F_min <-...,
      --the script attempts to make a family of first homotopies
      --on F for the elements of f.
      --The output is a hash table {{J,i}=>s), where
-     --J is an integer 0<= J < lenf, 
+     --J is an integer 0 <= J < lenf, 
+     --min F <= i < b
      --and s is a map F_i->F_(i+1) satisfying the conditions
-     -- ds_{i}+s_{i}d = f_i
-     H := new MutableHashTable;
+     -- ds_{i}+s_{i}d = f_i. 
+     -- if the given b is > max F, then b is replaced by max F.
+     S := ring f;
+     flist := flatten entries f;
+     degs := apply(flist, fi -> degree fi); -- list of degrees (each is a list)
+     
+
      minF := min F;
      maxF := max F;
-     if d>max F then d=maxF;
-     flist := flatten entries f;
-     rem := 0; -- no error yet.
+     if b>max F then b=maxF;
+
+     rem := 0;
      h := null;
-     
+     H := new MutableHashTable;          
+
+     --make the initial homotopies from F_minF 0.
      scan(#flist, j->H#{j,minF-1}= map(F_minF, F_(minF-1), 0));
-     
-     for i from minF to d do
+
+     --now compute the rest of the homotopies. Note that the grading is not yet right
+     for i from minF to b do
 	       scan(#flist, j->(
 	       (h,rem) = 
-	          quotientRemainder(-H#{j,i-1}*F.dd_i+flist_j, --*id_(F_i),
+	          quotientRemainder(-H#{j,i-1}*F.dd_i+flist_j*id_(F_i),
 		                   F.dd_(i+1));
 	       if rem != 0 then (
 		     <<"homotopy " <<{j,i} <<" doesn't exist."<<endl;
-		     error());
-	       H#{j,i} = h;    
-	       ));
-     S := ring f;
-     degs := apply(flist, fi -> degree fi); -- list of degrees (each is a list)
-     hashTable apply(keys H, k->
+		     );
+	       H#{j,i} = h));    
+	       
+     --fix the grading and return a HashTable:
+     H1 := hashTable apply(keys H, k->
      {k, map(F_(k_1+1), 
---	     tensorWithComponents(S^(-degs_(k_0)),F_(k_1)), 	     
 	     tensorWithComponents(S^{-degs_(k_0)},F_(k_1)), 
-				         H#k)})
---     hashTable pairs H
+				         H#k)});
+     H1
      )
 
 
+TEST///
+restart
+debug loadPackage("CompleteIntersectionResolutions", Reload=>true)
+S = ZZ/101[x,y,z]
+
+ff = matrix {apply(gens S, x->x^3)}
+
+F = res (ideal gens S)^2
+R = S/ideal ff
+F = res coker vars R
+makeHomotopies1(vars R, F, 4)
+--the problem is that the kernel of F_4-->F_3 has not been computed.
+makeHomotopies(vars R, F, 4)
+makeHomotopiesOnHomology(vars R, F)
+///
 makeHomotopiesOnHomology = method()
 makeHomotopiesOnHomology (Matrix, ChainComplex) := (ff,C)->(
     --returns a pair (H,h) whose first element is the hashTable of homology of C
@@ -2075,8 +2179,8 @@ makeFiniteResolution(List,Matrix) := (MF,ff) -> (
     A
     )
 
-makeFiniteResolutionCodim2 = method()
-makeFiniteResolutionCodim2(List,Matrix) := (MF,ff) -> (
+makeFiniteResolutionCodim2 = method(Options => {Check => false})
+makeFiniteResolutionCodim2(List,Matrix) := opts -> (MF,ff) -> (
     --given a codim 2 matrix factorization, makes all the maps
     --that are relevant, as in 4.2.3 of Eisenbud-Peeva 
     --"Minimal Free Resolutions and Higher Matrix Factorizations"
@@ -2086,6 +2190,8 @@ makeFiniteResolutionCodim2(List,Matrix) := (MF,ff) -> (
     bb := bMaps MF;
     ps := psiMaps MF;
     h := hMaps MF;    
+    --problem: h_0 ought, I think to be a homotopy for bb_0:B11-->B01, and it's not.
+    --somehow the "makeFiniteResolution code escapes this problem. How??
     c' := complexity MF; -- the complexity
     if c'<2  then return {MF_0,MF_1};
 
@@ -2106,11 +2212,19 @@ makeFiniteResolutionCodim2(List,Matrix) := (MF,ff) -> (
     F0 := B01++B02;
     F1 := directSum{B11,B12,B13};
     F2 := B23;
+    F3 := S^0;
     hh0 := h_0;
     hh1' := h_1;
     d1 := map(F0,F1,(bb_0 | ps_0 | map(B01,B02',0)) || (map(B02,B11,0)| bb_1 | f1*map(B02,B02',1)));
     d2 := map(F1,F2, map(B11,B12', h_0*ps_0) || -f1*map(B12,B12',1) || (S^{ -deg1}**bb_1));
-    F := chainComplex{d1,d2};
+    d3 := map(F2,F3,0);
+    F := chainComplex{d1,d2,d3};
+    --check homology
+    if opts.Check == true then (
+	apply(length F, i->(
+		if prune (HH_(i+1) F) != 0 then 
+		(     << "complex has homology at step " << i+1 <<endl;
+		error()))));
     homot := makeHomotopies1(ff, F);
     --note that the following are various components of homotopies related to f2!
     hf1 := homot#{1,0};
@@ -2142,13 +2256,37 @@ makeFiniteResolutionCodim2(List,Matrix) := (MF,ff) -> (
 	    ),
 	    map(S^{deg1}**F_2, F_1, out#"v" | out#"Y" | out#"sigma")
 	    };
+if opts.Check == true then(
     assert(F.dd_1*hconst_0 == map(F0, S^{ -deg1}**F_0, f2*id_(F_0)));
     assert(hconst_0*F.dd_1+F.dd_2*hconst_1 == f2*id_(F_1));
     assert(hconst_1*F.dd_2 == map(S^{deg1}**F_2, F_2, f2*id_(F_2)));
     if hh1 !=hh1' then 
-           <<"Note that h1 != h1' (homotopies for ff_0)"<<endl;
+           <<"Note that h1 != h1' (homotopies for ff_0)"<<endl);
     out
     )
+///
+restart
+loadPackage("CompleteIntersectionResolutions", Reload=>true)
+n= 2
+x = symbol x;
+S = ZZ/101[x_0..x_(n-1)]
+ff = matrix{apply(gens S, a->a^3)}
+R = S/ideal ff
+pRS = map(R,S)
+R1 = S/ideal(ff_{0})
+p1 = map(R,R1)
+(alpha, beta) = approximation(coker vars R1)
+pushForward(map(R1,S),source alpha)
+target alpha
+target beta
+F = (layeredResolution(ff, coker vars S))_0
+apply(length F+1, i-> prune HH_i F)
+
+(d,h,gamma) = lmfa (ff, coker vars R)
+lmf = {d,h}
+makeFiniteResolution(lmf,ff)
+makeFiniteResolutionCodim2(lmf, ff, Check=>true)
+///
 
 
 complexity = method()
@@ -2156,7 +2294,8 @@ complexity = method()
 complexity Module := M-> dim evenExtModule M
 complexity List := mf -> (
     br := BRanks mf;
-    L := select(br, pair->pair_0!=0);
+--    L := select(br, pair->pair_0!=0);
+    L := select(br, pair->pair_1!=0);    
     #L)
 
 BGGL = (P,S) ->(
@@ -3524,13 +3663,13 @@ Key
 Headline
  returns a system of higher homotopies
 Usage
- H = makeHomotopies(f,F,d)
+ H = makeHomotopies(f,F,b)
 Inputs
  f:Matrix
    1xn matrix of elements of S
  F:ChainComplex
    admitting homotopies for the entries of f
- d:ZZ
+ b:ZZ
    how far back to compute the homotopies (defaults to length of F)
 Outputs
  H:HashTable
