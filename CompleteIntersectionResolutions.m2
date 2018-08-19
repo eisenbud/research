@@ -27,16 +27,14 @@ newPackage(
 	   "oddExtModule",
 	   "ExtModuleData",
 	--tools used to construct the "higher matrix factorization"
-	--of a high syzygy
+	--of a high syzygy or more generally a Maximal Cohen-Macaulay module
 	   "matrixFactorization",
            "layeredMFaug", --returns mf with augmentation
            "layeredMF",	   
 	   "lmfa",
-	   "Check", -- optional arg for matrixFactorization
-	   "highSyzygy",
-  	   "Optimism", -- optional arg for highSyzygy etc	   
 	   "makeT",
 	   "koszulExtension",
+	   "highSyzygy",	   
        --scripts to unpack the info in a matrix factorization
 	   "BRanks",
 	   "ARanks",
@@ -86,7 +84,13 @@ newPackage(
 	   "dualWithComponents",
 	   "HomWithComponents",
 	   "tensorWithComponents",
-	   "toArray"
+	   "toArray",
+       --Symbols
+	   "Check", -- optional arg for matrixFactorization
+	   "Layered", -- optional arg for matrixFactorization
+	   "Augmentation", -- optional arg for matrixFactorization
+
+  	   "Optimism" -- optional arg for highSyzygy etc	   
 	   }
 print "file in the research directory"
 
@@ -196,10 +200,12 @@ layeredResolution(Matrix, Module) := opts ->(ff, M) ->(
     MR' := prune(R'**M);
     (alpha, beta) := approximation MR';
     B0 := source beta;
-    M' := source alpha;
+    M'u := source alpha;--unpruned!
+    M' := prune M'u;
+    pruneMapM' := M'.cache.pruningMap; -- goes from M' to M'u
 --    assert(M' == prune M');
 
-    gamma := map(MR', M'++B0, (alpha)|beta);
+    gamma := map(MR', M'++B0, (alpha*pruneMapM')|beta);
     BB1 := ker gamma;
     B1 := minimalPresentation BB1;
 --    assert(isFreeModule B1);
@@ -218,19 +224,24 @@ layeredResolution(Matrix, Module) := opts ->(ff, M) ->(
     
     (L',aug') := layeredResolution(ff', M'S, Verbose => opts.Verbose);
     assert(target aug' == M'S);
+    
+    
     psiS0 := map(M'S, B1S, sub(matrix psi,S));
+    
+    
     psiS := psiS0//aug';
     Psi1 := extend(L',B[1],matrix psiS);
     Psi2 := Psi1**KK;
     Psi := extend(L',L'**KK, id_(L'_0))*Psi2;
     L = cone Psi; -- L', the target of Psi, is the first summand, so this is L_0==L'_0++B_0
     assert(L_0 == L'_0 ++ B_0);
-    m := (sub((matrix alpha),S)*matrix aug') |sub(matrix beta,S);
+    m := (sub(matrix (alpha*pruneMapM'),S)*matrix aug') |sub(matrix beta,S);
     aug := map(M,L'_0++B_0,m);
 --Check exactness
 --    scan(length L -1, s->assert( HH_(s+1) L == 0));
     (L,aug)
     )
+
 
 
 
@@ -774,7 +785,7 @@ layeredMF(Matrix, Module) := opts -> (ff,M) ->
            (layeredMFaug(ff,M, opts))_{0,1}
 
 lmfa = method(Options=>
-    {Check => false, Verbose =>false})
+    {Check => false, Verbose =>false,Augmentation =>true})
 lmfa(Matrix,Module) := opts -> (ff,M) ->(
     --M is an R := S/ideal ff module.
     S := ring ff;
@@ -802,11 +813,19 @@ lmfa(Matrix,Module) := opts -> (ff,M) ->(
     pR' := map(R',S);
     MR' := pushForward(map(R,R'),M);
     (alpha, beta) := approximation MR';
-    M' := source alpha;-- the MCM over R'
+
+    M'u := source alpha;-- the MCM over R', unpruned
+    M' := prune M'u;
+    M'p := M'.cache.pruningMap;  --this is a map M'-->M'u
+    --problem: M', the source of alpha is not pruned; but 
     M'S := pushForward(pR',M'); -- target of gamma'
-    alphaS := map(MS, M'S, lift(matrix alpha, S)); 
+    --but M'S, the pushforward, is!
+    --it seems that the use of "lift" in the next few lines is wrong.
+--    alphaS := map(MS, M'S, lift(matrix alpha, S)); 
+    alphaS := map(MS, M'S, substitute(matrix (alpha*M'p), S));
     B0':= source beta;
-    betaS := map(MS, S**B0', lift(matrix beta, S));    
+--    betaS := map(MS, S**B0', lift(matrix beta, S));        
+    betaS := map(MS, S**B0', substitute(matrix beta, S));    
     K :=kernel(alpha|beta);
     B1' := prune K;
     --check that B1' is free
@@ -816,23 +835,34 @@ lmfa(Matrix,Module) := opts -> (ff,M) ->(
     --
     --now replace the subquotient module K with B1'
     p := B1'.cache.pruningMap; -- goes from B1' to K
-    bpsi := inducedMap(M'++B0',K)*p;
+    bpsi := ((M'p)^(-1)++id_(B0'))* inducedMap(M'u++B0',K)*p;
     psi'' := (M'++B0')^[0]*bpsi; --target is M'; psi' will have target == target d'
-    b' := lift((M'++B0')^[1]*bpsi, S);
+--    b' := lift((M'++B0')^[1]*bpsi, S);--caused an error at some point
+    b' := map(S**B0', S**source bpsi, 
+	      substitute(matrix ((M'++B0')^[1]*bpsi), S));    
 --    error();
     if M' == 0 then (
     hcR' := (ff_{c-1}**id_(R'**target b'))//(R'**b');
     hc := map(source b', ,lift((matrix hcR',S)));	    
     return(b',hc,beta));
     --
-    (d',h',gamma') := lmfa(ff',M');
+    (d',h',gamma') := toSequence lmfa(ff',M');
     A0' := target d';
     A1' := source d';
 
     if opts.Verbose == true then print (d',h',gamma');
 
     --the following need to be maps over S
-    psi' := lift(psi''//(gamma'**ring psi''), S);
+    --Old code: psi' := lift(psi''//(gamma'**ring psi''), S);
+    --note: ring psi'' = R'
+pR'S := map(R',S);
+gamma'R' := map(R'**target gamma', R'**source gamma', substitute(matrix gamma', R'));
+
+psi' := map(pushForward(map(ring gamma', S),source gamma'), 
+           pushForward(pR'S, source psi''),
+	substitute(matrix (psi''//(gamma'R')), S) 
+	);
+
     zer0 := map(S**B0',A1',0);
     --
     dtar := flattenDirectSum(A0'++S**B0');
@@ -850,7 +880,7 @@ lmfa(Matrix,Module) := opts -> (ff,M) ->(
     zer1 := map(S**B1',S**source h', 0);
 --    h = map(source d,,lift(matrix hc, S))|(h'||zer1); previous code
     h = (h'||zer1)|map(source d,,lift(matrix hc, S)); --order reversed from prev code
-    (d,h,gamma)
+    if opts.Augmentation == true then {d,h,gamma} else {d,h}
 )
 ///
 restart
@@ -865,21 +895,20 @@ M = highSyzygy coker vars R;
 MS = prune pushForward(pRS,M);
 
 --(d,h,gamma) = lmfa(ff,M, Check=>true, Verbose =>true)
-time (d1,h1,gamma) = lmfa(ff,M, Check=>true);
+time lmf = toList lmfa(ff,M, Check=>true);
 time mf = matrixFactorization(ff,M);
 (d,h) = (mf_0,mf_1);
-Flmf = makeFiniteResolution({d1,h1},ff)
+Flmf = makeFiniteResolution(lmf,ff)
 apply(length Flmf, i-> prune HH_(i+1) Flmf)
 BRanks mf
-BRanks {d1,h1}
-netList bMaps {d1,h1}
+BRanks lmf
+netList bMaps lmf
 netList bMaps mf
-netList psiMaps {d1,h1}
+netList psiMaps lmf
 netList psiMaps mf
-
-time (d1,h1,gamma) = lmfa(ff,coker vars R, Check=>true);
-lmf = {d1,h1}
-Flmf = makeFiniteResolution({d1,h1},ff)
+hMaps lmf
+time lmf = lmfa(ff,coker vars R, Check=>true);
+Flmf = makeFiniteResolution(lmf,ff)
 
 
 restart
@@ -1167,7 +1196,7 @@ h' = map(target h, source h,
 assert(h == h')
 *-
     
-    
+-*    
 matrixFactorization = method(Options=>{Check => false})
 matrixFactorization(Matrix, Module) := opts -> (ff, M) -> (
     --Inputs:
@@ -1373,6 +1402,229 @@ h = map(htar, directSum (Hlist1/source), h);
 --error();
 {d,h}
 )
+*-
+
+
+matrixFactorization = method(Options=>
+    {Check => false, 
+     Verbose => false, 
+     Layered => true,
+     Augmentation => false})
+matrixFactorization(Matrix, Module) := opts -> (ff, M) -> (
+    --Inputs:
+    --ff = {{f1,..,fc}} is a 1 x c matrix 
+    --whose entries are a sufficiently 
+    --general regular sequence in S.
+    --R#c := S/(ideal ff).
+    --M an MCM R#c-module.
+    --
+    --If opts#check == true (the default value) then various
+    --tests are performed along the way.
+    --
+    --In case M is a "high Syzygy" setting Layered =>false leads to a faster computation.
+    --
+    --Outputs: 
+    --d: a triangular map of direct-sum modules,
+    --the matrix factorization differential.
+    --
+    --h: a map, the sum of the
+    --the partial homotopies.
+    --
+    --gamma: a map from ++B_i to MS = pushForward(map(R,S), M)
+    --
+    --Description of the computation in the case Layered => false:
+    --Atar#p = (target BS#1++..++target BS#p) 
+    --Asour#p = (source BS#1++..++source BS#p), and
+    --
+    --d: Atar#c <-- Asour#c
+    --and h#p: Asour#p <--- Atar#p over S.
+    --The map
+    --d is a special upper triangular 
+    --lifting to S of the presentation matrix
+    --of M over R#c.
+    --
+    --The map h#p is a homotopy for ff#p on the restriction
+    --dpartial#p: Atar#p <-- Asour#p of d, over the ring R#(p-1),
+    --so dpartial#p * h#p = ff#p mod (ff#1..ff#(p-1).
+    --
+    --In addition, h#p * dpartial#p induces f#p on B1#p.
+    --
+    --Notation:
+    --B1#i is the i-th matrix (ie, complex) 
+    --of the matrix factorization tower,
+    --regarded as a map over R#(i-1);
+    --A#(p-1) is the matrix over R#p obtained inductively
+    --as the induced map on the complex
+    --ker A1#(p) -->> B1#(p), where A1#p is A#p lifted to R#(p-1).
+    --inc#(p,0): source A#(p-1) \to source A#p -- inclusion
+    --inc'#(p,0): splits inc#(p,0)
+    --inc#(p,1) and inc'#(p,1): same for targets
+    --proj#(p,0):source A1#p -->> source B1#p
+    --proj'#(p,0):its splitting
+    --proj#(p,1), proj'#(p,1): same for targets.
+
+    --the general case, where M is simply MCM over R:    
+    if opts.Layered == true then return 
+    lmfa(ff,M,
+	Check => opts.Check, 
+	Verbose => opts.Verbose, 
+	Augmentation => opts.Augmentation);
+
+    --Now the "old" code, handling the case where M is a "high syzygy". For some
+    --reason this is much faster when both are defined.
+    
+--Initialize local variables
+    spl:= null; -- a dummy variable for splittings
+    h := new MutableHashTable;
+    A := new MutableHashTable;
+    A1 := new MutableHashTable;
+    --A1#p is A#p substituteed into R#(p-1)
+    B1 := new MutableHashTable;
+    --B1#p would be B#p over R#(p-1) (there is no B)
+    BS := new MutableHashTable; --same over S
+    dpartial := new MutableHashTable;    
+    psi:= new MutableHashTable;--psi#p: B1#p-->target A#(p-1)
+    psiS:= new MutableHashTable;--psi#p: B1#p-->target A#(p-1)    
+    inc := new MutableHashTable; --the #p versison are over R#(p-1)
+    inc' := new MutableHashTable;    
+    inc'S := new MutableHashTable;        
+    proj := new MutableHashTable; 
+    projS := new MutableHashTable;     
+    proj' := new MutableHashTable;
+    E := null; -- cosyzygy complex over R#p
+    E1 := new MutableHashTable;
+    --E1#i will be E.dd_i substituted into R#(p-1)
+    
+--Substance begins HERE.
+    fail := false; --flag to escape if a CI op is not surjective    
+    --Put the regular sequence and the factor rings into hash tables:
+    --ci#i is the i-th element; R#i is codim i.
+    c := numcols ff;
+    S := ring ff;
+    ci := hashTable apply(toList(1..c), 
+	 p->{p,ff_{p-1}});--values are 1x1 matrices
+    degs := hashTable apply(toList(1..c), 
+	p->{p,(degree ci#p_0_0)_0});--values are ZZ
+    R := hashTable apply(toList(0..c), 
+	p->(if p==0 then {0,S}
+	    else {p,S/ideal apply(toList(1..p), j->ci#(j))}));
+
+--MAIN LOOP: work from p = c down to p = 1, creating the B1#p etc
+    A#c = presentation M; --initialize
+scan(reverse toList(1..c), p->(
+    E = cosyzygyRes(2, coker A#p);	
+    --sub into R#(p-1)
+    A1#p = substitute (A#p, R#(p-1));
+    scan(toList(1..3), i->E1#i = sub(E.dd_i,R#(p-1)));
+    --define the ci operators proj#(p,j), A1#c --> B#c
+    --and their kernels inc#(p,j) over R#(c-1).
+    scan(2, j->(
+	proj#(p,j) = map(R#(p-1)^{ -degs#p}**target E1#(j+1),
+	                 source E1#(j+2),
+			 E1#(j+1)*E1#(j+2)//((target E1#(j+1)**ci#p)));
+        inc#(p,j) = syz proj#(p,j)
+	));
+    --if one of the proj#(p,j) is not surjective then
+    --set fail = true and break from loop
+    scan(2,j->
+	if not isSurjective proj#(p,j) then(
+	   << "CI operator not surjective at level codim " << c << endl;
+	   << "on example M = coker "  << endl;
+	   <<toString presentation M <<endl;
+	   fail = true;
+	   break;
+	 ));
+    if fail == true then break;
+    --make the splittings to/from A1#p, over R#(p-1)
+    scan(2, j-> (
+         spl :=splittings(inc#(p,j),proj#(p,j));
+         inc'#(p,j) = spl_0;
+         proj'#(p,j) = spl_1));
+   --make B1#p, A#(p-1), and
+   --the map psi#p: source B1#p -> target A1#(p-1)
+         B1#p = proj#(p,0)*A1#p*proj'#(p,1); -- B#p over R#(p-1)
+         A#(p-1) = inc'#(p,0)*A1#p*inc#(p,1);
+         psi#p = inc'#(p,0)*A1#p*proj'#(p,1);
+));
+--END OF MAIN LOOP
+--Now put together the maps for output. All the work is done except
+--for the creation of the homotopies.
+    if fail == true then error("cannot complete MF");
+    --lift all the relevant maps to S
+    scan(toList(1..c), p-> (
+	    BS#p = substitute(B1#p, S);
+	    psiS#(p)= substitute(psi#p, S);
+	    scan(2, j->(
+	    projS#(p,j)= substitute(proj#(p,j), S);
+	    inc'S#(p,j)= substitute(inc'#(p,j), S)
+	        ))
+	    ));
+    --make psi(q,p):  BS#(q,0) <-- BS#(p,1) (note direction!)
+    scan(toList(1..c), p->scan(toList(1..c), q->(
+	    if q>p then psi#(q,p) = map(target BS#q,source BS#p, 0)
+	    else if q == p then psi#(q,p) = BS#p
+	    --if q< p then psi#(q,p) is a composition of
+	    --a projection and a sequence of inclusions.
+ 	    else if q<p then( 
+	     spl = psiS#p;
+	     scan(reverse toList(q+1..p-1), j -> 
+		 spl = inc'S#(j,0)*spl);
+	     psi#(q,p) = projS#(q,0)*spl
+	     )
+    	    )));
+    --construct the triangular differential d:Asour --> Atar, 
+    --first as a list of lists of matrices
+    Atar := directSum(apply(toList(1..c), p->target BS#p));
+    Asour := directSum(apply(toList(1..c), p->source BS#p));    
+    LL := apply(toList(1..c),
+	       q->apply(toList(1..c), 
+	       p->psi#(q,p)));
+    d := map(Atar, Asour, matrix LL);
+
+    --make homotopies h#p for ci#p on A1#p.
+    --BUG: tensoring with R#(p-1) destroys the cache of components
+    --of a direct sum, so
+    --define dpartial#p over S, to be 
+    --the restriction of d to the first p summands.
+    scan(toList(1..c), p->(
+    dpartial#p = map(
+        target Atar^(toArray toList(0..p-1)),
+        source Asour_(toArray toList(0..p-1)),
+        Atar^(toArray toList(0..p-1))*
+        d*
+        Asour_(toArray toList(0..p-1)));
+	       
+    h#p = map(source dpartial#p, 
+        tensorWithComponents(S^{ -degs#p},target dpartial#p),
+        substitute(
+        (R#(p-1)**(target dpartial#p**ci#p))//
+                        (R#(p-1)**dpartial#p),
+		   S));
+
+--optionally check that dpartial and h have the right relationship
+   if opts#Check==true then(
+   if not isHomogeneous h#p 
+         then error "homotopy not homogeneous";
+   if 0 != R#(p-1)**dpartial#p*h#p - 
+      R#(p-1)**(target dpartial#p)**ci#p
+         then error "homotopy not good";
+   if 0!= R#(p-1)**(target h#p)^[p-1]*h#p*dpartial#p- 
+                 R#(p-1)**(target h#p)^[p-1]**ci#p
+            then error "homotopy on B not good";   
+                           )
+    	));
+
+Hhash := hashTable pairs h;
+Hlist := apply(keys Hhash, i-> Hhash#i);
+htar := target last Hlist;
+Hlist1 := apply(#Hlist, m -> htar_(toArray toList(0..m))*Hlist_m);
+h = Hlist1_0;
+scan(#Hlist1 -1, i-> h=h|Hlist1_(i+1));
+h = map(htar, directSum (Hlist1/source), h);
+gamma := map(pushForward(map(R,S) M,target d, id_(target d)));
+    if opts.Check == true then assert(gamma*d == 0);
+if opts.Augmentation == true then {d,h,gamma} else {d,h}
+)
 
 BRanks = method()
 BRanks List := MF -> (
@@ -1380,6 +1632,7 @@ BRanks List := MF -> (
       B1 := (source MF_0).cache.components;
       apply(#B0, i-> {rank B0_i, rank B1_i}
       ))
+
 
 ARanks = method()
 ARanks List := MF -> (
@@ -1389,6 +1642,7 @@ ARanks List := MF -> (
       scan(#B-1, i-> A = A|{B_(i+1)+last A});
       A)
 
+
 --routines for taking apart d:
 bMaps = method()
 bMaps List := MF -> (
@@ -1397,12 +1651,14 @@ bMaps List := MF -> (
 	(target d)^[i]*d*(source d)_[i]))
         )
 
+
 dMaps = method()
 dMaps List := MF -> (
         d := MF_0;
         apply(#BRanks MF, i-> (
         (target d)^(toArray toList(0..i))*d*(source d)_(toArray toList(0..i))))
         )
+
 
 psiMaps = method()
 psiMaps List := MF -> (
@@ -1411,6 +1667,7 @@ psiMaps List := MF -> (
         apply(#BRanks MF-1, i-> (
         (target d)^(toArray toList(0..i))*d*(source d)_(toArray {i+1})))
         )
+
 
 hMaps = method()
 hMaps List := mf-> (
@@ -1705,21 +1962,6 @@ makeHomotopies1 (Matrix, ChainComplex, ZZ) := (f,F,b) ->(
      )
 
 
-TEST///
-restart
-debug loadPackage("CompleteIntersectionResolutions", Reload=>true)
-S = ZZ/101[x,y,z]
-
-ff = matrix {apply(gens S, x->x^3)}
-
-F = res (ideal gens S)^2
-R = S/ideal ff
-F = res coker vars R
-makeHomotopies1(vars R, F, 4)
---the problem is that the kernel of F_4-->F_3 has not been computed.
-makeHomotopies(vars R, F, 4)
-makeHomotopiesOnHomology(vars R, F)
-///
 makeHomotopiesOnHomology = method()
 makeHomotopiesOnHomology (Matrix, ChainComplex) := (ff,C)->(
     --returns a pair (H,h) whose first element is the hashTable of homology of C
@@ -2282,8 +2524,7 @@ target beta
 F = (layeredResolution(ff, coker vars S))_0
 apply(length F+1, i-> prune HH_i F)
 
-(d,h,gamma) = lmfa (ff, coker vars R)
-lmf = {d,h}
+lmf = lmfa (ff, coker vars R)
 makeFiniteResolution(lmf,ff)
 makeFiniteResolutionCodim2(lmf, ff, Check=>true)
 ///
@@ -5358,6 +5599,25 @@ Ee = evenExtModule(M, OutRing => U)
 Eo = oddExtModule(M, OutRing => U)
 assert(ring Ee === U)
 assert(ring Eo === U)
+///
+
+TEST///
+S = ZZ/101[a,b,c];
+ff = matrix"a3, b3,c3" ;
+R = S/ideal ff;
+q = map(R,S);
+M0= coker random(R^2, R^{4:-1});
+M = pushForward(q,syzygyModule(3,M0));
+assert(betti (layeredResolution(ff,M))_0 == betti res M)
+///
+
+TEST///
+S = ZZ/101[x,y,z]
+ff = matrix {apply(gens S, x->x^3)}
+F = res (ideal gens S)^2
+R = S/ideal ff
+F = res coker vars R
+makeHomotopiesOnHomology(vars R, F)
 ///
 
 end--
