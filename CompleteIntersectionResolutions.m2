@@ -175,7 +175,7 @@ Shamash(Ring, ChainComplex,ZZ) := (Rbar, F, len) ->(
     P FF
 )    
 
-layeredResolution = method(Options =>{Verbose=>false})
+layeredResolution = method(Options =>{Verbose=>false, Check=>false})
 --version that produces the finite layered resolution
 layeredResolution(Matrix, Module) := opts ->(ff, M) ->(
     --ff is a 1 x c matrix over a Gorenstein ring S
@@ -187,7 +187,7 @@ layeredResolution(Matrix, Module) := opts ->(ff, M) ->(
     cod := numcols ff;
     if cod <=1 then (
 	L = res M;
-    	<<{rank L_0, rank L_1} << " in codimension "<< cod<<endl;	
+--    	<<{rank L_0, rank L_1} << " in codimension "<< cod<<endl;	
         return (L, map(M,L_0,id_(L_0))));
     S := ring ff;
     R := S/(ideal ff);
@@ -203,8 +203,6 @@ layeredResolution(Matrix, Module) := opts ->(ff, M) ->(
     M'u := source alpha;--unpruned!
     M' := prune M'u;
     pruneMapM' := M'.cache.pruningMap; -- goes from M' to M'u
---    assert(M' == prune M');
-
     gamma := map(MR', M'++B0, (alpha*pruneMapM')|beta);
     BB1 := ker gamma;
     B1 := minimalPresentation BB1;
@@ -278,30 +276,37 @@ layeredResolution(Matrix, Module, ZZ) := opts -> (ff, M, len) ->(
     R'toR := map(R,R');
 --    MR := R**M;
     MR':= pushForward(R'toR,M);
+    
+--    print "M";
+--    print presentation M;
+            
     (alpha, beta) := approximation MR';
     B0 := source beta;
     M' := source alpha;
+    
+--    print "M'";
+--    print presentation M';
+    
     gamma := map(MR', M'++B0, (alpha|beta));
     BB1 := ker gamma;
     B1 := minimalPresentation BB1;
     psib :=  inducedMap(M' ++ B0, BB1)*(B1.cache.pruningMap);
     psi := psib^[0];
     b := psib^[1];
-(L',aug') := layeredResolution(ff',M',len);
+    (L',aug') := layeredResolution(ff',M', len);
 --L' := res(M', LengthLimit=> len);
 --    aug' = map(M', L'_0, id_(L'_0));
-assert(ring L' === R');
-assert(ring aug' === R');
-assert(ring b === R');
     B := chainComplex {b};
     Psi := extend(L', B[1], matrix(psi//aug'));
     box := cone Psi;
     L =  Shamash(R, box, len);    
+    print betti L;
     aug := map(M, L_0, 
           R'toR matrix( 
 	      map(MR',M'++B0, (alpha|beta))*map(M'++ B0, box_0, aug'++id_(B0))));
     (L, aug)
     )
+
 
 
 dualWithComponents = method()
@@ -805,7 +810,7 @@ lmfa(Matrix,Module) := opts -> (ff,M) ->(
 	d := map(MS,S^0,0);
 	h := map(S^0,S^0,0);
 	gamma := map(MS,MS,1);
-        --return (d,h,gamma)
+        return {d,h,gamma}
 	);
     --Prepare the modules for the inductive step
     ff' := ff_{0..c-2};
@@ -844,7 +849,7 @@ lmfa(Matrix,Module) := opts -> (ff,M) ->(
     if M' == 0 then (
     hcR' := (ff_{c-1}**id_(R'**target b'))//(R'**b');
     hc := map(source b', ,lift((matrix hcR',S)));	    
-    return(b',hc,beta));
+    return{b',hc,beta});
     --
     (d',h',gamma') := toSequence lmfa(ff',M');
     A0' := target d';
@@ -856,8 +861,10 @@ lmfa(Matrix,Module) := opts -> (ff,M) ->(
     --Old code: psi' := lift(psi''//(gamma'**ring psi''), S);
     --note: ring psi'' = R'
 pR'S := map(R',S);
+
 gamma'R' := map(R'**target gamma', R'**source gamma', substitute(matrix gamma', R'));
 
+gamma'S := map(S**target gamma', S**source gamma', substitute(matrix gamma', S));
 psi' := map(pushForward(map(ring gamma', S),source gamma'), 
            pushForward(pR'S, source psi''),
 	substitute(matrix (psi''//(gamma'R')), S) 
@@ -869,9 +876,8 @@ psi' := map(pushForward(map(ring gamma', S),source gamma'),
     dsour := flattenDirectSum(A1'++S**B1');
     --
     d = map(dtar, dsour, (d'|psi')||(zer0|b'));
-    gamma = map(MS,(source gamma')++S**B0',
-	        alphaS*gamma'|betaS);
-	    
+    gamma = map(MS,(source gamma'S)++S**B0',
+	        matrix(alphaS)*matrix(gamma'S)|betaS);
     if opts.Verbose == true then print  annihilator(coker d ** R');
     if opts.Check == true then assert((ff_{c-1}**target d**R')%(d**R') == 0);
     hc = (ff_{c-1}**id_(R'**target d))//(R'**d);
@@ -1409,7 +1415,7 @@ matrixFactorization = method(Options=>
     {Check => false, 
      Verbose => false, 
      Layered => true,
-     Augmentation => false})
+     Augmentation => true})
 matrixFactorization(Matrix, Module) := opts -> (ff, M) -> (
     --Inputs:
     --ff = {{f1,..,fc}} is a 1 x c matrix 
@@ -1628,8 +1634,10 @@ if opts.Augmentation == true then {d,h,gamma} else {d,h}
 
 BRanks = method()
 BRanks List := MF -> (
-      B0 := (target MF_0).cache.components;
-      B1 := (source MF_0).cache.components;
+      B0 := components target MF_0;
+--      B0 := (target MF_0).cache.components;
+      B1 := components source MF_0;
+--      B1 := (source MF_0).cache.components;
       apply(#B0, i-> {rank B0_i, rank B1_i}
       ))
 
@@ -1647,14 +1655,15 @@ ARanks List := MF -> (
 bMaps = method()
 bMaps List := MF -> (
     	d := MF_0;
+	if #components target d == 1 then return {d};
         apply(#BRanks MF, i-> (
 	(target d)^[i]*d*(source d)_[i]))
         )
 
-
 dMaps = method()
 dMaps List := MF -> (
         d := MF_0;
+	if #components target d === 1 then return {d};
         apply(#BRanks MF, i-> (
         (target d)^(toArray toList(0..i))*d*(source d)_(toArray toList(0..i))))
         )
@@ -1664,6 +1673,7 @@ psiMaps = method()
 psiMaps List := MF -> (
         --psiMaps_p is the map B_1(p+1) -- A_0(p)
         d := MF_0;
+	if #components target d === 1 then return {map(target d,(ring d)^0, 0)};
         apply(#BRanks MF-1, i-> (
         (target d)^(toArray toList(0..i))*d*(source d)_(toArray {i+1})))
         )
@@ -2223,11 +2233,11 @@ time Blist = apply(pL1, m -> (
 	--<< m << endl;
     	MF = matrixFactorization(ff, highSyzygy(opts, M0));
 	B = BRanks MF;
-	scan(c-1, j-> (
-		if last B_(j+1)-last(B_j)<0 then(
-		print m;
-		error();
-		)));
+--	scan(c-1, j-> (
+--		if last B_(j+1)-last(B_j)<0 then(
+--		print m;
+--		error();
+--		)));
 	if B_0 != {0,0} then
 	{B,toList m}
 	else null
@@ -2240,6 +2250,12 @@ Blist = select(Blist, i-> i=!=null);
 )
 )
 
+///
+restart
+debug needsPackage "CompleteIntersectionResolutions"
+twoMonomials(2,3)
+
+///
 
 --sumtwoMonomials(c,d)
 --tallies the sequences of B-ranks that occur for sums of pairs of 
@@ -2404,6 +2420,8 @@ koszulExtension(ChainComplex,ChainComplex,Matrix,Matrix) := (FF, BB, psi1, ff) -
     )
 
 makeFiniteResolution = method()
+
+-* original
 makeFiniteResolution(List,Matrix) := (MF,ff) -> (
     S := ring MF_0;
     B := bMaps MF;
@@ -2420,6 +2438,84 @@ makeFiniteResolution(List,Matrix) := (MF,ff) -> (
     scan(length A-1, i-> if( prune HH_(i+1) A) != 0 then error"A not acyclic");
     A
     )
+*-
+
+makeFiniteResolution(List,Matrix) := (MF,ff) -> (
+    S := ring MF_0;
+    B := bMaps MF;
+    psi := psiMaps MF;
+    c' := complexity MF; -- the old version of the complexity
+    c := rank source ff; -- the codim
+    R := S/ideal(ff_{0..(c-c'-1)}); -- codim c-c'
+      --ring over which the finite resolution first occurs.
+    toR := map(R,S);
+
+    A := chainComplex toR B_(c-c');
+--    error();
+    scan(c'-1, p -> 
+     A = koszulExtension(
+      A,chainComplex toR B_(c-c'+p+1), toR psi_(c-c'+p), toR ff_{(c-c')..(c-c'+p)}));
+    scan(length A-1, i-> if( prune HH_(i+1) A) != 0 then error"A not acyclic");
+    A
+    )
+
+
+///
+--bug
+--makeFiniteResolution does not work, for example, when M is free, or more generally when
+--the complexity is too small.
+--possible solution: move the matrix factorization to the ring over which the
+--finite res is to take place, then do the old makeFiniteResolution.
+restart
+debug needsPackage "CompleteIntersectionResolutions"
+S = ZZ/101[x,y]
+
+ff = matrix"x2,y2"
+R = S/ideal ff
+M = R^1 
+mf = matrixFactorization(ff,M)
+makeFiniteResolution(mf, ff)
+S = ZZ/101[x,y,z]
+ff = matrix"x3,y3,z3"
+R = S/ideal ff
+mf = matrixFactorization(ff,M)
+
+FF = S**matrix""
+
+
+restart
+debug needsPackage "CompleteIntersectionResolutions"
+
+S = ZZ/101[a,b,c,d]
+ff1 = matrix"a3,b3,c3,d3"
+ff =ff1*random(source ff1, source ff1)
+
+R = S/ideal ff
+M = highSyzygy (R^1/ideal"a2b2")
+complexity M
+mf = matrixFactorization (ff, M)
+complexity mf
+BRanks mf
+R1 = S/ideal(ff_{0,1})
+presentation R1
+R1 === ring A
+G = makeFiniteResolution(mf,ff);
+p = 0
+koszulExtension( A,
+    chainComplex toR B_(c-c'-2+p), toR psi_(c-c'-2+p), toR ff_{(c-c'-2)..(c-c'-1+p)})
+psi_0
+A_1
+
+
+betti G
+
+codim ring G
+R1 = ring G
+F = res prune pushForward(map(R,R1),M)
+betti F
+betti G
+
+///
 
 makeFiniteResolutionCodim2 = method(Options => {Check => false})
 makeFiniteResolutionCodim2(List,Matrix) := opts -> (MF,ff) -> (

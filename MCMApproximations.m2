@@ -112,7 +112,7 @@ approximatione(ZZ,Module) := opts -> (n,M) ->(
 
 approximatione Module := opts -> M ->(
     --returns the map from the essential MCM approximation
-    n := 1+dim ring M;
+    n := max(3,1+dim ring M); -- if n were 1 or 2 we might get nonminimal presentations
     if opts.CoDepth == 0 then n = 1;
     if opts.CoDepth > 0 then n = opts.CoDepth;
     approximatione(n, M)-- correctly gives 0 if M has finite pd (necessarily < 1+dim ring M)
@@ -874,9 +874,10 @@ use S
 R' = S/ideal"a3,b3"
 M = coker vars R
 (phi,psi) = approximation(pushForward(map(R,R'),ker syz presentation M))
-assert(prune source phi ==cokernel(map(R'^{6:-4,-3},, matrix {{-c, -b, 0, 0, 0, 0, a^2, 0, 0}, {0, 0, 0, b, -c, 0, 0, a^2, 0}, {a, 0, 0, 0, 0, b, 0,
-      0, 0}, {0, a, 0, 0, 0, -c, 0, -b^2, 0}, {0, 0, b, 0, a, 0, 0, 0, 0}, {0, 0, c, a, 0, 0, 0, 0, b^2}, {0,
-      0, 0, 0, b^2, a^2, 0, 0, 0}})))
+
+assert(presentation source phi == map(R'^{6:-4,-3},,matrix {{0, 0, -b^2, 0, 0, 0, -c, 0, a}, {0, a^2, 0, -c, 0, 0, 0, 0, -b}, {0, 0, a^2, 0, -c, 0, 0, -b, 0}, 
+	{0, 0, 0, a, 0, 0, b, 0, 0}, {0, 0, 0, 0, -a, b, 0, 0, 0}, {-b^2, 0, 0, 0, 0, c, 0, a, 0}, {0, 0, 0, 0, b^2, 0, a^2, 0, 0}}
+))
 assert( (prune source psi) === (R')^{{-4},{-4},{-4}} )
 assert(isSurjective(phi|psi)===true)
 assert( (prune ker (phi|psi)) === (R')^{{-5},{-5},{-5},{-6},{-6},{-6}} );
