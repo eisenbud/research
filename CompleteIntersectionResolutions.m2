@@ -6,7 +6,7 @@ restart
 installPackage "CompleteIntersectionResolutions"
 viewHelp CompleteIntersectionResolutions
 
-Check "CompleteIntersectionResolutions"
+check "CompleteIntersectionResolutions"
 *-
 newPackage(
               "CompleteIntersectionResolutions",
@@ -17,7 +17,7 @@ newPackage(
                         HomePage => "http://www.msri.org/~de"}},
               Headline => "Analyzing Resolutions over a Complete Intersection",
 	      PackageExports => {"MCMApproximations","BGG"},--"LocalRings"},
-	      DebuggingMode => true
+	      DebuggingMode => false
 	      )
     	    export{	  
 	--things related to Ext over a complete intersection
@@ -536,134 +536,6 @@ flattenDirectSum Matrix := phi->
 
 
 
--*
-layeredMFaug =  method(Options=>{Check => false, Verbose =>false})
-layeredMFaug(Matrix, Module) := opts -> (gg, M) -> (
-    --inductive construction of a (possibly non-minimal) MF from any MCM module
-    --Inputs:
-    --gg = {{f1,..,fc}} is a 1 x c matrix 
-    --whose entries are a sufficiently 
-    --general regular sequence in S.
-    --R#c := S/(ideal ff).
-    --M an MCM over S/ideal ff.
-    --
-    --If opts#check == true (the default value) then various
-    --tests are performed along the way.
-    
-    --Outputs: 
-    --d: a triangular map of direct-sum modules,
-    --the matrix factorization differential.
-    --
-    --h: a map, the sum of the
-    --the partial homotopies.
-    --
-    --gamma, map from the target of d to the module M.
-    --
-    --Description:
-    --Atar#p = (target BS#1++..++target BS#p) 
-    --Asour#p = (source BS#1++..++source BS#p), and
-    --
-    --d: Atar#c <-- Asour#c
-    --and h#p: Asour#p <--- Atar#p over S.
-    --The map
-    --d is a special upper triangular 
-    --lifting to S of the presentation matrix
-    --of M over R#c.
-    --
-    --The map h#p is a homotopy for ff#p on the restriction
-    --dpartial#p: Atar#p <-- Asour#p of d, over the ring R#(p-1),
-    --so dpartial#p * h#p = ff#p mod (ff#1..ff#(p-1).
-    --
-    --In addition, h#p * dpartial#p induces f#p on B1#p.
-    S0 := ring gg;
-    S := S0;
---    S := localRing(S0, ideal gens S0);
---    S := ring gg;
-    ff := sub(gg, S);
---pushForward not implemented yet for local rings
---    MS := pushForward(map(ring M,S),M);
-    --push forward M to S, by hand
-    presS := sub(presentation M,S);
-    MS := minimalPresentation coker(presS|ff**target presS); 
-    cod := numcols ff;
---We first compute d; the homotopy computation is at the end
---handle the codim 1 case  
-       
-    if cod <=1 then (
---	L := res(MS, LengthLimit => 2);
---	if opts.Verbose == true then print betti L;
-	--the following would work only when we have
-	--minimal resolutions, so need local or graded
---	if (ideal ff)*MS != 0 or  L_2 !=0 then error"module M(1) is not an MCM mod the hypersurface";
-	d := presentation MS;
-	if opts.Verbose == true then print betti d;	
-
-	h := map(ff_{0}**id_(target d))//d;
-	gamma:= inducedMap(MS,target d);
-        if opts.Verbose === true then 
-                <<{rank target d,rank source d}<<
-	        " in codimension "<<cod<<endl;	
-	return (d,h,gamma);
-	);
-
---now the higher codim case, by induction:
---set up the modules, one codim less:
-    gg' := gg_{0..cod-2};
-    R'0 := S/(ideal gg');
-    R' := R'0;
---    R' := localRing(R'0, ideal gens R'0);    
-    ff' := gg';
-    q := map(R',S);
-    MR' := prune(R'**MS); -- M as an R'-module
-    (alpha, beta) := approximation MR';
-    B0 := source beta;
-    B0S := B0**S0;
-    M' := source alpha; -- an MCM R' module
-    -- pushForward M' to S, by hand
-    -- M'S := pushForward(q,MR');
-    pres'S := sub(presentation M',S0);
-    M'S := minimalPresentation coker(pres'S|ff'**target pres'S); 
---compute the maps/modules bS and psiS corresponding to the codim
-    alphaS := map(MS, M'S, sub(matrix alpha, S0));
-    betaS := map(MS, B0S, sub(matrix beta, S0));
---    gammaS := map(MS, M'S++B0S, (alphaS|betaS)); -- this is a map from  a nonfree module
-    BB1 := ker (alpha|beta);
---    BB1 := ker (beta|alpha);    
-    B1 := minimalPresentation BB1;
-    B1S := B1**S;
-    psib := inducedMap(M'++B0, BB1)*(B1.cache.pruningMap);
---    psib := inducedMap(B0++M', BB1)*(B1.cache.pruningMap);    
-    psibS := map(M'S++B0S,B1S, sub(matrix psib, S));
-    psiS := psibS^[0]; -- this is the matrix of the map; target is freeo
-    bS := psibS^[1];
---connect this with the inductively defined mf
-    if opts.Verbose === true then << {rank B0S, rank B1S} << " in codimension " << cod<<endl;
-    (d',h',gamma')  := layeredMFaug(ff', M', opts);
-    gammaS := map(MS,target d'++B0S, (alphaS*gamma')|betaS);
-    zer := map(B0S,source d', 0);
---put it together. Note that
---target matrix psiS == target d'
-    d1 := map(target d'++target bS, source d'++source bS, 
-	            matrix((d'|psiS)||(zer|bS)));
-    d = flattenDirectSum d1;
-    print d;
---error();
---and now compute the homotopies
-    dR' := d**R';
-    hR' := map(ff_{cod-1}**target dR')//dR';
-    hc := map(source d1,
-	      S^{-degree ff_(cod-1)}**target d1, 
-	      sub(matrix hR',S));
-    h1:=((target hc)_[0]*h')|hc;
-    h = flattenDirectSum h1;
---    error();
---    (d,((target hc)_[0]*h')|hc,gammaS)
-    (d,h,gammaS)
-    )
-layeredMF = method(Options=>{Check => false, Verbose =>false})
-layeredMF(Matrix, Module) := opts -> (ff,M) -> 
-           (layeredMFaug(ff,M, opts))_{0,1}
-*-
 
 
 lmfa = method(Options=>
@@ -818,11 +690,11 @@ pRS = map(R,S)
 M = highSyzygy coker vars R;
 MS = prune pushForward(pRS,M);
 
---(d,h,gamma) = lmfa(ff,M, Check=>true, Verbose =>true)
+--(d,h,gamma) = lmfa(ff,M, Check=>false, Verbose =>true)
 time lmf = toList lmfa(ff,M, Check=>true);
 time mf = matrixFactorization(ff,M);
 (d,h) = (mf_0,mf_1);
-Flmf = makeFiniteResolution(lmf,ff)
+Flmf = makeFiniteResolution(ff,lmf)
 apply(length Flmf, i-> prune HH_(i+1) Flmf)
 BRanks mf
 BRanks lmf
@@ -832,7 +704,7 @@ netList psiMaps lmf
 netList psiMaps mf
 hMaps lmf
 time lmf = lmfa(ff,coker vars R, Check=>true);
-Flmf = makeFiniteResolution(lmf,ff)
+Flmf = makeFiniteResolution(ff,lmf)
 
 
 restart
@@ -854,8 +726,8 @@ apply(length F+1, i-> prune HH_i F)
 
 (d,h,gamma) = lmfa (ff, coker vars R)
 lmf = {d,h}
-makeFiniteResolution(lmf,ff)
-makeFiniteResolutionCodim2(lmf, ff)
+makeFiniteResolution(ff,lmf)
+makeFiniteResolutionCodim2(ff,lmf)
 ///
 
 -*
@@ -902,8 +774,8 @@ hMaps mf/betti
 hMaps lmf/betti
 
 betti res MS
-betti makeFiniteResolution (mf,ff)
-betti makeFiniteResolution (lmf,ff) -- this fails for n=3.
+betti makeFiniteResolution (ff,mf)
+betti makeFiniteResolution (ff,lmf) -- this fails for n=3.
 
 
 
@@ -1087,10 +959,10 @@ finiteBettiNumbers mf
 finiteBettiNumbers lmf
 infiniteBettiNumbers (mf,10)
 infiniteBettiNumbers (lmf,10)
-makeFiniteResolution(mf,ff)
-makeFiniteResolution(lmf,ff)
-makeFiniteResolutionCodim2(mf,ff)
-makeFiniteResolutionCodim2(lmf,ff)
+makeFiniteResolution(ff,mf)
+makeFiniteResolution(ff,mf)
+makeFiniteResolutionCodim2(ff,mf)
+makeFiniteResolutionCodim2(ff,mf)
 viewHelp CompleteIntersectionResolutions
 
 --
@@ -1120,213 +992,6 @@ h' = map(target h, source h,
 assert(h == h')
 *-
     
--*    
-matrixFactorization = method(Options=>{Check => false})
-matrixFactorization(Matrix, Module) := opts -> (ff, M) -> (
-    --Inputs:
-    --ff = {{f1,..,fc}} is a 1 x c matrix 
-    --whose entries are a sufficiently 
-    --general regular sequence in S.
-    --R#c := S/(ideal ff).
-    --M an R#c-module that is a high syzygy over R#c.
-    --
-    --If opts#check == true (the default value) then various
-    --tests are performed along the way.
-    
-    --Outputs: 
-    --d: a triangular map of direct-sum modules,
-    --the matrix factorization differential.
-    --
-    --h: a map, the sum of the
-    --the partial homotopies.
-    --
-    --Description:
-    --Atar#p = (target BS#1++..++target BS#p) 
-    --Asour#p = (source BS#1++..++source BS#p), and
-    --
-    --d: Atar#c <-- Asour#c
-    --and h#p: Asour#p <--- Atar#p over S.
-    --The map
-    --d is a special upper triangular 
-    --lifting to S of the presentation matrix
-    --of M over R#c.
-    --
-    --The map h#p is a homotopy for ff#p on the restriction
-    --dpartial#p: Atar#p <-- Asour#p of d, over the ring R#(p-1),
-    --so dpartial#p * h#p = ff#p mod (ff#1..ff#(p-1).
-    --
-    --In addition, h#p * dpartial#p induces f#p on B1#p.
-    --
-    --Notation:
-    --B1#i is the i-th matrix (ie, complex) 
-    --of the matrix factorization tower,
-    --regarded as a map over R#(i-1);
-    --A#(p-1) is the matrix over R#p obtained inductively
-    --as the induced map on the complex
-    --ker A1#(p) -->> B1#(p), where A1#p is A#p lifted to R#(p-1).
-    --inc#(p,0): source A#(p-1) \to source A#p -- inclusion
-    --inc'#(p,0): splits inc#(p,0)
-    --inc#(p,1) and inc'#(p,1): same for targets
-    --proj#(p,0):source A1#p -->> source B1#p
-    --proj'#(p,0):its splitting
-    --proj#(p,1), proj'#(p,1): same for targets.
-    
---Initialize local variables
-    spl:= null; -- a dummy variable for splittings
-    h := new MutableHashTable;
-    A := new MutableHashTable;
-    A1 := new MutableHashTable;
-    --A1#p is A#p substituteed into R#(p-1)
-    B1 := new MutableHashTable;
-    --B1#p would be B#p over R#(p-1) (there is no B)
-    BS := new MutableHashTable; --same over S
-    dpartial := new MutableHashTable;    
-    psi:= new MutableHashTable;--psi#p: B1#p-->target A#(p-1)
-    psiS:= new MutableHashTable;--psi#p: B1#p-->target A#(p-1)    
-    inc := new MutableHashTable; --the #p versison are over R#(p-1)
-    inc' := new MutableHashTable;    
-    inc'S := new MutableHashTable;        
-    proj := new MutableHashTable; 
-    projS := new MutableHashTable;     
-    proj' := new MutableHashTable;
-    E := null; -- cosyzygy complex over R#p
-    E1 := new MutableHashTable;
-    --E1#i will be E.dd_i substituted into R#(p-1)
-    
---Substance begins HERE.
-    fail := false; --flag to escape if a CI op is not surjective    
-    --Put the regular sequence and the factor rings into hash tables:
-    --ci#i is the i-th element; R#i is codim i.
-    c := numcols ff;
-    S := ring ff;
-    ci := hashTable apply(toList(1..c), 
-	 p->{p,ff_{p-1}});--values are 1x1 matrices
-    degs := hashTable apply(toList(1..c), 
-	p->{p,(degree ci#p_0_0)_0});--values are ZZ
-    R := hashTable apply(toList(0..c), 
-	p->(if p==0 then {0,S}
-	    else {p,S/ideal apply(toList(1..p), j->ci#(j))}));
-
---MAIN LOOP: work from p = c down to p = 1, creating the B1#p etc
-    A#c = presentation M; --initialize
-scan(reverse toList(1..c), p->(
-    E = cosyzygyRes(2, coker A#p);	
-    --sub into R#(p-1)
-    A1#p = substitute (A#p, R#(p-1));
-    scan(toList(1..3), i->E1#i = sub(E.dd_i,R#(p-1)));
-    --define the ci operators proj#(p,j), A1#c --> B#c
-    --and their kernels inc#(p,j) over R#(c-1).
-    scan(2, j->(
-	proj#(p,j) = map(R#(p-1)^{ -degs#p}**target E1#(j+1),
-	                 source E1#(j+2),
-			 E1#(j+1)*E1#(j+2)//((target E1#(j+1)**ci#p)));
-        inc#(p,j) = syz proj#(p,j)
-	));
-    --if one of the proj#(p,j) is not surjective then
-    --set fail = true and break from loop
-    scan(2,j->
-	if not isSurjective proj#(p,j) then(
-	   << "CI operator not surjective at level codim " << c << endl;
-	   << "on example M = coker "  << endl;
-	   <<toString presentation M <<endl;
-	   fail = true;
-	   break;
-	 ));
-    if fail == true then break;
-    --make the splittings to/from A1#p, over R#(p-1)
-    scan(2, j-> (
-         spl :=splittings(inc#(p,j),proj#(p,j));
-         inc'#(p,j) = spl_0;
-         proj'#(p,j) = spl_1));
-   --make B1#p, A#(p-1), and
-   --the map psi#p: source B1#p -> target A1#(p-1)
-         B1#p = proj#(p,0)*A1#p*proj'#(p,1); -- B#p over R#(p-1)
-         A#(p-1) = inc'#(p,0)*A1#p*inc#(p,1);
-         psi#p = inc'#(p,0)*A1#p*proj'#(p,1);
-));
---END OF MAIN LOOP
---Now put together the maps for output. All the work is done except
---for the creation of the homotopies.
-    if fail == true then error("cannot complete MF");
-    --lift all the relevant maps to S
-    scan(toList(1..c), p-> (
-	    BS#p = substitute(B1#p, S);
-	    psiS#(p)= substitute(psi#p, S);
-	    scan(2, j->(
-	    projS#(p,j)= substitute(proj#(p,j), S);
-	    inc'S#(p,j)= substitute(inc'#(p,j), S)
-	        ))
-	    ));
-    --make psi(q,p):  BS#(q,0) <-- BS#(p,1) (note direction!)
-    scan(toList(1..c), p->scan(toList(1..c), q->(
-	    if q>p then psi#(q,p) = map(target BS#q,source BS#p, 0)
-	    else if q == p then psi#(q,p) = BS#p
-	    --if q< p then psi#(q,p) is a composition of
-	    --a projection and a sequence of inclusions.
- 	    else if q<p then( 
-	     spl = psiS#p;
-	     scan(reverse toList(q+1..p-1), j -> 
-		 spl = inc'S#(j,0)*spl);
-	     psi#(q,p) = projS#(q,0)*spl
-	     )
-    	    )));
-    --construct the triangular differential d:Asour --> Atar, 
-    --first as a list of lists of matrices
-    Atar := directSum(apply(toList(1..c), p->target BS#p));
-    Asour := directSum(apply(toList(1..c), p->source BS#p));    
-    LL := apply(toList(1..c),
-	       q->apply(toList(1..c), 
-	       p->psi#(q,p)));
-    d := map(Atar, Asour, matrix LL);
-
-    --make homotopies h#p for ci#p on A1#p.
-    --BUG: tensoring with R#(p-1) destroys the cache of components
-    --of a direct sum, so
-    --define dpartial#p over S, to be 
-    --the restriction of d to the first p summands.
-    scan(toList(1..c), p->(
-    dpartial#p = map(
-        target Atar^(toArray toList(0..p-1)),
-        source Asour_(toArray toList(0..p-1)),
-        Atar^(toArray toList(0..p-1))*
-        d*
-        Asour_(toArray toList(0..p-1)));
-	       
-    h#p = map(source dpartial#p, 
---        S^{ -degs#p}**target dpartial#p,
-        tensorWithComponents(S^{ -degs#p},target dpartial#p),
-        substitute(
-        (R#(p-1)**(target dpartial#p**ci#p))//
-                        (R#(p-1)**dpartial#p),
-		   S));
-
---optionally check that dpartial and h have the right relationship
-   if opts#Check==true then(
-   if not isHomogeneous h#p 
-         then error "homotopy not homogeneous";
-   if 0 != R#(p-1)**dpartial#p*h#p - 
-      R#(p-1)**(target dpartial#p)**ci#p
-         then error "homotopy not good";
-   if 0!= R#(p-1)**(target h#p)^[p-1]*h#p*dpartial#p- 
-                 R#(p-1)**(target h#p)^[p-1]**ci#p
-            then error "homotopy on B not good";   
-                           )
-    	));
-
---H = flatten apply(#h, p->(source d)h#p
---(source d)_[0,1]*H#2
-
-Hhash := hashTable pairs h;
-Hlist := apply(keys Hhash, i-> Hhash#i);
-htar := target last Hlist;
-Hlist1 := apply(#Hlist, m -> htar_(toArray toList(0..m))*Hlist_m);
-h = Hlist1_0;
-scan(#Hlist1 -1, i-> h=h|Hlist1_(i+1));
-h = map(htar, directSum (Hlist1/source), h);
---error();
-{d,h}
-)
-*-
 
 
 matrixFactorization = method(Options=>
@@ -2339,26 +2004,8 @@ koszulExtension(ChainComplex,ChainComplex,Matrix,Matrix) := (FF, BB, psi1, ff) -
 
 makeFiniteResolution = method()
 
--* original
-makeFiniteResolution(List,Matrix) := (MF,ff) -> (
-    S := ring MF_0;
-    B := bMaps MF;
-    psi := psiMaps MF;
-    c' := complexity MF; -- the complexity
-    c := rank source ff; -- the codim
-    R := S/ideal(ff_{0..(c-c'-1)});
-    toR := map(R,S);
-      --ring over which the finite resolution first occurs.
-    A := chainComplex toR B_(c-c');
-    scan(c'-1, p -> 
-     A = koszulExtension(
-      A,chainComplex toR B_(c-c'+p+1), toR psi_(c-c'+p), toR ff_{(c-c')..(c-c'+p)}));
-    scan(length A-1, i-> if( prune HH_(i+1) A) != 0 then error"A not acyclic");
-    A
-    )
-*-
 
-makeFiniteResolution(List,Matrix) := (MF,ff) -> (
+makeFiniteResolution(Matrix, List) := (ff,MF) -> (
     S := ring MF_0;
     B := bMaps MF;
     psi := psiMaps MF;
@@ -2367,14 +2014,6 @@ makeFiniteResolution(List,Matrix) := (MF,ff) -> (
     R := S/ideal(ff_{0..(c-c'-1)}); -- codim c-c'
       --ring over which the finite resolution first occurs.
     toR := map(R,S);
--* --old code
-    A := chainComplex toR B_(c-c');
-    scan(c'-1, p -> 
-     A = koszulExtension(
-      A,chainComplex toR B_(c-c'+p+1), toR psi_(c-c'+p), toR ff_{(c-c')..(c-c'+p)}));
-    scan(length A-1, i-> if( prune HH_(i+1) A) != 0 then error"A not acyclic");
-    A
-*-
     A := chainComplex toR B_(0);
     scan(c'-1, p -> 
      A = koszulExtension(
@@ -2384,143 +2023,8 @@ makeFiniteResolution(List,Matrix) := (MF,ff) -> (
 
     )
 
-
-///
---bug
---makeFiniteResolution does not work, for example, when M is free, or more generally when
---the complexity is too small.
---possible solution: move the matrix factorization to the ring over which the
---finite res is to take place, then do the old makeFiniteResolution.
-restart
-debug needsPackage "CompleteIntersectionResolutions"
-debug needsPackage "MCMApproximations"
-S = ZZ/101[a,b,c,d]
-ff1 = matrix"a3,b3,c3,d3"
-ff =ff1*random(source ff1, source ff1)
-R = S/ideal ff
-M = highSyzygy (R^1/ideal"a2b2")
-complexity M
-mf = matrixFactorization (ff, M)
-complexity mf
-BRanks mf
-G = makeFiniteResolution(mf,ff);
-betti G
-ring G
-A = koszulExtension(chainComplex toR B_0, chainComplex toR B_1,toR psi_0,toR ff_{2})
-assert(target psi_0 == target B_0)
-assert(source psi_0 == source B_1)
-betti A
-apply(1+length A, i->HH_i A)/prune
-MM = HH_0 A
-ring A
-----
-R2 = S/ideal(ff_{0,1})
-R2toR = map(R,R2)
-R === ring M
-MR2 = pushForward(R2toR, M)
-approximation(MR2)
-
-S = ZZ/101[x]
-
-ff = matrix"x2"
-R = S/ideal ff
-M = R^1
-mf = matrixFactorization(ff,M)
-makeFiniteResolution(mf, ff)
-complexity M -- this comes out as 0, which is right over R.
-mf = matrixFactorization(ff, M/ideal x)
-makeFiniteResolution(mf, ff)
-
-restart
-debug needsPackage "CompleteIntersectionResolutions"
-S = ZZ/101[x,y,z,w]
-ff = matrix{apply(gens S, x->x^3)}
-R = S/ideal ff
-M = coker matrix"xy"
-complexity M --2
-betti res M
-mf = matrixFactorization(ff, M);
-complexity mf -- 4
-layeredResolution(ff,M,5)
-makeFiniteResolution (mf,ff)
-
-restart
-debug needsPackage "CompleteIntersectionResolutions"
-S = ZZ/101[x,y,z]
-ff1 = random(S^1, S^{3:-3});
-R = S/ideal ff1
-M = coker matrix"xy"
-complexity M --3
-betti res M
-mf = matrixFactorization(ff1,M);
-complexity mf -- 3
-layeredResolution(ff1,M,5)
-makeFiniteResolution (mf,ff1)
-
-
-
-R1 = S/ideal ff1
-M1 = coker matrix"xy"
-complexity M
-complexity M1
-betti res M1
-betti res M
-mf = matrixFactorization(ff, M);
-complexity mf
-
-
-S1 = S/ideal(ff_{2,3})
-ff' = matrix{{S1_0,S1_1}}
-mf = matrixFactorization(ff', M)
-complexity mf
-makeFiniteResolution(mf, ff')
-
-
-S1 = S/(ideal S_0)^3
-ff1 = matrix{{S1_1^3}}
-R = S1/ideal ff1
-M = coker matrix (S1_1)^2
-M = coker matrix (R_1)^2
-mf = matrixFactorization(ff1,M)
-makeFiniteResolution(mf, ff1)
-complexity M
-complexity mf
-restart
-debug needsPackage "CompleteIntersectionResolutions"
-
-S = ZZ/101[a,b,c,d]
-ff1 = matrix"a3,b3,c3,d3"
-ff =ff1*random(source ff1, source ff1)
-
-R = S/ideal ff
-M = highSyzygy (R^1/ideal"a2b2")
-complexity M
-mf = matrixFactorization (ff, M)
-complexity mf
-BRanks mf
-R1 = S/ideal(ff_{0,1})
-presentation R1
-R1 === ring A
-G = makeFiniteResolution(mf,ff);
-p = 0
-koszulExtension( A,
-    chainComplex toR B_(c-c'-2+p), toR psi_(c-c'-2+p), toR ff_{(c-c'-2)..(c-c'-1+p)})
-psi_0
-A_1
-
-
-betti G
-
-codim ring G
-R1 = ring G
-F = res prune pushForward(map(R,R1),M)
-betti F
-betti G
-
-///
-
 makeFiniteResolutionCodim2 = method(Options => {Check => false})
-makeFiniteResolutionCodim2(List,Matrix) := opts -> (MF,ff) -> (
+makeFiniteResolutionCodim2(Matrix,List) := opts -> (ff,MF) -> (
     --given a codim 2 matrix factorization, makes all the maps
     --that are relevant, as in 4.2.3 of Eisenbud-Peeva 
     --"Minimal Free Resolutions and Higher Matrix Factorizations"
@@ -2623,8 +2127,8 @@ F = (layeredResolution(ff, coker vars S))_0
 apply(length F+1, i-> prune HH_i F)
 
 lmf = lmfa (ff, coker vars R)
-makeFiniteResolution(lmf,ff)
-makeFiniteResolutionCodim2(lmf, ff, Check=>true)
+makeFiniteResolution(ff,lmf)
+makeFiniteResolutionCodim2(ff, lmf, Check=>true)
 ///
 
 
@@ -2740,7 +2244,8 @@ Headline
 Description 
  Text
   The resolution of a module over a hypersurface ring 
-  (graded or local) is always periodic of period at most 2 (Eisenbud, "Homological Algebra Over A Complete Intersection",
+  (graded or local) is always periodic of period at most 2 
+  (Eisenbud, "Homological Algebra Over A Complete Intersection",
   Trans. Am. Math. Soc. 260 (1980) 35--64),
   but the asymptotic structure of minimal resolutions over a 
   complete intersection is a topic of active research. 
@@ -2755,10 +2260,20 @@ Description
   matrix whose entries are (sufficiently general) generators
   of a complete intersection ideal, usually all of the same degree.
  Text
-  Most of this package is related to the notions introduced and studied in the
-  Springer Lecture Notes, ``Minimal Free Resolutions over Complete Intersections''
+  The new ideas implemented in this package come from the following sources:
+  
+  "Minimal free resolutions over complete intersections"
   by David Eisenbud and Irena Peeva (2016).
+  Lecture Notes in Mathematics, 2152. 
+  Springer, Cham, 2016. x+107 pp. ISBN: 978-3-319-26436-3; 978-3-319-26437-0),
+  arXiv:1306.2615
+  
+  "Layered Resolutions of Maximal Cohen-Macaulay modules"
+  by David Eisenbud and Irena Peeva (preprint)
 
+  "Tor as a module over an exterior algebra"
+  by David Eisenbud, Irena Peeva, and Frank-Olaf Schreyer (preprint).
+  
   The routines fall into several groups:
   --  
  Text
@@ -2899,13 +2414,13 @@ Description
   resolution of M as a module over R/(f_1..f_s), where
   s=c-complexity M, is reconstructed (in a special form)
   from the matrix factorization MF by the routine
-  makeFiniteResolution(MF, ff).
+  makeFiniteResolution(ff,MF).
  Example
   betti res M
   infiniteBettiNumbers(MF,7)
   betti res pushForward(map(R,S),M)
   finiteBettiNumbers MF  
-  G = makeFiniteResolution (MF,ff)
+  G = makeFiniteResolution (ff,MF)
   G' = res(pushForward(map(R,S),M))
  Text
   The group of routines ExtModule, evenExtModule, oddExtmodule,
@@ -3212,11 +2727,11 @@ doc ///
 doc ///
 Key 
  makeFiniteResolution
- (makeFiniteResolution, List, Matrix)
+ (makeFiniteResolution, Matrix,List)
 Headline
  finite resolution of a matrix factorization module M
 Usage
- A = makeFiniteResolution(mf,ff)
+ A = makeFiniteResolution(ff,mf)
 Inputs
  mf:List
    output of matrixFactorization
@@ -3247,7 +2762,7 @@ Description
   R = S/ideal ff;
   M = highSyzygy (R^1/ideal vars R);
   mf = matrixFactorization (ff, M)
-  G = makeFiniteResolution(mf,ff)
+  G = makeFiniteResolution(ff,mf)
   F = res pushForward(map(R,S),M)
   G.dd_1
   F.dd_1
@@ -3267,7 +2782,7 @@ Description
   mf = matrixFactorization (ff, M)
   complexity mf
   BRanks mf
-  G = makeFiniteResolution(mf,ff);
+  G = makeFiniteResolution(ff,mf);
   codim ring G
   R1 = ring G
   F = res prune pushForward(map(R,R1),M)
@@ -3286,12 +2801,12 @@ SeeAlso
 doc ///
    Key
     makeFiniteResolutionCodim2
-    (makeFiniteResolutionCodim2, List, Matrix)
+    (makeFiniteResolutionCodim2, Matrix,List)
     [makeFiniteResolutionCodim2, Check]
    Headline
     Maps associated to the finite resolution of a high syzygy module in codim 2
    Usage
-    maps = makeFiniteResolutionCodim2(mf,ff)
+    maps = makeFiniteResolutionCodim2(ff,mf)
    Inputs
     mf:List
      matrix factorization
@@ -3316,7 +2831,7 @@ doc ///
      M = highSyzygy N
      MS = pushForward(map(R,S),M)
      mf = matrixFactorization(ff, M)
-     G = makeFiniteResolutionCodim2(mf, ff)
+     G = makeFiniteResolutionCodim2(ff,mf)
      F = G#"resolution"
    SeeAlso
     makeFiniteResolution
@@ -4335,7 +3850,10 @@ Description
   
   The map d is a special lifting to S of a presentation of
   M over R. To explain the contents, we introduce some notation
-  (from our paper ****):
+  (from
+  Eisenbud and Peeva, "Minimal free resolutions over complete intersections"
+  Lecture Notes in Mathematics, 2152. 
+  Springer, Cham, 2016. x+107 pp. ISBN: 978-3-319-26436-3; 978-3-319-26437-0).
 
   R(i) = S/(ff_0,..,ff_{i-1}). Here 0<= i <= c, and R = R(c)
   and S = R(0).
@@ -4497,7 +4015,7 @@ Description
   to compute a (non-minimal) presentation of this module.
   
   From the description by matrix factorizations and the paper
-  *** of Eisenbud, Peeva and Schreyer it follows that
+  "Tor as a module over an exterior algebra" of Eisenbud, Peeva and Schreyer it follows that
   when M is a high syzygy and F is its resolution,
   then the presentation of Tor(M,S^1/mm) always has generators
   in degrees 0,1, corresponding to the targets and sources of the
@@ -5013,7 +4531,8 @@ doc ///
      M_{(k+4)} --> M_k \otimes \wedge^2(S^c)
      in the stable category of maximal Cohen-Macaulay modules.
     
-     In thw following example, studied in the paper ***** of
+     In thw following example, studied in the paper 
+     "Tor as a module over an exterior algebra" of
      Eisenbud, Peeva and Schreyer,
      the map is non-trivial...but it is stably trivial.
      The same goes for higher values of k (which take longer to compute).
@@ -5452,7 +4971,7 @@ ff = matrix"a3,b3";
 R = S/ideal ff;
 M = highSyzygy (R^1/ideal vars R)
 mf = matrixFactorization (ff, M)
-G = makeFiniteResolution(mf,ff)
+G = makeFiniteResolution(ff,mf)
 F = res pushForward(map(R,S),M)
 assert(betti G == betti F)
 ///
@@ -5600,7 +5119,7 @@ TEST///
   assert(complexity mf ==2)
   BRanks mf
   assert(BRanks mf == {{2, 2}, {1, 2}})
-  G = makeFiniteResolution(mf,ff);
+  G = makeFiniteResolution(ff,mf);
   R1 = ring G
   F = res prune pushForward(map(R,R1),M);
   assert(betti F ==  betti G)
