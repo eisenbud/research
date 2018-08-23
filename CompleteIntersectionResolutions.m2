@@ -1,17 +1,17 @@
 -*
 restart
 loadPackage("CompleteIntersectionResolutions", Reload=>true)
-
 uninstallPackage "CompleteIntersectionResolutions"
 restart
 installPackage "CompleteIntersectionResolutions"
-check "CompleteIntersectionResolutions"
 viewHelp CompleteIntersectionResolutions
+
+Check "CompleteIntersectionResolutions"
 *-
 newPackage(
               "CompleteIntersectionResolutions",
-              Version => "1.1", 
-              Date => "December 30, 2016",
+              Version => "2", 
+              Date => "August 23, 2018",
               Authors => {{Name => "David Eisenbud", 
                         Email => "de@msri.org", 
                         HomePage => "http://www.msri.org/~de"}},
@@ -29,9 +29,9 @@ newPackage(
 	--tools used to construct the "higher matrix factorization"
 	--of a high syzygy or more generally a Maximal Cohen-Macaulay module
 	   "matrixFactorization",
-           "layeredMFaug", --returns mf with augmentation
-           "layeredMF",	   
-	   "lmfa",
+--           "layeredMFaug", --returns mf with augmentation
+--           "layeredMF",	   
+--	   "lmfa",
 	   "makeT",
 	   "koszulExtension",
 	   "highSyzygy",	   
@@ -533,134 +533,10 @@ flattenDirectSum Module := M->(
 flattenDirectSum Matrix := phi->
     map(flattenDirectSum target phi, flattenDirectSum source phi, matrix phi)
 
+
+
+
 -*
---This is a version that has the wrong orderings.
-
-layeredMFaug =  method(Options=>{Check => false, Verbose =>false})
-layeredMFaug(Matrix, Module) := opts -> (gg, M) -> (
-    --inductive construction of a (possibly non-minimal) MF from any MCM module
-    --Inputs:
-    --gg = {{f1,..,fc}} is a 1 x c matrix 
-    --whose entries are a sufficiently 
-    --general regular sequence in S.
-    --R#c := S/(ideal ff).
-    --M an MCM over S/ideal ff.
-    --
-    --If opts#check == true (the default value) then various
-    --tests are performed along the way.
-    
-    --Outputs: 
-    --d: a triangular map of direct-sum modules,
-    --the matrix factorization differential.
-    --
-    --h: a map, the sum of the
-    --the partial homotopies.
-    --
-    --gamma, map from the target of d to the module M.
-    --
-    --Description:
-    --Atar#p = (target BS#1++..++target BS#p) 
-    --Asour#p = (source BS#1++..++source BS#p), and
-    --
-    --d: Atar#c <-- Asour#c
-    --and h#p: Asour#p <--- Atar#p over S.
-    --The map
-    --d is a special upper triangular 
-    --lifting to S of the presentation matrix
-    --of M over R#c.
-    --
-    --The map h#p is a homotopy for ff#p on the restriction
-    --dpartial#p: Atar#p <-- Asour#p of d, over the ring R#(p-1),
-    --so dpartial#p * h#p = ff#p mod (ff#1..ff#(p-1).
-    --
-    --In addition, h#p * dpartial#p induces f#p on B1#p.
-    S0 := ring gg;
-    S := S0;
---    S := localRing(S0, ideal gens S0);
---    S := ring gg;
-    ff := sub(gg, S);
---pushForward not implemented yet for local rings
---    MS := pushForward(map(ring M,S),M);
-    --push forward M to S, by hand
-    presS := sub(presentation M,S);
-    MS := minimalPresentation coker(presS|ff**target presS); 
-    cod := numcols ff;
-
---We first compute d; the homotopy computation is at the end
---handle the codim 1 case  
-    if cod <=1 then (
-	L := res(MS, LengthLimit => 2);
-	if opts.Verbose == true then print betti L;
-	--the following would work only when we have
-	--minimal resolutions, so need local or graded
---	if (ideal ff)*MS != 0 or  L_2 !=0 then error"module M(1) is not an MCM mod the hypersurface";
-	d := L.dd_1;
-	h := map(ff_{0}**id_(L_0))//d;
-	gamma:= inducedMap(MS,L_0);
-        if opts.Verbose === true then 
-                <<{rank target d,rank source d}<<
-	        " in codimension "<<cod<<endl;	
-	return (d,h,gamma);
-	);
-
---now the higher codim case, by induction:
---set up the modules, one codim less:
-    gg' := gg_{0..cod-2};
-    R'0 := S/(ideal gg');
-    R' := R'0;
---    R' := localRing(R'0, ideal gens R'0);    
-    ff' := gg';
-    q := map(R',S);
-    MR' := prune(R'**MS); -- M as an R'-module
-    (alpha, beta) := approximation MR';
-    B0 := source beta;
-    B0S := B0**S0;
-    M' := source alpha; -- an MCM R' module
-    -- pushForward M' to S, by hand
-    -- M'S := pushForward(q,MR');
-    pres'S := sub(presentation M',S0);
-    M'S := minimalPresentation coker(pres'S|ff'**target pres'S); 
---compute the maps/modules bS and psiS corresponding to the codim
-    alphaS := map(MS, M'S, sub(matrix alpha, S0));
-    betaS := map(MS, B0S, sub(matrix beta, S0));
---    gammaS := map(MS, M'S++B0S, (alphaS|betaS)); -- this is a map from  a nonfree module
-    BB1 := ker (alpha|beta);
-    B1 := minimalPresentation BB1;
-    B1S := B1**S;
-    psib := inducedMap(M' ++ B0, BB1)*(B1.cache.pruningMap);
-    psibS := map(M'S++B0S,B1S, sub(matrix psib, S));
-    psiS := psibS^[0]; -- this is the matrix of the map; target is freeo
-    bS := psibS^[1];
---connect this with the inductively defined mf
-    if opts.Verbose === true then << {rank B0S, rank B1S} << " in codimension " << cod<<endl;
-    (d',h',gamma')  := layeredMFaug(ff', M', opts);
-    gammaS := map(MS,target d'++B0S, (alphaS*gamma')|betaS);
-    zer := map(B0S,source d', 0);
---put it together. Note that
---target matrix psiS == target d'
-    d1 := map(target d'++target bS, source d'++source bS, 
-	            matrix((d'|psiS)||(zer|bS)));
-    d = flattenDirectSum d1;
---and now compute the homotopies
-    dR' := d**R';
-    hR' := map(ff_{cod-1}**target dR')//dR';
-    hc := map(source d1,
-	      S^{-degree ff_(cod-1)}**target d1, 
-	      sub(matrix hR',S));
-    h1:=((target hc)_[0]*h')|hc;
-    h = flattenDirectSum h1;
---    error();
---    (d,((target hc)_[0]*h')|hc,gammaS)
-    (d,h,gammaS)
-    )
-layeredMF = method(Options=>{Check => false, Verbose =>false})
-layeredMF(Matrix, Module) := opts -> (ff,M) -> 
-           (layeredMFaug(ff,M, opts))_{0,1}
-*-
-
-
-
-
 layeredMFaug =  method(Options=>{Check => false, Verbose =>false})
 layeredMFaug(Matrix, Module) := opts -> (gg, M) -> (
     --inductive construction of a (possibly non-minimal) MF from any MCM module
@@ -787,10 +663,52 @@ layeredMFaug(Matrix, Module) := opts -> (gg, M) -> (
 layeredMF = method(Options=>{Check => false, Verbose =>false})
 layeredMF(Matrix, Module) := opts -> (ff,M) -> 
            (layeredMFaug(ff,M, opts))_{0,1}
+*-
+
 
 lmfa = method(Options=>
     {Check => false, Verbose =>false,Augmentation =>true})
 lmfa(Matrix,Module) := opts -> (ff,M) ->(
+    --this is a rewrite of "layeredMFAug". Now it's called from "matrixFactorization"
+    --with the default option Layered == true,
+    --and does not need to be free-standing.
+    --inductive construction of a (possibly non-minimal) MF from any MCM module
+    --Inputs:
+    --gg = {{f1,..,fc}} is a 1 x c matrix 
+    --whose entries are a sufficiently 
+    --general regular sequence in S.
+    --R#c := S/(ideal ff).
+    --M an MCM over S/ideal ff.
+    --
+    --If opts#check == true (the default value) then various
+    --tests are performed along the way.
+    
+    --Outputs: 
+    --d: a triangular map of direct-sum modules,
+    --the matrix factorization differential.
+    --
+    --h: a map, the sum of the
+    --the partial homotopies.
+    --
+    --gamma, map from the target of d to the module M.
+    --
+    --Description:
+    --Atar#p = (target BS#1++..++target BS#p) 
+    --Asour#p = (source BS#1++..++source BS#p), and
+    --
+    --d: Atar#c <-- Asour#c
+    --and h#p: Asour#p <--- Atar#p over S.
+    --The map
+    --d is a special upper triangular 
+    --lifting to S of the presentation matrix
+    --of M over R#c.
+    --
+    --The map h#p is a homotopy for ff#p on the restriction
+    --dpartial#p: Atar#p <-- Asour#p of d, over the ring R#(p-1),
+    --so dpartial#p * h#p = ff#p mod (ff#1..ff#(p-1).
+    --
+    --In addition, h#p * dpartial#p induces f#p on B1#p.
+    
     --M is an R := S/ideal ff module.
     S := ring ff;
     R := ring M;
@@ -887,6 +805,7 @@ psi' := map(pushForward(map(ring gamma', S),source gamma'),
     h = (h'||zer1)|map(source d,,lift(matrix hc, S)); --order reversed from prev code
     if opts.Augmentation == true then {d,h,gamma} else {d,h}
 )
+
 ///
 restart
 loadPackage("CompleteIntersectionResolutions", Reload=>true)
@@ -2443,19 +2362,26 @@ makeFiniteResolution(List,Matrix) := (MF,ff) -> (
     S := ring MF_0;
     B := bMaps MF;
     psi := psiMaps MF;
-    c' := complexity MF; -- the old version of the complexity
+    c' := complexity MF; -- the old version of the complexity was one less.
     c := rank source ff; -- the codim
     R := S/ideal(ff_{0..(c-c'-1)}); -- codim c-c'
       --ring over which the finite resolution first occurs.
     toR := map(R,S);
-
+-* --old code
     A := chainComplex toR B_(c-c');
---    error();
     scan(c'-1, p -> 
      A = koszulExtension(
       A,chainComplex toR B_(c-c'+p+1), toR psi_(c-c'+p), toR ff_{(c-c')..(c-c'+p)}));
     scan(length A-1, i-> if( prune HH_(i+1) A) != 0 then error"A not acyclic");
     A
+*-
+    A := chainComplex toR B_(0);
+    scan(c'-1, p -> 
+     A = koszulExtension(
+      A,chainComplex toR B_(p+1), toR psi_(p), toR ff_{(c-c')..(c-c'+p)}));
+    scan(length A-1, i-> if( prune HH_(i+1) A) != 0 then error"A not acyclic");
+    A
+
     )
 
 
@@ -2467,6 +2393,33 @@ makeFiniteResolution(List,Matrix) := (MF,ff) -> (
 --finite res is to take place, then do the old makeFiniteResolution.
 restart
 debug needsPackage "CompleteIntersectionResolutions"
+debug needsPackage "MCMApproximations"
+S = ZZ/101[a,b,c,d]
+ff1 = matrix"a3,b3,c3,d3"
+ff =ff1*random(source ff1, source ff1)
+R = S/ideal ff
+M = highSyzygy (R^1/ideal"a2b2")
+complexity M
+mf = matrixFactorization (ff, M)
+complexity mf
+BRanks mf
+G = makeFiniteResolution(mf,ff);
+betti G
+ring G
+A = koszulExtension(chainComplex toR B_0, chainComplex toR B_1,toR psi_0,toR ff_{2})
+assert(target psi_0 == target B_0)
+assert(source psi_0 == source B_1)
+betti A
+apply(1+length A, i->HH_i A)/prune
+MM = HH_0 A
+ring A
+----
+R2 = S/ideal(ff_{0,1})
+R2toR = map(R,R2)
+R === ring M
+MR2 = pushForward(R2toR, M)
+approximation(MR2)
+
 S = ZZ/101[x]
 
 ff = matrix"x2"
@@ -2841,8 +2794,6 @@ Description
   {TO "layeredResolution"},
   {TO "makeFiniteResolution"},
   {TO "makeFiniteResolutionCodim2"},
-  {TO "layeredMFaug"},
-  {TO "layeredMF"}	   
   }@
  Text
   @SUBSECTION "Tools for construction of higher matrix factorizations"@
@@ -3327,6 +3278,7 @@ SeeAlso
  matrixFactorization
  bMaps
  psiMaps
+ hMaps
  complexity
 ///
 
@@ -3335,6 +3287,7 @@ doc ///
    Key
     makeFiniteResolutionCodim2
     (makeFiniteResolutionCodim2, List, Matrix)
+    [makeFiniteResolutionCodim2, Check]
    Headline
     Maps associated to the finite resolution of a high syzygy module in codim 2
    Usage
@@ -3608,6 +3561,40 @@ doc ///
    Description
     Text
      Makes matrixFactorization perform various checks as it computes.
+   SeeAlso
+    matrixFactorization
+ ///
+doc ///
+   Key 
+    Augmentation
+   Headline
+    Option for matrixFactorization
+   Usage
+    matrixFactorization(ff,m,Augmentation => true)
+   Inputs
+    Check:Boolean
+   Description
+    Text
+     Makes matrixFactorization return an augmentation map as well as d,h.
+     Default value is false
+   SeeAlso
+    matrixFactorization
+ ///
+doc ///
+   Key 
+    Layered
+   Headline
+    Option for matrixFactorization
+   Usage
+    matrixFactorization(ff,m,Layered => true)
+   Inputs
+    Check:Boolean
+   Description
+    Text
+     Makes matrixFactorization use the "layered" algorithm, which works for
+     any MCM module, but returns something non-minimal if the module is not a "high syzygy"
+     in a suitable sense. Default is "true". 
+     Note that when the module is a high syzygy, Layered=> false is much faster.
    SeeAlso
     matrixFactorization
  ///
@@ -4310,6 +4297,8 @@ Key
  matrixFactorization
  (matrixFactorization, Matrix, Module)
  [matrixFactorization, Check]
+ [matrixFactorization,Augmentation] 
+ [matrixFactorization,Layered]  
 Headline
  Maps in a higher codimension matrix factorization
 Usage
@@ -4318,28 +4307,31 @@ Inputs
  ff:Matrix
    a sufficiently general regular sequence in a ring S
  M:Module
-   a high syzygy over S/ideal ff 
+   a maximal Cohen-Macaulay module over S/ideal ff 
 Outputs
  MF:List
-    \{d,h\}, where d:A_1 \to A_0 and h: \oplus A_0(p) \to A_1
-    is the direct sum of partial homotopies.
+    \{d,h,gamma\}, where d:A_1 \to A_0 and h: \oplus A_0(p) \to A_1
+    is the direct sum of partial homotopies, and gamma: A_0 ->M is the 
+    augmentation (returned only if Augmentation =>true)
+ 
 Description
  Text
-  The input module M should be a ``high syzygy'' over
-  R = S/ideal ff.  In all example we
-  know it suffices for Ext^{even}_R(M,k) and Ext^{odd}_R(M,k) to have negative regularity
-  over the ring of CI operators (regraded with variables of degree 1).
-  
-  If the CI operator at some stage of the induction is NOT surjective,
-  then the script returns an error.
+  The input module M should be a maximal Cohen-Macaulay module over
+  R = S/ideal ff.  If M is in fact a "high syzygy", then the function
+  matrixFactorization(ff,M,Layered=>false) uses a different, faster algorithm which
+  only works in the high syzygy case.
+
+  In all examples we know,
+  M can be considered a "high syzygy" as long as Ext^{even}_R(M,k) and Ext^{odd}_R(M,k) 
+  have negative regularity
+  over the ring of CI operators (regraded with variables of degree 1. However, the best
+  result we can prove is that it suffices to have regularity < -(2*dim R+1).
   
   When the optional input Check==true (the default is Check==false), 
   the properties in the definition of Matrix Factorization are verified
 
-  If the CI operators at each stage are surjective (that is, if
-  M is really a high syzygy), then:
-  
-  The output is a list of maps \{d,h\} whose sources and targets are direct sums.
+  The output is a list of maps \{d,h\} or \{d,h,gamma\}, where gamma is an augmentation,
+  that is, a map from target d to M.
   
   The map d is a special lifting to S of a presentation of
   M over R. To explain the contents, we introduce some notation
@@ -4362,7 +4354,7 @@ Description
   In addition, h#p * d(p) induces ff#p on B1#p 
   mod (ff#1..ff#(p-1).
   
-  Here is a simple codim 2 example:
+  Here is a simple example:
  Example
   setRandomSeed 0
   kk = ZZ/101
@@ -5111,6 +5103,7 @@ doc ///
     (layeredResolution, Matrix, Module)
     (layeredResolution, Matrix, Module, ZZ)    
     [layeredResolution,Verbose]
+    [layeredResolution,Check]    
    Headline
     layered finite and infinite layered resolutions of CM modules
    Usage
@@ -5192,6 +5185,7 @@ doc ///
     oddExtModule
 ///
 
+-*
 doc///
    Key
     layeredMFaug
@@ -5306,6 +5300,8 @@ doc///
     Text
      Constructs the layered resolution with auxilliary maps. 
 ///
+*-
+
 ------TESTs------
 TEST/// -- tests of the "with components" functions
 S = ZZ/101[a,b]
@@ -5433,16 +5429,22 @@ mf = matrixFactorization(ff, M)
 
 h = (hMaps mf)_1
 h' = map(target h, source h,
-    matrix apply (#components source h, i->(apply(#components target h, j-> h_[j]^[i])))
+    matrix apply (#components target h, j->(apply(#components source h, i-> h^[j]_[i])))    
 )
+assert(h==h')
+
+components target h
+components source h
 assert(h == h')
 
 h = (hMaps mf)_0
 h' = map(target h, source h,
-    matrix apply (#components source h, i->(apply(#components target h, j-> h_[j]^[i])))
+    matrix apply (#components target h, j->(apply(#components source h, i-> h^[j]_[i])))
 )
 assert(h == h')
 ///
+
+
 
 TEST///
 S = ZZ/101[a,b,c];
@@ -5479,7 +5481,6 @@ len = 2
 F = res(M0, LengthLimit =>len)
 MF = matrixFactorization(ff, coker F.dd_len, Check=>true)
 use S
-assert( (MF) === {map((S)^{{-1},{-1}},(S)^{{-2},{-2}},{{b, 0}, {0,a}}),map((S)^{{-2},{-2}},(S)^{{-3},{-3}},{{a, 0}, {0, b}})} );
 assert(BRanks MF=={{2,2}})
 ///
 
@@ -5493,7 +5494,6 @@ m = matrix"a,b;b,c"
 betti m
 M0 = coker m
 MF = matrixFactorization(ff,highSyzygy M0)
-assert(toString MF == "{matrix {{b, -c}, {-a, b}}, matrix {{-b, -c}, {-a, -b}}}")
 BRanks MF=={{2,2}}
 ///
 
@@ -5531,7 +5531,8 @@ R = S/ideal ff;
 M0= R^1/ideal"ab"
 use S
 MF = matrixFactorization (ff1, highSyzygy M0)
-assert(BRanks MF == {{0, 0}, {2, 2}, {1, 2}})
+BRanks MF
+assert(BRanks MF == {{2, 2}, {1, 2}})
 ///
 
 TEST///
@@ -5597,8 +5598,10 @@ TEST///
   assert(complexity M==2)
   mf = matrixFactorization (ff, M)
   assert(complexity mf ==2)
-  assert(BRanks mf == {{0, 0}, {0, 0}, {2, 2}, {1, 2}})
+  BRanks mf
+  assert(BRanks mf == {{2, 2}, {1, 2}})
   G = makeFiniteResolution(mf,ff);
+  R1 = ring G
   F = res prune pushForward(map(R,R1),M);
   assert(betti F ==  betti G)
 ///
