@@ -168,13 +168,12 @@ Shamash(Matrix, ChainComplex,ZZ) := (ff, F, len) ->(
 
 Shamash(Ring, ChainComplex,ZZ) := (Rbar, F, len) ->(
     P := map(Rbar,ring F);
-    ff := gens ker P;
+    ff := gens trim ker P;
     if numcols ff != 1 then error"given ring must be quotient of ring of complex by one element";
     FF := Shamash(ff, F,len);
     P = map(Rbar, ring FF, vars Rbar);
     P FF
 )    
-
 layeredResolution = method(Options =>{Verbose=>false, Check=>false})
 --version that produces the finite layered resolution
 layeredResolution(Matrix, Module) := opts ->(ff, M) ->(
@@ -2468,21 +2467,71 @@ makeFiniteResolution(List,Matrix) := (MF,ff) -> (
 --finite res is to take place, then do the old makeFiniteResolution.
 restart
 debug needsPackage "CompleteIntersectionResolutions"
-S = ZZ/101[x,y]
+S = ZZ/101[x]
 
-ff = matrix"x2,y2"
+ff = matrix"x2"
 R = S/ideal ff
-M = R^1 
+M = R^1
 mf = matrixFactorization(ff,M)
 makeFiniteResolution(mf, ff)
-S = ZZ/101[x,y,z]
-ff = matrix"x3,y3,z3"
+complexity M -- this comes out as 0, which is right over R.
+mf = matrixFactorization(ff, M/ideal x)
+makeFiniteResolution(mf, ff)
+
+restart
+debug needsPackage "CompleteIntersectionResolutions"
+S = ZZ/101[x,y,z,w]
+ff = matrix{apply(gens S, x->x^3)}
 R = S/ideal ff
-mf = matrixFactorization(ff,M)
+M = coker matrix"xy"
+complexity M --2
+betti res M
+mf = matrixFactorization(ff, M);
+complexity mf -- 4
+layeredResolution(ff,M,5)
+makeFiniteResolution (mf,ff)
 
-FF = S**matrix""
+restart
+debug needsPackage "CompleteIntersectionResolutions"
+S = ZZ/101[x,y,z]
+ff1 = random(S^1, S^{3:-3});
+R = S/ideal ff1
+M = coker matrix"xy"
+complexity M --3
+betti res M
+mf = matrixFactorization(ff1,M);
+complexity mf -- 3
+layeredResolution(ff1,M,5)
+makeFiniteResolution (mf,ff1)
 
 
+
+R1 = S/ideal ff1
+M1 = coker matrix"xy"
+complexity M
+complexity M1
+betti res M1
+betti res M
+mf = matrixFactorization(ff, M);
+complexity mf
+
+
+S1 = S/ideal(ff_{2,3})
+ff' = matrix{{S1_0,S1_1}}
+mf = matrixFactorization(ff', M)
+complexity mf
+makeFiniteResolution(mf, ff')
+
+
+S1 = S/(ideal S_0)^3
+ff1 = matrix{{S1_1^3}}
+R = S1/ideal ff1
+M = coker matrix (S1_1)^2
+M = coker matrix (R_1)^2
+mf = matrixFactorization(ff1,M)
+makeFiniteResolution(mf, ff1)
+complexity M
+complexity mf
 restart
 debug needsPackage "CompleteIntersectionResolutions"
 
