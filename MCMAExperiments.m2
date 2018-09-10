@@ -2,6 +2,7 @@
 --we produce a resolution over S of the S/I-MCM approximation of M.
 debug needsPackage "MCMApproximations"
 debug needsPackage "CompleteIntersectionResolutions"
+debug needsPackage "BoijSoederberg"
 
 totalBetti = method()
 totalBetti ChainComplex  := F ->(
@@ -37,8 +38,8 @@ tb#(len+1) = 0;
 p := floor((len+1-g-q)/2);
 --q-2-2*(p1-1) >=-1 ; ie 2p1 <= q+1
 p1 := floor((q+1)/2);
-upper :=if p>=0 then sum(p, k-> binomial(g+k,k)*(tb#(g+q+2*k+1) - tb#(g+q+2*k+2))) else 0;
-lower := sum(p1, k-> binomial(g+k,k)*(tb#(q-1-2*k) - tb#(q-2-2*k)));
+upper := if p>=0 then sum(p, k-> binomial(g+k,k)*(tb#(g+q+2*k+1) - tb#(g+q+2*k+2))) else 0;
+lower := sum(p1, k-> if q-2-2*k>len then 0 else binomial(g+k,k)*(tb#(q-1-2*k) - tb#(q-2-2*k)));
 upper+lower
 )
 
@@ -51,7 +52,7 @@ g= 3;
 n = 6;
 S = ZZ/101[x_0..x_n, y_0..y_(g-1), Degrees => {n+1:1,g:2}];
 m = map(S^2,S^{n:-1}, (i,j) -> x_(i+j))
-M = symmetricPower(3,coker m)
+M = symmetricPower(5,coker m)
 betti (FM = res M)
 codepth = length FM -g
 I = ideal apply(g, i-> y_i*det m_{2*i,2*i+1})
@@ -66,7 +67,7 @@ BR = betti res prune MR
 MCMRank(B,g),(degree B1)/(4^g)
 MCMRank(B,g,0)
 
---load"MCMAExperiments.m2"
+load"MCMAExperiments.m2"
 apply(g+2, q->(
     <<MCMRank(B,g,q)<<endl;flush;))
 B2 = betti res MCM
@@ -93,3 +94,37 @@ B = betti res ideal vars S
 MCMRank(B,2)
 --for 2 generic quadrics:
 (2^(n-2))^2
+
+restart
+load"MCMAExperiments.m2"
+L = {0,1,2,3,4}
+n = 7
+g = 4
+matrix apply(n+1, c->(
+	L = toList(0..c+g+1);
+	apply(n, q->MCMRank(pureBettiDiagram L, g, q))))
+
+p=1
+matrix apply(n+1, c->(
+	L = toList(0..p|p+2..c+g+p+1);
+	apply(n, q->MCMRank(pureBettiDiagram L, g, q))))
+
+pureBettiDiagram L ** pureBettiDiagram L
+
+--max linear space on general intersection of 2 quadrics in P^n
+apply (10, i->(n = 2*i+4;
+amb = n;
+isot = floor(n/2)-1;--i+1
+L = toList(0..amb-isot);
+(n,min apply(amb-isot, q->MCMRank(pureBettiDiagram L, 2, q)))))
+--1, 2, 5, 10, 23, 46, 102, 204, 443, 886, 1898, 3796, 8054, 16108, 33932, 67864, 142163, 284326, 592962,
+
+--n+1 general points on general int of 2 quads in P^n
+
+apply (10, i->(n= i+4;
+(n,min apply(n, p->(
+L = toList(0..p|p+2..n+1);
+min apply(n, q->MCMRank(pureBettiDiagram L, 2, q)))))))
+
+--over an alg closed field, an intersection of g general quadrics in P^n should contain a k dimensional linear space
+--if and only if n >= k+(g(k+2)/2). Over a general field just the empty set.
