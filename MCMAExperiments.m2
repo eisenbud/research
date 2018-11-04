@@ -128,3 +128,35 @@ min apply(n, q->MCMRank(pureBettiDiagram L, 2, q)))))))
 
 --over an alg closed field, an intersection of g general quadrics in P^n should contain a k dimensional linear space
 --if and only if n >= k+(g(k+2)/2). Over a general field just the empty set.
+
+restart
+--looking 2 quadrics in 4 vars, with factored disc and common isot subspace
+S = ZZ/101[s,t]
+random(1,S)
+M1 = matrix"
+0,1,0,0;
+1,0,0,0;
+0,0,1,0;
+0,0,0,0"
+Ms = s*(S**M1)
+while(
+a=random(0,S); b=random(0,S);
+M2 = matrix"
+0,1,a,0;
+1,b,0,0;
+a,0,0,0;
+0,0,0,1";
+Mt = t*(S**M2);
+f = det(Ms+Mt);
+cf=decompose ideal f;
+#cf<4) do();
+
+factor f
+Ms+Mt
+f1 = sub(f,t=>1)
+g = f1+(s-a1)*(s-a2)*(s-a3)
+g = f1+(s+1)*(s-1)*(s+2)
+random(0,S)
+G = flatten entries((coefficients(g))_1)
+S/ideal(G_0) **matrix{G}
+
