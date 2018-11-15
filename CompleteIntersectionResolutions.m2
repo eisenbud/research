@@ -1,5 +1,7 @@
 -*
 restart
+path
+uninstallAllPackages()
 loadPackage("CompleteIntersectionResolutions", Reload=>true)
 uninstallPackage "CompleteIntersectionResolutions"
 restart
@@ -94,30 +96,6 @@ newPackage(
 	   }
 print "file in the research directory"
 
-{*
-restart
-loadPackage("CompleteIntersectionResolutions", Reload=>true)
-     S = ZZ/101[x,y,z]
-     R = S/ideal"x3,y3"
-     M = R^1/ideal(x,y,z)
-     ff = matrix{{z^3}}
-     --
-     m = random(R^3, R^{3:-1})
-     ff = matrix{{det m}}
-     M = coker m     
-     R1 = R/ideal ff
-     F = res M
-     FF = Shamash(ff,F,5)
-     betti FF
-
-    H =  makeHomotopies(ff,F)
-
-     GG = Shamash(R1,F,4)
-     betti FF
-     betti GG
-     ring GG
-     apply(length GG, i->prune HH_i FF)
-*}
 
 regularitySequence = method()
 regularitySequence(List, Module) := (R,M) ->(
@@ -141,7 +119,8 @@ regularitySequence(List, Module) := (R,M) ->(
     )
 
 Shamash = method()
-Shamash(Matrix, ChainComplex,ZZ) := (ff, F, len) ->(
+{*
+    Shamash(Matrix, ChainComplex,ZZ) := (ff, F, len) ->(
     --Given a 1 x 1 matrix ff over a ring R and a chain complex F
     --admitting a homotopy for ff_0, produce the Shamash complex
     -- F as a chain complex Fbar over Rbar = R/ideal ff.
@@ -165,6 +144,182 @@ Shamash(Matrix, ChainComplex,ZZ) := (ff, F, len) ->(
     Rbar := ring ff/ideal ff;
     chainComplex apply(len, i-> Rbar**D(i+1))
 )
+*}
+
+    Shamash(Matrix, ChainComplex,ZZ) := (ff, F, len) ->(
+    --Given a 1 x 1 matrix ff over a ring R and a chain complex F
+    --admitting a homotopy for ff_0, produce the Shamash complex
+    -- F as a chain complex Fbar over Rbar = R/ideal ff.
+    R := ring ff;
+    deg := (degrees source ff)_0_0;
+    H :=  makeHomotopies(ff,F);
+    --simplify the notation for the map from F_j to F_i
+    d := (i,j) -> if (even(i-j) or (i-j<(-1)) or (F_i==0) or (F_j==0)) 
+                     then map(F_i,F_j,0) else 
+                          map(F_i,F_j, H#{{(1+i-j)//2},j});
+--    error();
+        --make the modules
+
+    G := apply(1+len, i->directSum(
+	         if even i then apply(1+i//2, j->R^{ -deg*((i-2*j)//2)}**F_(2*j))
+	     	 else apply((i+1)//2, j->R^{ -deg*(i-(2*j+1))//2}**F_(1+2*j))));
+    --make maps G_(i) to G_(i-1)
+    D := i-> if even i then
+    	   --if i is even then G_i = F_0++..++F_i, a total of i//2 terms, and G_(i-1) = F_1++.. has i//2-1 terms
+           map(G_(i-1),G_i,matrix apply(i//2, p-> apply(1+i//2, q-> d(2*p+1,2*q)))) else
+           map(G_(i-1),G_i,matrix apply(1+(i-1)//2, p-> apply(1+i//2, q-> d(2*p,2*q+1))));
+    Rbar := ring ff/ideal ff;
+    chainComplex apply(len, i-> Rbar**D(i+1))
+)
+
+
+{*    Gpart = (ff, F, i,j) -> (
+	-- j-th part of i-th module in Shamash(ff, F), in the order
+	-- D_(i//2)**F_
+--	L := source ff;
+	c := numcols ff;
+	S := ring F;
+    	eps := i-2*(i//2);
+	if 2*j+eps > length F then return S^0;
+	if i//2 < j then return S^0;
+	if i//2 == j then return F_(2*j+eps);
+	if i//2 > j then return 
+	directSum(apply(expo(i//2-j, c), e -> F_(2*j+eps)))
+	)
+--	symmetricPower(i//2 - j,L) ** F_(2*j+eps))
+
+
+dpart = (ff,F,i,L) ->(
+    -- {j,k} = L
+    --differential from j-th component of Gpart(ff,F,i,j) to Gpart(ff,F,i-1,k)
+    j := L_0;
+    k := L_1;
+    c := numcols ff;
+    h := makeHomotopies(ff,F);
+    Gij := Gpart(ff,F,i,j);
+    Gik := Gpart(ff,F,i-1,k);
+    eps := i-2*(i//2);
+    eps' := (i-1)-2*((i-1)//2);
+    if k<j-1 or k>length F then return map (Gik,Gij,0);
+    jbasis := expo(c,i//2-j);
+    kbasis := expo(c,i//2-1-k);
+    dif := null;
+    j' := 0;k' := 0;
+    map(Gik, Gij, 
+	apply(kbasis, u -> apply(jbasis, v->(
+	  if sum u > sum v then 0 else(
+	  dif = v-u;
+	  j' = 2*j+eps;
+	  k' = 2*k+eps';
+	  map(F_(2*k+eps'), F_(2*j+eps), 
+	      if h#?{dif,j'} then h#{dif,j'} else 0)
+	  )
+	  )))
+       )
+)
+*}
+
+Gpart = method()
+Gpart(Matrix, ChainComplex, ZZ, ZZ) :=  (ff, F, i,j) ->(
+	-- j-th part of i-th module in Shamash(ff, F), in the order
+	-- F_i, D_1**F_(i-2), ...
+	c := numcols ff;
+	ffdegs := (degrees ff)_1;
+	R := ring F;
+	if j < 0 then return R^0;
+	if i-2*j<min F then return R^0;
+	degshift := 0;
+	directSum apply(expo(c,j), e-> (
+		degshift = sum apply(c, cc-> e_cc*ffdegs_cc);
+		R^{-degshift}**F_(i-2*j)))
+	)
+Gpart(Matrix, ChainComplex, ZZ) :=  (ff, F, i) ->(
+    range := toList(min F..i//2);
+    if range == {} then return (ring F)^0;
+    directSum(apply(range, j-> Gpart(ff, F, i, j)))
+    )
+
+concatHorizontal = L -> (
+    --concatenates a list of matrices
+    m := map(target L_0,(ring L_0)^0,0);
+    scan(L, ell -> m = m|ell);
+    m)
+
+concatVertical = LL -> (
+    m := LL_0;
+    LL' := drop(LL,1);
+    scan(LL', ell -> m = m||ell);
+    m)
+
+dpart = method()
+dpart(Matrix, HashTable, ChainComplex, List) := (ff, h , F, L) ->(
+    --Let G  = Shamash(ff, F), and {i,j,k} = L.
+    --The function returns the map
+    --from the j-th summand of G_i to the k-th summand of G_(i-1).
+    i := L_0;
+    j := L_1;
+    k := L_2;
+    c := numcols ff;
+    G0 := Gpart(ff, F,i-1,k);
+    G1 := Gpart(ff, F,i,j);
+    if G0==0 or G1==0 then return map(G0,G1,0);
+    LL := apply(expo(c,k), v-> 
+	concatHorizontal(
+	    apply(expo(c,j), u-> h#{u-v,i-2*j})
+	    )
+	);
+    map(G0,G1,concatVertical LL)
+     )
+
+dpart(Matrix, HashTable, ChainComplex, ZZ) := (ff,h,F,i)->(
+    -- i-th differential of Shamash
+    map(Gpart(ff, F, i-1), Gpart(ff, F, i), (k,j) -> dpart(h,F,i,{j,k}))
+    )
+	
+    
+{*
+restart
+debug loadPackage("CompleteIntersectionResolutions", Reload=>true)
+     S = ZZ/101[x,y,z,w]
+     ff = matrix{{x^2}}     
+--     ff = matrix{{x^2}}     
+     F = res coker vars S
+h = makeHomotopies(ff, F)
+L = {4,1,0}
+dpart(ff,h, F,L)
+
+Gpart(ff, F, 2, 0)
+Gpart(ff, F, 1, 0)
+h#{{0},2}
+
+c = numcols ff;
+i = 1;j=0;k=0;
+expo(c,k)
+expo(c,j)
+
+
+    
+    
+netList apply(15, i-> apply(15, j-> degrees Gpart(ff,F,i,j)))
+apply(15, i->Gpart(ff, F, i))
+
+     --
+     m = random(R^3, R^{3:-1})
+     ff = matrix{{det m}}
+     M = coker m     
+     R1 = R/ideal ff
+     F = res M
+     FF = Shamash(ff,F,5)
+     betti FF
+
+    H =  makeHomotopies(ff,F)
+
+     GG = Shamash(R1,F,4)
+     betti FF
+     betti GG
+     ring GG
+     apply(length GG, i->prune HH_i FF)
+*}
 
 Shamash(Ring, ChainComplex,ZZ) := (Rbar, F, len) ->(
     P := map(Rbar,ring F);
@@ -174,6 +329,8 @@ Shamash(Ring, ChainComplex,ZZ) := (Rbar, F, len) ->(
     P = map(Rbar, ring FF, vars Rbar);
     P FF
 )    
+
+
 layeredResolution = method(Options =>{Verbose=>false, Check=>false})
 --version that produces the finite layered resolution
 layeredResolution(Matrix, Module) := opts ->(ff, M) ->(
