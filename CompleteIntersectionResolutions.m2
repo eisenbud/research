@@ -4914,9 +4914,10 @@ doc ///
      chain complex over (ring F)/(ideal ff)
    Description
     Text
-     Let R = ring F = ring ff, and Rbar = R/(ideal ff).
+     Let R = ring F = ring ff, and Rbar = R/(ideal f), where $ff = matrix{{f}} 
+     is a 1x1 matrix whose entry is a nonzerodivisor.
      The complex F should admit a system of higher homotopies for the entry of ff,
-     returned by the call makeHomotopies(ff,F).
+     returned by the call makeHomotopies(ff,F). 
      
      The complex FF has terms 
      
@@ -4925,6 +4926,10 @@ doc ///
      FF_{2*i+1} = Rbar**(F_1 ++ F_3 ++..++F_{2*i+1})
      
      and maps made from the higher homotopies.
+     
+     For the case of a complete
+     intersection of higher codimension, or to see the components of the resolution as summands
+     of FF_j, use the routine EisenbudShamash instead.
     Example
      S = ZZ/101[x,y,z]
      R = S/ideal"x3,y3"
@@ -4943,6 +4948,7 @@ doc ///
     F is assumed to be a homological complex starting from F_0.
     The matrix ff must be 1x1.
    SeeAlso
+    EisenbudShamash
     makeHomotopies
 ///
 doc ///
@@ -4979,6 +4985,9 @@ doc ///
      the basis t^(e) of the divided power, each twisted by 
      the degree of t^(e). This basis is in 1-1 correspondence with the partitions
      of c with i parts, produced by the function expo(c,i).
+     
+     When the entries of ff form a regular sequence on ring F, the Shamash
+     complex is a resolution.
     Example     
      x = symbol x
      S = ZZ/101[x_0..x_4]
@@ -5742,6 +5751,10 @@ F = res coker vars R
 makeHomotopiesOnHomology(vars R, F)
 ///
 
+TEST///
+assert(expo(2,2) == {{2, 0}, {1, 1}, {0, 2}})
+assert(expo(2,{2,1}) == {{0, 0}, {1, 0}, {0, 1}, {2, 0}, {1, 1}})
+///
 end--
 restart
 uninstallPackage "CompleteIntersectionResolutions"
