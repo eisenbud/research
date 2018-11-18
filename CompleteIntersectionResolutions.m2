@@ -1,23 +1,13 @@
--*
-restart
-loadPackage("CompleteIntersectionResolutions", Reload=>true)
-restart
-uninstallPackage "CompleteIntersectionResolutions"
-restart
-installPackage "CompleteIntersectionResolutions"
-check "CompleteIntersectionResolutions"
-viewHelp CompleteIntersectionResolutions
-*-
 newPackage(
               "CompleteIntersectionResolutions",
               Version => "2.1", 
-              Date => "November 15, 2018",
+              Date => "November 16, 2018",
               Authors => {{Name => "David Eisenbud", 
                         Email => "de@msri.org", 
                         HomePage => "http://www.msri.org/~de"}},
               Headline => "Analyzing Resolutions over a Complete Intersection",
 	      PackageExports => {"MCMApproximations","BGG"},
-	      DebuggingMode => false
+	      DebuggingMode => true
 	      )
     	    export{	  
 	--things related to Ext over a complete intersection
@@ -2521,6 +2511,7 @@ Description
   that grow as a polynomial of degree at most equal to the codimension-1.
   The complexity is one more than the degree of this polynomial.
  Example
+  setRandomSeed 0
   S = ZZ/101[a,b,c,d];
   ff1 = matrix"a3,b3,c3,d3";
   ff =ff1*random(source ff1, source ff1);
@@ -2951,11 +2942,11 @@ doc ///
      ff = f*random(source f, source f);
      matrixFactorization(ff, coker F.dd_(r+1));
     Text
-     This succeeds, but we would get an error from
+     This succeeds, but we could get an error from
      
      matrixFactorization(ff, coker F.dd_r)
      
-     because one of the CI operators would not be surjective.
+     if one of the CI operators were not surjective.
    Caveat
      ExtModule creates a ring inside the script, so if it's run
      twice you get modules over different rings. This should be
@@ -4030,6 +4021,7 @@ doc ///
 	  M0 = R/(m1+m2)
 	  where m1 and m2 are monomials of the same degree.
          Example
+	  setRandomSeed 0
 	  sumTwoMonomials(2,3)
         SeeAlso
 	 twoMonomials
@@ -4061,6 +4053,7 @@ doc ///
 	  M0 = R/(m1, m2)
 	  where m1 and m2 are monomials of the same degree.
          Example
+	  setRandomSeed 0
 	  twoMonomials(2,3)
         SeeAlso
 	 twoMonomials
@@ -5079,14 +5072,28 @@ assert(expo(2,2) == {{2, 0}, {1, 1}, {0, 2}})
 assert(expo(2,{2,1}) == {{0, 0}, {1, 0}, {0, 1}, {2, 0}, {1, 1}})
 ///
 end--
+
 restart
 uninstallPackage "CompleteIntersectionResolutions"
 restart
-notify=true
-loadPackage("CompleteIntersectionResolutions", Reload =>true)
 installPackage "CompleteIntersectionResolutions"
 check "CompleteIntersectionResolutions"
+
+notify=true
+loadPackage("CompleteIntersectionResolutions", Reload =>true)
+
+
 viewHelp CompleteIntersectionResolutions
 
+Nov 16:
+running without my "init" file, I get errors, but when I run the actual file that gave the errors, 
+there are no errors?!?
+
+sumTwoMonomials
+makeFiniteResolution
+ExtModuleData
+highSyzygy
+twoMonomials
+complexity
 
 
