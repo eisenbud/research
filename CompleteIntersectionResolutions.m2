@@ -7,7 +7,9 @@ newPackage(
                         HomePage => "http://www.msri.org/~de"}},
               Headline => "Analyzing Resolutions over a Complete Intersection",
 	      PackageExports => {"MCMApproximations","BGG"},
-	      DebuggingMode => true
+--note: this package requires  MCMApproximations.m2
+--in the version of August 21,2018	      
+	      DebuggingMode => false
 	      )
     	    export{	  
 	--things related to Ext over a complete intersection
@@ -5074,6 +5076,7 @@ assert(expo(2,{2,1}) == {{0, 0}, {1, 0}, {0, 1}, {2, 0}, {1, 1}})
 end--
 
 restart
+path
 uninstallPackage "CompleteIntersectionResolutions"
 restart
 installPackage "CompleteIntersectionResolutions"
@@ -5084,16 +5087,5 @@ loadPackage("CompleteIntersectionResolutions", Reload =>true)
 
 
 viewHelp CompleteIntersectionResolutions
-
-Nov 16:
-running without my "init" file, I get errors, but when I run the actual file that gave the errors, 
-there are no errors?!?
-
-sumTwoMonomials
-makeFiniteResolution
-ExtModuleData
-highSyzygy
-twoMonomials
-complexity
 
 
