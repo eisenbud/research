@@ -1,6 +1,5 @@
 -*
 restart
-path
 loadPackage("CompleteIntersectionResolutions", Reload=>true)
 restart
 uninstallPackage "CompleteIntersectionResolutions"
@@ -202,8 +201,6 @@ debug loadPackage("CompleteIntersectionResolutions", Reload=>true)
 ring Shamash(ff, F, 4) === ring F/(ideal ff)
      R1 = R/ideal ff
      FF = time Shamash(R1,F,4)
-
-
      GG = time EisenbudShamash(ff,F,4)
      h = makeHomotopies(ff, F);
      dpart(R1,h,F,3)
@@ -218,7 +215,6 @@ S = ZZ/101[x,y,z]
      len = 2
      FF = Shamash(ff,F,2)
      GG = Shamash(R1,F,4)
-
 *}
 
 EisenbudShamash = method()
@@ -228,9 +224,11 @@ EisenbudShamash (Ring, ChainComplex, ZZ) := (R, F, len) ->(
     -- for the entries of ff, produce the Shamash complex
     -- G as a chain complex R = S/ideal ff.
 --    ff := presentation R;
+    if R === ring F then return F;
     ff := gens ker map(R,ring F, vars R);
-    h :=  makeHomotopies(ff,F);
-    chainComplex apply(len, i-> dpart(R,h,F,i+1))
+    F' := F[min F];
+    h :=  makeHomotopies(ff,F');
+    (chainComplex apply(len, i-> dpart(R,h,F',i+1)))[-min F]
 )
 EisenbudShamash (Matrix, ChainComplex, ZZ) := (ff, F, len) ->
                       EisenbudShamash((ring F)/(ideal ff), F, len)
@@ -2694,7 +2692,8 @@ Description
   {TO "dualWithComponents"},
   {TO "HomWithComponents"},
   {TO "tensorWithComponents"},  
-  {TO "toArray"}
+  {TO "toArray"},
+  {TO "expo"}
   }@
  Text
   @SUBSECTION "Some families of Examples"@
@@ -4914,8 +4913,8 @@ doc ///
      chain complex over (ring F)/(ideal ff)
    Description
     Text
-     Let R = ring F = ring ff, and Rbar = R/(ideal f), where $ff = matrix{{f}} 
-     is a 1x1 matrix whose entry is a nonzerodivisor.
+     Let R = ring F = ring ff, and Rbar = R/(ideal f), where ff = matrix{{f}} 
+     is a 1x1 matrix whose entry is a nonzerodivisor in R.
      The complex F should admit a system of higher homotopies for the entry of ff,
      returned by the call makeHomotopies(ff,F). 
      
@@ -4978,14 +4977,6 @@ doc ///
      The complex F should admit a system of higher homotopies for the entries of ff,
      returned by the call makeHomotopies(ff,F).
      
-     The complex G has terms that are abstractly
-     G_i = F_i ++ D_1**F_(i-2) ++ D_2**F_(i-4)...
-     where D_i is the i-th divided power of the free module source ff. 
-     In fact the term D_i**F_j is the direct sum of copies of F_j, indexed by
-     the basis t^(e) of the divided power, each twisted by 
-     the degree of t^(e). This basis is in 1-1 correspondence with the partitions
-     of c with i parts, produced by the function expo(c,i).
-     
      When the entries of ff form a regular sequence on ring F, the Shamash
      complex is a resolution.
     Example     
@@ -4999,24 +4990,24 @@ doc ///
      apply(length G -1, i->prune HH_(i+1) G)
     Text
      The complex G has terms that are abstractly
-     G_i = F_i ++ D_1**F_(i-2) ++ D_2**F_(i-4)...
+     G_i = F_i ++ D_1**F_{i-2} ++ D_2**F_{i-4}...
      where D_i is the i-th divided power of the free module source ff. 
      In fact the term D_i**F_j is the direct sum of copies of F_j, indexed by
-     the basis t^(e) of the divided power, each twisted by 
-     the degree of t^(e). This basis is in 1-1 correspondence with the partitions
+     the basis t^{e} of the divided power, each twisted by 
+     the degree of t^{e}. This basis is in 1-1 correspondence with the partitions
      of c = numcols ff, 
      with i parts, produced by the function expo(c,i), as can be seen in the following:
     Example
      betti F
      G5 = (G_5).cache.components
     Text
-     Thus, c = 2, so D_i = R^(i+1), and 
+     Thus, c = 2, so D_i = R^{i+1}, and 
      G5 is the direct sum F_5 ++ R^2**F_3 ++ R^3**F_1. Moreover,
      D_1 has two exponents, 
     Example
      expo(numcols ff, 1)
     Text
-     So G5_1 will have two components, both isomorphic to R**F_3 = R^10:
+     So G5_1 will have two components, both isomorphic to R**F_3 = R^{10}:
     Example
      G51 = (G5_1).cache.components
     Text
@@ -5032,9 +5023,10 @@ doc ///
      R1 = R/ideal ff
      FF = time Shamash(R1,F,4)
      GG = time EisenbudShamash(ff,F,4)
-   Caveat
-    F is assumed to be a homological complex starting from F_0.
-    The matrix ff must be 1x1.
+    Text
+     The function also deals correctly with complexes F where min F is not 0:
+    Example
+     GG = time EisenbudShamash(R1,F[2],4)
    SeeAlso
     makeHomotopies
     Shamash
@@ -5275,7 +5267,7 @@ doc///
 	  Eisenbud-Shamash resolution.
 	  
 	  The list expo(c, L), on the other hand, may be thought of as the list of divisors
-	  of e^L = e_0^(L_0) ... e_c^(L_c). This is used in the contruction of the higher
+	  of e^L = e_0^{L_0} ... e_c^{L_c}. This is used in the contruction of the higher
 	  homotopies on a complex.
          Example
 	  expo(3,5)
