@@ -1,12 +1,99 @@
 needsPackage "Points"
 needsPackage "ReesAlgebra"
-
+load "SymmetricPower.m2"
 
 reesPoints = n->(
-po = randomPoints(2,n);
+po := randomPoints(2,n);
 (po,reesIdeal po)
 )
-statistics = n->(
+symmetricTorsion = method()
+symmetricTorsion(ZZ,ZZ) := (n,j) ->(
+    P := randomPoints(2,n);
+    symp :=symmPower (j,module P); -- using substitute for built-in symmetricPower!
+    prune((image saturateLinear (presentation symp))/image presentation symp)
+--    prune(saturate (0_symp, (ring symp)_2)
+)
+
+symmetricTorsion1 = (n,j) ->(
+    P := randomPoints(2,n);
+    symp :=symmPower (j,module P); -- using substitute for built-in symmetricPower!
+--    prune((image saturateLinear (presentation symp))/image presentation symp)
+    prune saturate(0_symp, (ring symp)_2)
+)
+///
+restart
+load"ReesPoints.m2"
+kk= ZZ/101
+n = 6;
+j= 3;
+
+
+
+mm = ideal vars S
+I = intersect(mm^4,monomialCurveIdeal(S,{5,6,7}))
+prune (saturateLinear I/I)
+phi = presentation (S^1/I)
+
+prune ((image saturateLinear phi)/image phi)
+
+N = image saturateLinear phi
+target gens N == target phi
+target phi
+target gens ((gens gb phi)_{0}) == target phi
+
+n=6
+j=3
+symmetricTorsion (n,3)
+///
+
+
+symmetricTorsion2 = method()
+symmetricTorsion2(ZZ,ZZ,ZZ) := (n,j,pow) ->(
+    P := randomPoints(2,n);
+    S := ring P;
+    symp :=symmetricPower (3,module P);
+    mm2 = ideal(S_0^2);
+    symp' := 
+    symp1 := quotient(symp, ideal(S_2), Strategy=>Linear);
+    symp2 := quotient(symp1, ideal(S_2), Strategy=>Linear);
+   prune symp2
+)
+
+saturateLinear = method()
+saturateLinear Ideal := I ->(
+    --saturates with respect to last variable
+    --assuming that we're in revlex
+    S := ring I;
+    n := numgens S;
+    var = S_(n-1); -- the last variable
+    G := ideal gens gb I;
+    ini := ideal leadTerm G;
+    M := null;
+    M':= null;
+    trim sum apply(numgens ini, i -> (
+	    M = ideal ini_i;
+	    M' = saturate(M,S_3);
+	    ideal(G_i):(M:M')
+	    ))
+    )
+saturateLinear Matrix := phi ->(
+    --returns map onto the saturation of the image of phi
+    S := ring phi;
+    n := numgens S;
+    var = S_(n-1); -- the last variable
+    G :=  gens gb phi;
+    ini := leadTerm G;
+    M := null;
+    M':= null;
+	gens sum apply(numcols ini, i -> (
+	    M = image ini_{i};
+	    M' = saturate(M,var);
+	    (image G_{i}):(M:M')
+	    ))
+    )
+    
+statistics = method(Options =>{Kind => Rees, Verbose => false})
+statistics ZZ := o-> n->(
     m:= 2;
     while binomial(m,2)<= n do m = m+1;
     m = m-1;
@@ -14,21 +101,62 @@ statistics = n->(
     t := m-s-1;
     po := randomPoints(2,n);
     B := betti res po;
-    Irees := reesIdeal po;
-    S = ring Irees;
+    IRees := null;
+    Isym := null;    
+    I := null;
+
+    if o.Kind == Rees then
+    I = reesIdeal po
+
+     else if o.Kind == Symmetric then
+    I = symmetricAlgebraIdeal po
+
+     else if o.Kind == Torsion then
+         IRees = reesIdeal po;
+         Isym = symmetricAlgebraIdeal po;
+         I = prune (sub(IRees, ring Isym)/Isym);
+
+    S = ring I;
     (R,RS) = flattenRing S;
-    IR = RS Irees;
-    Brees = betti (F = res IR);
-    dep = 1+max(s,t)+3 - pdim coker gens IR;
-    (n, s,t,dep,B,IR_*/degree))
+    if o.Kind == Torsion then
+     IR = coker RS presentation I else(
+    IR = RS I;
+    B = betti (F = res IR);
+    dep = 1+max(s,t)+3 - pdim coker gens IR);
+    
+    if o.Kind == Rees then(
+	if o.Verbose == true then
+        (n, s,t,dep,B,IR_*/degree)
+	  else (n, s,t,dep))
+      
+    else if o.Kind ==Symmetric then(
+    if o.Verbose == true then(
+    (n, s,t,max(numgens po, 3),dep,B, betti po))
+
+    else
+    (n, s,t,dim IR,dep))
+
+    else if o.Kind == Torsion then
+    (n,s,t,betti res I)
+    )
+
+    
+
 ///
-n = 17
-statistics 11
+restart
+load "ReesPoints.m2"
+statistics (11, Kind=>Torsion)
+po = randomPoints(2,11);
+IR = reesAlgebraIdeal po;
+Isym = symmetricAlgebraIdeal po;
+prune (sub(IR, ring Isym)/Isym)
 
 ///
 end--
 restart
 load "ReesPoints.m2"
+statistics 11
+statistics (11, Kind=>Symmetric, Verbose => true)
 (po,I) = reesPoints 17;
 betti res po
 S = ring I
@@ -52,3 +180,39 @@ time print statistics n
 netList{{1, 7}, {1, 7}, {1, 8}, {1, 8}, {3, 19}, {3, 19}, {3, 19}, {4, 25}, {4, 25}, {4, 25}, {4, 25}, {5, 30}, {5, 30}, {5, 30}, {6, 36}, {6, 36}, {6, 36}, {6, 36}, {8, 48}, {8, 48}, {8, 48}, {8, 48}, {8, 48}}
 --for 24:
 netList {{1, 8}, {1, 8}, {1, 8}, {3, 20}, {3, 20}, {3, 20}, {6, 37}, {6, 37}, {6, 37}, {6, 37}, {6, 37}, {6, 37}, {6, 37}, {6, 37}, {6, 37}, {6, 37}, {6, 37}, {6, 37}, {6, 37}, {6, 37}, {6, 37}, {12, 72}}
+
+for n from 6 to 25 do
+time print statistics(n, Kind=>Symmetric, Verbose => true)
+
+for n from 6 to 25 do
+time print statistics(n, Kind=>Torsion, Verbose => true)
+
+restart
+load"ReesPoints.m2"
+time netList for n from 5 to 40 list
+{n, annihilator symmetricTorsion1(n,3)}
+
+time betti res symmetricTorsion1(23,5)
+time minimalBetti symmetricTorsion1(23,6)
+
+
+S = ZZ/101[x_0..x_3]
+P = randomPoints(2, 19)
+
+presentation module P
+symmetricPower(3,target presentation module P)
+code methods symmetricPower
+
+S = ZZ/101[x_0..x_2]
+P = randomPoints(2, 19)
+symp = symmPower(3, module P);
+S === ring symp
+saturate(symp_0, (ring symp)_2)
+
+P3 = presentation symmPower(3, module P);
+P31 = trim image saturateLinear(oo);
+prune(P31/image P3)
+
+
+time symmetricTorsion1(19,3)
+time symmetricTorsion(19,3)
