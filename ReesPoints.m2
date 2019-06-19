@@ -2,6 +2,57 @@ needsPackage "Points"
 needsPackage "ReesAlgebra"
 load "SymmetricPower.m2"
 
+reesDegrees = n-> (
+    m:= 2;
+    while binomial(m,2)<= n do m = m+1;
+    m = m-1;
+    s := n-binomial(m,2);
+    t := m-s-1;
+I := randomPoints(2,n);
+J := reesAlgebraIdeal (I, (ring I)_2);
+L := (J_*/degree);
+if t>= s then (
+    (n,s,t, (L/(d -> {d_1-(s+t)*d_0, d_0})))
+    )
+    else
+    (n,s,t,L/(d->reverse d))
+)
+st = n->(
+    m:= 2;
+    while binomial(m,2)<= n do m = m+1;
+    m = m-1;
+    s := n-binomial(m,2);
+    t := m-s-1;
+    (s,t))
+
+symmetricTorsionPoints = n->(
+I := randomPoints(2,n);
+J := reesAlgebraIdeal (I, (ring I)_2);
+J0 := symmetricAlgebraIdeal(I);
+tors := (J/J0);
+annihilator tors)
+
+///
+restart
+load"ReesPoints.m2"
+time (n,s,t,L) = reesDegrees 18
+netList L
+
+time symmetricTorsionPoints 23
+
+
+param = ZZ[x,y]
+listListToListMonomial = ell -> (apply(ell, i-> x^(i_0)*y^(i_1)))
+listListToListMonomial ell
+
+Ltot = apply({6,7,8}, n-> reesDegrees n)
+Lpure = select(Ltot, ell ->ell_1<=ell_2)
+
+apply(Lpure, ell -> {ell_0,ell_1,ell_2, listListToListMonomial (ell_3)})
+scan(toList(31..40), n-> <<time reesDegrees n<<endl)
+///
+
+
 reesPoints = n->(
 po := randomPoints(2,n);
 (po,reesIdeal po)
@@ -199,7 +250,7 @@ time minimalBetti symmetricTorsion1(23,6)
 S = ZZ/101[x_0..x_3]
 P = randomPoints(2, 19)
 
-presentation module P
+presentation module Pfgae45    	       	       	                
 symmetricPower(3,target presentation module P)
 code methods symmetricPower
 
@@ -216,3 +267,28 @@ prune(P31/image P3)
 
 time symmetricTorsion1(19,3)
 time symmetricTorsion(19,3)
+
+--fiber ring of 23 points:
+
+T = ZZ/101[y_0..y_4]
+F = ker map(ring I, T, gens I)
+minimalBetti F
+
+
+------Justin's example -- bug!
+restart
+loadPackage("ReesAlgebra", Reload =>true)
+R = QQ[x_1..x_4]
+I = ideal(x_1*x_2, x_3*x_4)
+--I = ideal(x_1*x_2, x_3*x_4, x_2*x_3, x_2*x_4)
+IR = reesIdeal (module I, I_0)
+presentation symmetricAlgebra module I
+presentation module I
+reesAlgebra (module I, I_0)
+code (symmetricAlgebra, Module)
+mingens I
+symmetricKernel mingens I
+sub(IS, ring IR) + IR == IR
+code methods reesAlgebra
+
+
