@@ -49,7 +49,7 @@ Ltot = apply({6,7,8}, n-> reesDegrees n)
 Lpure = select(Ltot, ell ->ell_1<=ell_2)
 
 apply(Lpure, ell -> {ell_0,ell_1,ell_2, listListToListMonomial (ell_3)})
-scan(toList(31..40), n-> <<time reesDegrees n<<endl)
+scan(toList(42..50), n-> <<time reesDegrees n<<endl)
 ///
 
 
