@@ -1,4 +1,5 @@
 needsPackage "Points"
+needsPackage "RandomIdeals"
 needsPackage "ReesAlgebra"
 load "SymmetricPower.m2"
 
@@ -162,10 +163,10 @@ statistics ZZ := o-> n->(
      else if o.Kind == Symmetric then
     I = symmetricAlgebraIdeal po
 
-     else if o.Kind == Torsion then
+     else if o.Kind == Torsion then(
          IRees = reesIdeal po;
          Isym = symmetricAlgebraIdeal po;
-         I = prune (sub(IRees, ring Isym)/Isym);
+         I = prune (sub(IRees, ring Isym)/Isym));
 
     S = ring I;
     (R,RS) = flattenRing S;
@@ -197,6 +198,9 @@ statistics ZZ := o-> n->(
 restart
 load "ReesPoints.m2"
 statistics (11, Kind=>Torsion)
+statistics (11, Kind=>Rees)
+statistics (11, Kind=>Symmetric)
+
 po = randomPoints(2,11);
 IR = reesAlgebraIdeal po;
 Isym = symmetricAlgebraIdeal po;
@@ -275,7 +279,7 @@ F = ker map(ring I, T, gens I)
 minimalBetti F
 
 
-------Justin's example -- bug!
+------Justin's example -- bug! I no longer know what the bug was -- perhaps it's fixed??
 restart
 loadPackage("ReesAlgebra", Reload =>true)
 R = QQ[x_1..x_4]
@@ -287,8 +291,82 @@ presentation module I
 reesAlgebra (module I, I_0)
 code (symmetricAlgebra, Module)
 mingens I
-symmetricKernel mingens I
+IS = symmetricKernel mingens I
 sub(IS, ring IR) + IR == IR
 code methods reesAlgebra
 
+-------------
+-------------
+--December, 2019
+viewHelp Points
+kk = ZZ/101
+S = kk[x,y,z]
+--note that the ideal of the homog coord ring of
+-- d points which span have regularity at most d-2 (ideal generate in degrees <- d-1).
+
+--3 points that span; either a complete intersection or a fat point. these have different Rees ideals
+reesIdeal points randomPointsMat(S,3)
+netList(reesIdeal (ideal(x,y))^2)_*
+
+--4 points that span: two quadrics, either a CI or there's an additional cubic.
+--lin gen pos =>CI of two quadrics
+--3 colinear:
+p31 = pointsMat = transpose matrix{
+    {0,1,1},
+    {1,1,1},
+    {1,0,1},
+    {1,2,1}}
+I = trim ideal ((projectivePoints(p31,S))_1)
+netList (reesIdeal I)_*
+--3 in a cluster
+I = netList (reesIdeal(intersect((ideal(x,y))^2, ideal(y,z))))_*
+I = netList (reesIdeal(intersect((ideal(x^3,y)), ideal(y,z))))_*
+--4 in a non-ci cluster
+p = ideal(x^2,y^3,x*y)
+degree p
+netList (reesIdeal p)_*
+
+--5 points that span
+--on a smooth conic -- always conic and 2 cubics. Does it matter whether its distinct points?
+
+
+--general case: 
+-*two parametrizations of the n x n-1 degree matrices of points: row and col degs (a,b) 
+and diagonal degrees (e,f).
+assume that the a,b sequences are decreasing, and that f_i >= e_i and f_i>= e_(i+1)
+*-
+abToef = (a,b) ->(
+    n = #a;
+    assert(all(n-1, i-> a_i>a_(i+1)));
+    
+    e = apply(n-1, i-> b_i-a_i);
+    f = apply(n-1, i-> b_i-a_(i+1));
+    (e,f)
+    )
+efToab = (e,f) ->(
+    n = #e+1;
+    a = apply(n, i-> sum(i,j-> e_(i-1)) + sum(toList(i..n-2),j->f_(j-1)));
+    b = apply(n-1,i-> a_i+e_i);
+    (a,b)
+    )
+efToDegree = (e,f) -> (
+    n := #e+1;
+    sum(n-1, i-> sum(toList (i..n-2),j-> e_i*f_j))
+	)
+abToDegree = (a,b) -> efToDegree abToef (a,b)
+///
+a={2,2,2}
+b= {3,3}
+(e,f) = abToef (a,b)
+(a,b) = efToab(e,f)
+efToDegree (e,f)
+
+///
+
+degreeDegreeMatrix = m ->(
+   -- m an n x n-1 matrix of positive ints; degree of a codim 2 ideal with that degree matrix
+   n = numrows m;
+   )
+m = map(ZZ^4,ZZ^3, (i,j) -> 1)
+degreeDegreeMatrix m
 
