@@ -217,9 +217,14 @@ U = flatten entries gens (ideal vars T)^2
 m = U_0
 n = U_1
 a = m+5*n
+
 L = {n}
 monToCIOperator(Q,L,F,5)
 toCIOperator(Q,{a},F,5)
+
+L = {a}
+toCIOperators(Q,L,F,5)
+
 ///
 end--
 restart
