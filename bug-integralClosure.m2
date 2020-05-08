@@ -1,0 +1,9 @@
+R=QQ[a,b,c,d,e,f]
+I=ideal(a*b*d,a*c*e,b*c*f,d*e*f);
+J=I^2;
+K=integralClosure(I,2)
+F=ideal(a*b*c*d*e*f);
+isSubset(F,J)
+isSubset(F,K)
+isSubset(F^2,J^2)
+K==J

@@ -1,6 +1,7 @@
+
 -*
 restart
-loadPackage("CompleteIntersectionResolutions", Reload=>true)
+debug loadPackage("CompleteIntersectionResolutions", Reload=>true)
 uninstallPackage "CompleteIntersectionResolutions"
 restart
 installPackage "CompleteIntersectionResolutions"
@@ -8,6 +9,7 @@ viewHelp CompleteIntersectionResolutions
 
 check "CompleteIntersectionResolutions"
 *-
+
 newPackage(
               "CompleteIntersectionResolutions",
               Version => "2", 
@@ -17,7 +19,7 @@ newPackage(
                         HomePage => "http://www.msri.org/~de"}},
               Headline => "Analyzing Resolutions over a Complete Intersection",
 	      PackageExports => {"MCMApproximations","BGG"},--"LocalRings"},
-	      DebuggingMode => false
+	      DebuggingMode => true
 	      )
     	    export{	  
 	--things related to Ext over a complete intersection
