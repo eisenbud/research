@@ -69,12 +69,21 @@ netList (for n from 1 to 5 list
     (n, tosequence, apply(#mm,
 	    i-> minimalBetti coker multidiag(mm_i,n))))
 
-
+m1 = mm_0
+m2 = matrix{{x^10,x*y^9,y^10}}
+betti (F1 = res coker multidiag(m1,2))
+betti (F2 = res coker multidiag(m2,4))
+F2.dd_2
 tail =(m,n) ->sort apply(select(pairs minimalBetti coker multidiag(m,n), p-> p_0_0 == 2), p->(p_0_2, p_1))
 scan(5, d->(
 	<<netList  apply(mm,m->(m,tail(m,d+1)))<<endl;
 	)
 )	
+
+m = matrix"x3,xy2,y3"
+betti (F = res coker multidiag(m,4))
+M = F.dd_2
+M_{0}-M_{1}
 
 ///
 
