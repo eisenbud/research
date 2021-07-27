@@ -1,7 +1,9 @@
 --are there artinian rings such that the third syz of the res field k contains k as summand?
 syzygy = (m, M) ->(
-    F := res(M, LengthLimit => m+1);
-    image F.dd_(m+1))
+    if m == 0 then return M;
+    if m<0 then error"first argument must be positive";
+    F := res(M, LengthLimit => m);
+    image F.dd_(m))
 
 socleSummand = method(Options=>{Count =>false})
 socleSummand Module := o-> M -> (
@@ -25,7 +27,7 @@ test(Ideal, ZZ)  := o-> (I, sy)->(
 
 mpowerMinus1 = (S,pow,i) ->(
     mm := ideal vars S;
-    I0 = mm^pow;
+    I0 := mm^pow;
     n := numgens I0;
     ideal((gens I0)_(toList(0..i-1)|toList(i+1..n-1)))    
     )
@@ -56,7 +58,7 @@ I := minors(#coldegs, M);
 --print I;
 T := test(I, 8, Count => o.Count);
 --if T !={false, false, true, false, true} then 
-print(M, rowdegs, coldegs, T)
+print(rowdegs, coldegs, T)
 )
 
 golod = method()
@@ -105,8 +107,9 @@ kk = ZZ/32003
 S = kk[a,b,c]
 --R = S/(ideal vars S)^3
 R = S/(ideal"a3,b3,c3")
-M =  syzygy(6,coker vars R)
+M =  syzygy(7,coker vars R)
 socleSummand (M, Count =>false)
+syzygy(0, coker vars R)
 
 restart
 load "dao-socle.m2"
@@ -149,12 +152,33 @@ ZZ/5
 ({false, false, true, false, true, true, true}, ideal(a^5-2*a^4*b-2*a^2*b^3+a*b^4-b^5,2*a^5+a^4*b-a^3*b^2-a^2*b^3+a*b^4-2*b^5,-2*a^4*b+2*a^2*b^3-2*a*b^4-2*b^5))
 
 
+--the following pair of examples shows that the degree matrix
+--does not determine the pattern; the presence of an actual
+--linear form is required, at least in this case
 restart
 load "dao-socle.m2"
 S = ZZ/32003[x,y]
-rowdegs = r = {4,4,5}
-coldegs = c = {5,6}
-cod2(S,r,c, Count => false)
-cod2(S,r,c, Count => true)
+rowdegs = r = {5,4,4}
+coldegs = c = {6,7}
+ma = map(S^(-r),S^(-c),matrix"
+0,y2;
+y2,x3;
+x2,0")
+ma' = map(S^(-r),S^(-c),matrix"
+x+y,y2;
+y2,x3;
+x2,0")
+I = minors(2,ma)
+I' = minors(2,ma')
+I'' = minors(2, random(S^(-r),S^(-c)))
+test(I,6)--no linear form in the matrix
+test(I',6)--put in the linear form
+test(I'',6)--generic matrix with same degs includes a linear form.
+betti res(coker vars (S/I), LengthLimit=>6)
+betti res(coker vars (S/I'), LengthLimit=>6)
+betti res(coker vars (S/I''), LengthLimit=>6)
 
+test(I,6, Count=>true)
+test(I',6, Count=>true)
+assert (test(I',6, Count=>true)==test(I'',6, Count=>true))
 

@@ -1,3 +1,16 @@
+
+
+-*
+restart
+debug loadPackage("CompleteIntersectionResolutions", Reload=>true)
+uninstallPackage "CompleteIntersectionResolutions"
+restart
+installPackage "CompleteIntersectionResolutions"
+viewHelp CompleteIntersectionResolutions
+
+check "CompleteIntersectionResolutions"
+*-
+
 newPackage(
               "CompleteIntersectionResolutions",
               Version => "2.1", 
@@ -6,9 +19,9 @@ newPackage(
                         Email => "de@msri.org", 
                         HomePage => "http://www.msri.org/~de"}},
               Headline => "Analyzing Resolutions over a Complete Intersection",
+	      PackageExports => {"MCMApproximations","BGG"},--"LocalRings"},
+	      DebuggingMode => true
 	      PackageExports => {"MCMApproximations","BGG"},
---note: this package requires  MCMApproximations.m2
---in the version of August 21,2018	      
 	      DebuggingMode => false
 	      )
     	    export{	  

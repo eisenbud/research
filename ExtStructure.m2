@@ -168,27 +168,41 @@ comp(List, Module, Module, Module) :=  (L,M,N,P) ->(
     G := res (N, LengthLimit => 1+L_1);
     comp(L,F,G,P))
 
-toCIOperators = method()
-toCIOperators (Matrix,List, ChainComplex,ZZ) := (Q,L,F,i)-> (
+monToCIOperator = method()
+monToCIOperator (Matrix,List, ChainComplex,ZZ) := (Q,L,F,i)-> (
     --Q is a 1 x c matrix containing entries that annihilate a 
     --module M
-    --L is a list of polynomials of a single degree d
+    --L is a singleton {m} where m is a monomial of degree d
     --in auxilliary variables t_i
     --corresponding to the entries of Q
     --F is a resolution of M of length at least 
     -- i+2*d
-    --Output is a list of maps  F_(i+2d) --> F_i
+    --Output is a map  F_(i+2d) --> F_i corresponding to the monomial in the CI operators
     d = (degree L_0)_0; -- the common degree
     tt = apply(d, j-> makeT(Q,F,i-2*j));
     C = coefficients L_0;
-    mm = apply(numcols(C_0), u->C_0_u_0); -- the  monomials in L_0
-    ee = apply(#mm, u-> flatten exponents (mm_u));
-    pp = apply(#ee, j->flatten apply (
-	        #(ee_j), 
-		s-> apply(ee_j_s, k->tt_s_s))
-	       );
-sum(apply(#pp, u -> product reverse (pp_u)))
-)
+--    mm = apply(numcols(C_0), u->C_0_u_0); -- the  monomials in L_0
+    mm = C_0_0_0;
+    ee = flatten exponents mm;
+    pp = flatten apply(#ee, j->
+	       flatten apply(ee_j, k->
+		       tt_(sum(apply(j, u->ee_u))-k)_j));
+    product reverse pp
+	)
+toCIOperator = method()
+toCIOperator(Matrix, List, ChainComplex, ZZ) := (Q,L,F,i) ->(
+    d = (degree L_0)_0; -- the common degree
+    tt = apply(d, j-> makeT(Q,F,i-2*j));
+    T := ring L_0;
+    kk := coefficientRing ring Q_0;
+    tokk := map(kk, T, toList(numgens T:0_kk) );
+    flatten apply(#L, s->(
+	        C = coefficients L_s;
+		mons = flatten entries C_0;
+		coefs = flatten entries C_1;
+		flatten apply(#mons, i->tokk(coefs_i)*monToCIOperator (Q,{mons_i},F,i))))
+    )
+	   
 ///
 restart
 debug needsPackage "CompleteIntersectionResolutions"
@@ -203,8 +217,14 @@ U = flatten entries gens (ideal vars T)^2
 m = U_0
 n = U_1
 a = m+5*n
+
+L = {n}
+monToCIOperator(Q,L,F,5)
+toCIOperator(Q,{a},F,5)
+
 L = {a}
 toCIOperators(Q,L,F,5)
+
 ///
 end--
 restart
@@ -218,6 +238,25 @@ Q = matrix{{3*x_0*x_1-7*x_2*x_3, x_0*x_2-x_1*x_3}}
 f = x_0^2+3*x_1^2+5*x_2^2+7*x_3^2
 R = S/ideal f
 M = coker vars R
+F = res(M, LengthLimit =>5)
+c1 = comp({2,2},M,M,M)
+c = comp({2,2},F,F,M)
+N1 = netList flatten apply(4, i-> apply(4, j->{i,j,c1(i,j)}))
+N2 = netList flatten apply(4, i-> apply(4, j->{i,j,c(i,j)}))
+N1 == N2
+
+restart
+needsPackage"CompleteIntersectionResolutions"
+kk = ZZ/101
+S = kk[s,t,x_0..x_3]
+Q = matrix{{s*(3*x_0*x_1-7*x_2*x_3)+t*(x_0*x_2-x_1*x_3)}}
+f = x_0^2+3*x_1^2+5*x_2^2+7*x_3^2
+M = coker matrix{toList(x_0..x_3)}
+R = S/ideal Q
+Sh = Shamash(Q,res M, 5)
+(Sh.dd)^2
+
+F = res M
 F = res(M, LengthLimit =>5)
 c1 = comp({2,2},M,M,M)
 c = comp({2,2},F,F,M)

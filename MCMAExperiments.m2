@@ -1,6 +1,6 @@
 --Given an S-module M of projective dimension f, and a complete intersection I of codim g annihilating M,
 --we produce a resolution over S of the S/I-MCM approximation of M.
-debug needsPackage "MCMApproximations"
+--debug needsPackage "MCMApproximations"
 debug needsPackage "CompleteIntersectionResolutions"
 debug needsPackage "BoijSoederberg"
 
@@ -129,6 +129,50 @@ min apply(n, q->MCMRank(pureBettiDiagram L, 2, q)))))))
 --over an alg closed field, an intersection of g general quadrics in P^n should contain a k dimensional linear space
 --if and only if n >= k+(g(k+2)/2). Over a general field just the empty set.
 
+----Commuting mf's??
+restart
+kk = ZZ/101
+S' = kk[x_0..y_3,a_(0,0)..a_(3,3)]
+Mx = genericMatrix(S',x_0,2,2)
+My = genericMatrix(S',y_0,2,2)
+S = kk[x_0..x_3,a_(0,0)..a_(3,3)]
+X = (vars S)_{0..3}
+A = genericMatrix(S,a_(0,0),4,4)
+X*A
+SS' = map(S,S', matrix{flatten entries X|flatten entries (X*A)|flatten entries A})
+I = SS' ideal(Mx*My-My*Mx)
+X2 = gens (ideal X)^2
+eq = trim ideal flatten entries contract (transpose X2, gens I)
+soln = syz transpose (jacobian eq)^{4..19}*random(S^5,S^1)
+Abar = sub(A,X|transpose soln)
+A%eq
+Y = (Abar*transpose X)
+Ny = map(S^2,S^{2:-2},(i,j) -> if j == 0 then Y_(i,0) else Y_(i+2,0))
+q1=det(SS' Mx)
+q2=det Ny
+decompose ideal(q1,q2)
+--q1,q2 contains a reducible quadric
+M=coker(sub(Mx,S)|Ny)
+betti res M
+ann M 
+M1=coker Mx
+presentation Hom(M1,M1)
+
+restart
+kk=ZZ/101
+k=3
+S=kk[x_0..y_(k-1)]
+K = res coker vars S
+K.dd_6
+koszul(6,vars S)
+q = sum_k(i->x_i*y_i)
+R = S/q
+
+----------------
+uninstallPackage "CompleteIntersectionResolutions"
+restart
+installPackage "CompleteIntersectionResolutions"
+
 restart
 --looking 2 quadrics in 4 vars, with factored disc and common isot subspace
 S = ZZ/101[s,t]
@@ -159,4 +203,5 @@ g = f1+(s+1)*(s-1)*(s+2)
 random(0,S)
 G = flatten entries((coefficients(g))_1)
 S/ideal(G_0) **matrix{G}
+
 
