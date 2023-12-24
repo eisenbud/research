@@ -13,7 +13,7 @@ longTest =  J -> (
     G := res(coker (R**F.dd_1), LengthLimit =>ell);
     RF' := chainComplex apply(ell, i-> R**F.dd_(1+i));
     ex := extend(G, RF', id_(G_0));
-    for i from 2 to ell list 0== ker sub((ex)_i, kk)
+    for i from 2 to codim J list 0== ker sub((ex)_i, kk)
 )
 
 -*
@@ -37,7 +37,33 @@ zeroMult ChainComplex := F-> (
     --returns true if the degrees of the F_i force any multiplicative structure to have values in the max ideal.
     ell := length F;
     mindegs := apply(ell+1, i-> min degrees F_i);
-    ///
+    maxdegs := apply(ell+1, i-> max degrees F_i);    
+    T := flatten for i from 1 to ell-1 list for j from i to ell-i list mindegs_i + mindegs_j > maxdegs_(i+j);
+    all (T, x -> x)
+    )
+zeroMult Ideal := I -> zeroMult res I
+zeroMult Ring := R -> zeroMult ideal R
+
+zeroMult1 = method()
+--correct but slow
+zeroMult1 Ring := R ->(
+    needsPackage "DGAlgebras";
+    K := koszulComplexDGA R;
+elapsedTime    HK := HH K;
+    (ideal vars HK)^2 == 0;
+    )
+    
+    
+
+///
+S = ZZ/101[a..f]
+I = ideal gens S
+I2 = I^2
+F = res I
+length oo
+zeroMult I
+zeroMult I2
+///
 
 derivs  = I-> (
     S:= ring I;
@@ -68,7 +94,9 @@ lsg = lcmStronglyGolod
 restart
 load("GolodCriteria.m2")
 ///
+
 end--
+
 --examples with trivial Koszul products, not Golod for n>= 4.
 n = 3
 kk= ZZ/101
@@ -146,22 +174,26 @@ G = eagonResolution(A,4)
 
 ---testing Golod in 4 vars
 --is it the injectivity of the reduced S- resolution of omega in the R-resolution?
-needsPackage "MonomialOrbits"
-needsPackage "DGAlgebras"
+viewHelp MonomialOrbits
+restart
+load "GolodCriteria.m2"
 kk = ZZ/101
 n= 4
 S = kk[vars(0..(n-1))]
 vars S
-de =3
+de =4
 I0= ideal apply(gens S, x -> x^de)
 --viewHelp orbitRepresentatives
-L = orbitRepresentatives(S,I0,toList (3:2)|{4,4,5,6});#L
-L' = apply (L, I -> (
-	I1 =sort gens I;
-	(monomialIdeal(I1_{0..4}))^2+ monomialIdeal I1_{6,7}
-	));
-ls = select(#L', i-> lsg (L'_i))
-netList for I in L'_ls list {isGolod(S/I),longTest I, lsg I}
+B = monomialIdeal basis (4, S)
+L = orbitRepresentatives(S,I0,B,-6);#L
+
+ls = select(#L, i-> zeroMult (L_i))
+#ls
+elapsedTime for I in L_ls do(
+    tG := isGolod(S/I);
+    if not tG then <<I<<endl;
+    )
+
 
 
 elapsedTime LG = for i from 0 to 5 list {L_i, isGolod(S/((L_i)^2)),longTest (L_i)^2, lsg monomialIdeal (L_i)^2};
@@ -194,4 +226,202 @@ for i from 11 to 19 do (
     )
 
 elapsedTime isGolod(S/J)
- 
+
+S = ZZ/101[a,b,c,d]
+I = (ideal gens S)^3
+R = S/I
+betti (G = res coker sub(dual ((res (S^1/I)).dd_4), R))
+
+bu = burkeResolution (coker G.dd_1, 5)
+picture chainComplex bu
+betti bu
+betti  res coker G.dd_1
+
+picture(g= chainComplex burkeResolution (coker vars R, 5))
+aInfinity coker vars R
+
+--Katth\:an example
+kk = ZZ/101
+S = kk[x_1, x_2, y_1, y_2, z]
+I = ideal(x_1*x_2^2, 
+    x_1*x_2*y_1*y_2, 
+    x_1*y_1*z, 
+    y_1*y_2^2,
+    y_2^2*z^2,
+    x_2^2*y_2^2*z,
+    z^3,
+    x_2^2*z^2)
+codim I
+betti res I
+isGolod(S/I)
+K = koszulComplexDGA(S/I)
+HK = HH K
+basis HK
+iHK = ideal HK
+(ideal gens HK)^2 == 0
+w = Ext^3(S^1/I, S^{5})
+Rbar = Ext^3(w, S)
+betti (G = res Rbar)
+betti res w
+betti res I
+numgens trim iHK
+G.dd_1
+transpose gens I
+
+load "GolodCriteria.m2"
+R = S/I
+(primaryDecomposition I)/codim
+J = intersect((primaryDecomposition I)_{0..3})
+--J is unmixed
+R = S/J --(new R)
+
+use R
+a = {x_1,x_2,y_1,y_2}
+b = sum apply (a, p -> p^3)
+ann ideal b
+
+mR = ideal vars R
+isIsomorphic(prune (H= Hom(mR^3, R^1)), prune Hom(mR^6,R^1))
+
+phi = map(R,S)
+RbarS = pushForward(phi, prune Hom(mR^3, R^1))
+betti res RbarS
+
+bmat = matrix{{b}}// gens (mR^3)
+L = apply(numgens H, i ->homomorphism (H_{i}));
+
+P = ideal ((matrix L_0 )*bmat, (matrix L_1) *bmat)
+needsPackage "ReesAlgebra"
+rP = reesIdeal(P,b)
+Re = ring rP
+phi = map(R[w_1],Re, {1,w_1})
+toString phi rP
+S' = kk[gens S, w_1]
+use S'
+bl = ideal (z*w_1,
+    x_1*w_1,
+    -y_1*w_1+y_1*z,
+    y_2^2*w_1,
+    -x_2^2*w_1+x_2^2*z,
+    w_1^2)
+J' = (map(S',S)) J
+tot = (bl+J')
+isGolod(S'/tot)
+betti res oo
+isHomogeneous oo
+
+trim(b*trim sum L)
+trim(b*(trim ideal matrix H))
+
+RbarR = prune coker sub(presentation Rbar, R)
+isIsomorphic (RbarR, prune Hom(mR^10, R^1))
+
+isIsomorphic( prune Hom(mR^11, R^1), prune Hom(mR^10, R^1))
+prune Hom(mR^15, R^1)
+
+betti Hom(mR^6, R^1)
+
+apply(10, i -> toHomomorphism (Hom(mR^6, R^1)_{i}))
+Hom(mR^6, R^1)_{0})
+
+---Katth\"an original example
+restart
+load "GolodCriteria.m2"
+kk= ZZ/101
+S = kk[a,b,c,d,z,w]
+I = ideal"ab2, z2w, cd2, b2zw, d2z2, abcd, b2d2z, acz"
+isGolod (S/I)
+betti res (S^1/I)
+codim I
+(primaryDecomposition I)/codim
+---codim 2, depth 0, dim 1
+restart
+load "GolodCriteria.m2"
+kk= ZZ/101
+S = kk[a,b,c]
+use S
+mS = ideal gens S
+I = ideal(a,b)*ideal(a,c)
+isGolod(S/I)
+betti res I
+J = I
+longTest I
+
+    S = ring J;
+    F0 := dual res module J;
+    ell := length F0;
+    F := F0[-ell];
+    R := S/J;
+    G := res(coker (R**F.dd_1), LengthLimit =>ell);
+    RF' := chainComplex apply(ell, i-> R**F.dd_(1+i));
+    ex := extend(G, RF', id_(G_0));
+    for i from 2 to codim J list 0== ker sub((ex)_i, kk)
+
+w = prune Ext^2(S^1/J, S^1)
+F = res w
+R = S/J
+G = res(R**w, LengthLimit => 2)
+RF' = chainComplex apply(2, i-> R**F.dd_(1+i))
+    ex = extend(G, RF', id_(G_0))
+G = chainComplex burkeResolution (R**w, 3)
+res (R**w)
+
+--avramov example of no mult structure
+restart
+load "GolodCriteria.m2"
+kk= ZZ/101
+S = kk[a,b,c,d]
+use S
+J = ideal"a2,b7,c7,d2,ab,bc, cd, ac6-b6d"
+codim J
+isGolod (S/J)
+longTest J
+
+--katth\"an proves:
+--any monomial example that has trivial koszul mult but is not Golod
+--requires >= 5 vars and >= 8 gens.
+viewHelp MonomialOrbits
+restart
+load "GolodCriteria.m2"
+kk = ZZ/101
+n= 4
+S = kk[vars(0..(n-1))]
+vars S
+de =3
+I0= ideal apply(gens S, x -> x^de)
+B = monomialIdeal basis (4, S)
+elapsedTime L = orbitRepresentatives(S,I0,B,-3);#L
+
+L = orbitRepresentatives(S,I0,(: 3));#L
+
+ls = select(#L, i-> zeroMult (L_i))
+#ls
+elapsedTime LG =for I in L list(
+--    tG := isGolod(S/I);
+    zG := zeroMult(S/I);
+    {zG, I}
+    );
+tally apply(LG, i->i_0)
+Lz= select(LG, i -> i_0)
+elapsedTime Lzg =for I in Lz list(
+    tG := isGolod(S/I_1);
+--    zG := zeroMult(S/I);
+    {tG}
+    );
+tally Lzg
+
+---
+picture burkeResolution (
+restart
+load "GolodCriteria.m2"
+kk = ZZ/101
+n= 4
+S = kk[vars(0..(n-1))]
+vars S
+de= 3
+I0= ideal apply(gens S, x -> x^de)
+R = S/I0
+w = R^1
+A=burkeResolution (w, 5)
+picture chainComplex A
+viewHelp AInfinity
