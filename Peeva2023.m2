@@ -2,7 +2,9 @@ needsPackage "RandomIdeals"
 needsPackage "CompleteIntersectionResolutions"
 
 minors1 = method()
-minors1 Module := M -> minors1 res M
+minors1 Module := M -> (L := minors1 res M;
+    print netList L;
+    sum L)
 minors1 ChainComplex  := List =>  F -> (
     m := min F;
     if F.dd_(m+1) !=0 then m = m+1 else m = m+2;
@@ -35,9 +37,12 @@ end--
 restart
 load "Peeva2023.m2"
 kk = ZZ/101
-S = kk[a,b,c,d,e]
+S = kk[a,b,c,d,e, SkewCommutative => true]
+R = S
 I = ideal(a*b*c)+ ideal for i from 0 to numgens S-1 list S_i^5
 R = S/I
+M  = module ideal "ab, a2, cd,de"
+conjecture M
 M = module ideal"ab+cd, bc2d, a3"
 conjecture M
 
@@ -47,9 +52,12 @@ FS = res(MS)
 netList minors1 FS
 
 R = S/ideal(a^5, b^5)
-
-M = module randomBinomialIdeal({2,3},R)
+M = module randomSquareFreeMonomialIdeal({2,3,4},R)
+M = coker random(R^2, R^{2:-1})
+netList minors1 M
+M = module (ideal"e4bcd" + randomBinomialIdeal({3},R))
 conjecture M
+
 F = res(M, LengthLimit => 5)
 netList minors1 F
 M1 = coker F.dd_4;
