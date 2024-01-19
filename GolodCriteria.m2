@@ -425,3 +425,5 @@ w = R^1
 A=burkeResolution (w, 5)
 picture chainComplex A
 viewHelp AInfinity
+
+
